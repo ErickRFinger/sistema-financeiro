@@ -19,12 +19,14 @@ interface CurrencyQuote {
 
 export const CurrencyQuotesWidget: React.FC = () => {
   const [quotes, setQuotes] = useState<CurrencyQuote[]>([]);
+  const [selicRate, setSelicRate] = useState<string>('13,75%');
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   const fetchQuotes = async () => {
     setLoading(true);
     try {
+      // 1. Fetch Currency rates
       const res = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,BTC-BRL');
       if (res.ok) {
         const data = await res.json();
@@ -53,6 +55,21 @@ export const CurrencyQuotesWidget: React.FC = () => {
       }
     } catch (err) {
       console.warn('Erro ao carregar cotações:', err);
+    }
+
+    // 2. Fetch Official Selic Rate from Banco Central do Brasil (SGS 432)
+    try {
+      const bcbRes = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json');
+      if (bcbRes.ok) {
+        const bcbData = await bcbRes.json();
+        if (bcbData && bcbData[0]?.valor) {
+          const num = parseFloat(bcbData[0].valor);
+          setSelicRate(`${num.toFixed(2).replace('.', ',')}%`);
+        }
+      }
+    } catch {
+      // Fallback default
+      setSelicRate('13,75%');
     } finally {
       setLoading(false);
     }
@@ -111,7 +128,7 @@ export const CurrencyQuotesWidget: React.FC = () => {
           );
         })}
 
-        {/* CDI & Selic Card */}
+        {/* CDI & Selic Card (Banco Central) */}
         <div className="p-3.5 rounded-2xl bg-dark-950 border border-dark-850 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400">Taxa Selic / CDI</span>
@@ -121,7 +138,7 @@ export const CurrencyQuotesWidget: React.FC = () => {
           </div>
 
           <div className="text-base sm:text-lg font-black text-gold-400 mt-1">
-            10,75% <span className="text-xs font-normal text-slate-400">a.a.</span>
+            {selicRate} <span className="text-xs font-normal text-slate-400">a.a.</span>
           </div>
         </div>
       </div>
