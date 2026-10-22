@@ -164,14 +164,71 @@ export async function getTransactions(): Promise<FinancialTransaction[]> {
 }
 
 /**
- * Create a new transaction in Supabase
+ * Create a new transaction in Supabase with auto-sanitization
  */
 export async function createTransaction(tx: Omit<FinancialTransaction, 'id' | 'created_at'>): Promise<FinancialTransaction | null> {
   try {
     const id = 'tx_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     
+    // 1. Sanitize & Normalize Type (MUST be 'income' or 'expense' due to database check constraint)
+    const rawType = String(tx.type || '').toLowerCase();
+    const safeType: 'income' | 'expense' = (
+      rawType.includes('receita') || 
+      rawType.includes('entrada') || 
+      rawType.includes('ganho') || 
+      rawType.includes('venda') || 
+      rawType === 'income'
+    ) ? 'income' : 'expense';
+
+    // 2. Resolve & Validate Account ID (MUST match existing financial_accounts foreign key)
+    const accounts = await getAccounts();
+    let safeAccountId = tx.account_id;
+    const accountExists = accounts.some(a => a.id === safeAccountId);
+
+    if (!accountExists) {
+      const lowerReq = String(safeAccountId || '').toLowerCase();
+      // Match by account name or keywords
+      const matched = accounts.find(a => 
+        a.name.toLowerCase().includes(lowerReq) ||
+        lowerReq.includes(a.name.toLowerCase())
+      );
+
+      if (matched) {
+        safeAccountId = matched.id;
+      } else if (lowerReq.includes('caixa') || lowerReq.includes('mercado') || lowerReq.includes('carteira')) {
+        const mp = accounts.find(a => a.id === 'acc_mp' || a.name.toLowerCase().includes('mercado'));
+        safeAccountId = mp ? mp.id : (accounts[0]?.id || 'acc_btg');
+      } else if (lowerReq.includes('inter')) {
+        const inter = accounts.find(a => a.id === 'acc_inter' || a.name.toLowerCase().includes('inter'));
+        safeAccountId = inter ? inter.id : (accounts[0]?.id || 'acc_btg');
+      } else if (lowerReq.includes('sicredi')) {
+        const sicredi = accounts.find(a => a.id === 'acc_sicredi' || a.name.toLowerCase().includes('sicredi'));
+        safeAccountId = sicredi ? sicredi.id : (accounts[0]?.id || 'acc_btg');
+      } else {
+        safeAccountId = accounts[0]?.id || 'acc_btg';
+      }
+    }
+
+    // 3. Sanitize Amount (positive number)
+    const safeAmount = Math.abs(Number(tx.amount)) || 0;
+    if (safeAmount <= 0) {
+      console.warn('Valor inválido para transação:', tx.amount);
+      return null;
+    }
+
+    // 4. Sanitize Date
+    let safeDate = tx.transaction_date;
+    if (!safeDate || !/^\d{4}-\d{2}-\d{2}$/.test(safeDate)) {
+      safeDate = new Date().toISOString().split('T')[0];
+    }
+
+    // 5. Sanitize Status
+    const safeStatus = (String(tx.status).toLowerCase().includes('pendente') || tx.status === 'pending') 
+      ? 'pending' 
+      : 'paid';
+
     // Encode metadata safely into title to preserve full receipt URL & method without schema change
-    let fullTitle = tx.title.trim();
+    let fullTitle = (tx.title || (safeType === 'income' ? 'Entrada Caixa' : 'Despesa')).trim();
     if (tx.supplier_name && !fullTitle.toLowerCase().includes(tx.supplier_name.toLowerCase())) {
       fullTitle = `${tx.supplier_name} - ${fullTitle}`;
     }
@@ -185,12 +242,12 @@ export async function createTransaction(tx: Omit<FinancialTransaction, 'id' | 'c
     const payload = {
       id,
       title: fullTitle.slice(0, 200), // Fit column length 200
-      amount: tx.amount,
-      type: tx.type,
-      account_id: tx.account_id,
-      category: tx.category || 'Outros',
-      transaction_date: tx.transaction_date,
-      status: tx.status || 'paid',
+      amount: safeAmount,
+      type: safeType,
+      account_id: safeAccountId,
+      category: tx.category || (safeType === 'income' ? 'Vendas & Serviços Prestados' : 'Outros'),
+      transaction_date: safeDate,
+      status: safeStatus,
     };
 
     const { data, error } = await supabase
@@ -200,28 +257,32 @@ export async function createTransaction(tx: Omit<FinancialTransaction, 'id' | 'c
       .single();
 
     if (error) {
-      console.error('Erro ao inserir transação:', error);
+      console.error('Erro ao inserir transação no Supabase:', error);
       throw error;
     }
 
     // Update account balance if transaction is marked as paid
-    if (tx.status === 'paid' && tx.account_id) {
-      const accounts = await getAccounts();
-      const targetAccount = accounts.find(a => a.id === tx.account_id);
+    if (safeStatus === 'paid' && safeAccountId) {
+      const targetAccount = accounts.find(a => a.id === safeAccountId);
       if (targetAccount) {
-        const delta = tx.type === 'income' ? tx.amount : -tx.amount;
+        const delta = safeType === 'income' ? safeAmount : -safeAmount;
         const newBalance = targetAccount.balance + delta;
-        await updateAccountBalance(tx.account_id, newBalance);
+        await updateAccountBalance(safeAccountId, newBalance);
       }
     }
 
     return {
       id,
       ...tx,
+      type: safeType,
+      account_id: safeAccountId,
+      amount: safeAmount,
+      status: safeStatus,
+      transaction_date: safeDate,
       created_at: new Date().toISOString(),
     };
   } catch (err) {
-    console.error('Falha ao criar transação:', err);
+    console.error('Falha geral ao criar transação:', err);
     return null;
   }
 }

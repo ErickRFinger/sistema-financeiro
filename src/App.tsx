@@ -75,6 +75,7 @@ export function App() {
   const handleCreateTransaction = async (data: Omit<FinancialTransaction, 'id' | 'created_at'>) => {
     const created = await createTransaction(data);
     if (created) {
+      setTransactions((prev) => [created, ...prev.filter(t => t.id !== created.id)]);
       await loadData();
     }
   };

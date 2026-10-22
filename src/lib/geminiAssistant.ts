@@ -61,35 +61,42 @@ async function processWithGeminiAPI(
   transactions: FinancialTransaction[],
   apiKey: string
 ): Promise<AssistantActionPayload | null> {
-  const accountsContext = accounts.map(a => `ID: ${a.id}, Nome: ${a.name}, Saldo: R$ ${a.balance}`).join(' | ');
+  const accountsContext = accounts.map(a => `ID: "${a.id}", Nome: "${a.name}", Saldo: ${a.balance}`).join(' | ');
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const systemPrompt = `Você é o Assistente Executivo Financeiro Inteligente do sistema Aura Finance.
+  const systemPrompt = `Você é o Assistente Executivo Financeiro do sistema Aura Finance.
 O usuário vai falar ou digitar comandos como:
-- "ganhei 1800,00 coloca no caixa"
-- "gastei 85 no almoço no cartão de crédito"
-- "qual meu saldo?"
-- "lança conta de luz de 320 reais a pagar dia 20"
+- "ganhei 1800,00 coloca no caixa" -> Criar transação de RECEITA (income), valor 1800.00
+- "gastei 85 no almoço no cartão de crédito" -> Criar transação de DESPESA (expense), valor 85.00
+- "paguei a conta de luz 350 reais pelo BTG" -> Criar transação de DESPESA (expense), valor 350.00
+- "qual meu saldo?" -> Consultar saldo
 
-Contas disponíveis no sistema: [${accountsContext}]
-Data de hoje: ${todayStr}
+CONTAS BANCÁRIAS REAIS EXISTENTES NO SISTEMA:
+[${accountsContext}]
 
-Analise a intenção e responda ESTRITAMENTE em formato JSON (sem markdown em volta):
+IMPORTANTE SOBRE AS CONTAS:
+- Se o usuário disser "caixa" ou "carteira" ou não especificar, use o ID "${accounts[0]?.id || 'acc_btg'}".
+- Se falar BTG, use o ID correspondente.
+- Se falar Inter, use o ID correspondente.
+- O campo "account_id" DEVE SER O ID EXATO (ex: "${accounts[0]?.id || 'acc_btg'}").
+
+DATA DE HOJE: ${todayStr}
+
+Responda APENAS em JSON estrito (sem markdown):
 {
-  "intent": "create_transaction" | "query_balance" | "query_expenses" | "cfo_advice" | "general_chat",
-  "replyText": "Resposta amigável, clara e objetiva para o usuário em português.",
+  "intent": "create_transaction",
+  "replyText": "Confirmação detalhada informando o valor e conta onde foi lançado.",
   "transactionData": {
-    "type": "income" | "expense",
+    "type": "income" ou "expense",
     "amount": 1800.00,
-    "title": "Descrição clara do lançamento",
-    "category": "Alimentação & Refeição" | "Combustível & Transporte" | "Infraestrutura & Ferramentas" | "Equipamentos & Hardware" | "Vendas & Serviços Prestados" | "Aluguel & Contas Fixas" | "Outros",
-    "account_id": "ID exato da conta mais apropriada das disponíveis",
-    "payment_method": "PIX" | "Cartão de Crédito" | "Cartão de Débito" | "Boleto" | "Dinheiro" | "Transferência",
-    "date": "YYYY-MM-DD",
-    "status": "paid" | "pending"
+    "title": "Descrição limpa do lançamento",
+    "category": "Vendas & Serviços Prestados" | "Alimentação & Refeição" | "Combustível & Transporte" | "Infraestrutura & Ferramentas" | "Equipamentos & Hardware" | "Aluguel & Contas Fixas" | "Outros",
+    "account_id": "${accounts[0]?.id || 'acc_btg'}",
+    "payment_method": "PIX" | "Cartão de Crédito" | "Cartão de Débito" | "Boleto" | "Dinheiro",
+    "date": "${todayStr}",
+    "status": "paid"
   }
-}
-Se for query_balance ou geral, transactionData pode ser nulo.`;
+}`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -112,8 +119,35 @@ Se for query_balance ou geral, transactionData pode ser nulo.`;
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return null;
 
-  const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  const parsed = JSON.parse(clean);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  // Sanitize transaction data if returned
+  if (parsed.transactionData && Number(parsed.transactionData.amount) > 0) {
+    const rawType = String(parsed.transactionData.type || '').toLowerCase();
+    parsed.transactionData.type = (
+      rawType.includes('receita') || 
+      rawType.includes('entrada') || 
+      rawType.includes('ganho') || 
+      rawType.includes('venda') || 
+      rawType === 'income'
+    ) ? 'income' : 'expense';
+
+    parsed.transactionData.amount = Math.abs(Number(parsed.transactionData.amount));
+
+    // Force valid account ID
+    const targetId = String(parsed.transactionData.account_id || '').toLowerCase();
+    const matchedAcc = accounts.find(a => a.id === targetId || a.name.toLowerCase().includes(targetId));
+    if (matchedAcc) {
+      parsed.transactionData.account_id = matchedAcc.id;
+    } else {
+      parsed.transactionData.account_id = accounts[0]?.id || 'acc_btg';
+    }
+
+    parsed.intent = 'create_transaction';
+  }
 
   return parsed;
 }
@@ -139,7 +173,6 @@ function processWithLocalNLP(
   }
 
   // 2. Extract Amount
-  // matches "1800", "1800,00", "1.800,00", "1800.00", "85", "45,50"
   let amount = 0;
   const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
   if (amountMatch) {
@@ -148,16 +181,22 @@ function processWithLocalNLP(
   }
 
   // 3. Determine Income vs Expense
-  const isIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido/i.test(lower);
-  const isExpense = /gastei|paguei|comprei|saiu|boleto|despesa|custo|debitou|pago|pagar/i.test(lower);
+  const isIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido|deposito/i.test(lower);
+  const isExpense = /gastei|paguei|comprei|saiu|boleto|despesa|custo|debitou|debita|pagar|compra/i.test(lower);
 
-  const type: TransactionType = isIncome ? 'income' : 'expense';
+  const type: TransactionType = (isIncome && !isExpense) || lower.includes('ganhei') || lower.includes('recebi') ? 'income' : 'expense';
 
   // 4. Determine Target Bank Account
-  let targetAccount = accounts[0];
+  let targetAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
   for (const acc of accounts) {
     const accName = acc.name.toLowerCase();
-    if (lower.includes(accName) || (accName.includes('btg') && lower.includes('btg')) || (accName.includes('inter') && lower.includes('inter')) || (accName.includes('mercado') && lower.includes('mercado')) || (accName.includes('sicredi') && lower.includes('sicredi'))) {
+    if (
+      lower.includes(accName) || 
+      (accName.includes('btg') && lower.includes('btg')) || 
+      (accName.includes('inter') && lower.includes('inter')) || 
+      (accName.includes('mercado') && lower.includes('mercado')) || 
+      (accName.includes('sicredi') && lower.includes('sicredi'))
+    ) {
       targetAccount = acc;
       break;
     }
@@ -165,41 +204,46 @@ function processWithLocalNLP(
 
   // If user says "caixa" or "carteira"
   if (lower.includes('caixa') || lower.includes('carteira')) {
-    const found = accounts.find(a => a.name.toLowerCase().includes('mercado') || a.name.toLowerCase().includes('caixa') || a.name.toLowerCase().includes('inter'));
+    const found = accounts.find(a => 
+      a.id === 'acc_mp' || 
+      a.name.toLowerCase().includes('mercado') || 
+      a.name.toLowerCase().includes('caixa')
+    );
     if (found) targetAccount = found;
   }
 
   // 5. Category detection
-  let category = isIncome ? 'Vendas & Serviços Prestados' : 'Outros';
-  if (/almoco|jantar|lanche|comida|mercado|padaria|restaurante|cafe|ifood/.test(lower)) {
+  let category = type === 'income' ? 'Vendas & Serviços Prestados' : 'Outros';
+  if (/almoco|almoço|jantar|lanche|comida|mercado|padaria|restaurante|cafe|café|ifood/.test(lower)) {
     category = 'Alimentação & Refeição';
-  } else if (/gasolina|combustivel|etanol|diesel|posto|uber|estacionamento|pedagio/.test(lower)) {
+  } else if (/gasolina|combustivel|combustível|etanol|diesel|posto|uber|estacionamento|pedagio|pedágio/.test(lower)) {
     category = 'Combustível & Transporte';
-  } else if (/ferramenta|parafuso|bucha|material|obra|construcao|cabo|fita/.test(lower)) {
+  } else if (/ferramenta|parafuso|bucha|material|obra|construcao|construção|cabo|fita/.test(lower)) {
     category = 'Infraestrutura & Ferramentas';
-  } else if (/camera|dvr|switch|servidor|computador|notebook|pecas|hardware/.test(lower)) {
+  } else if (/camera|câmera|dvr|switch|servidor|computador|notebook|pecas|peças|hardware/.test(lower)) {
     category = 'Equipamentos & Hardware';
-  } else if (/luz|agua|aluguel|internet|vivo|energia|claro|enel/.test(lower)) {
+  } else if (/luz|agua|água|aluguel|internet|vivo|energia|claro|enel/.test(lower)) {
     category = 'Aluguel & Contas Fixas';
   }
 
   // 6. Payment method
   let payment_method: PaymentMethod = 'PIX';
-  if (/credito|cartao de credito/.test(lower)) payment_method = 'Cartão de Crédito';
-  else if (/debito|cartao de debito/.test(lower)) payment_method = 'Cartão de Débito';
+  if (/credito|crédito|cartao de credito|cartão de crédito/.test(lower)) payment_method = 'Cartão de Crédito';
+  else if (/debito|débito|cartao de debito|cartão de débito/.test(lower)) payment_method = 'Cartão de Débito';
   else if (/boleto/.test(lower)) payment_method = 'Boleto';
-  else if (/dinheiro|especie/.test(lower)) payment_method = 'Dinheiro';
-  else if (/ted|transferencia/.test(lower)) payment_method = 'Transferência';
+  else if (/dinheiro|especie|espécie/.test(lower)) payment_method = 'Dinheiro';
+  else if (/ted|transferencia|transferência/.test(lower)) payment_method = 'Transferência';
 
   // 7. Status (paid vs pending)
   const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(lower);
   const status: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
 
-  // 8. Title formulation
-  let title = isIncome ? 'Recebimento / Venda' : 'Despesa Lançada por IA';
+  // 8. Clean title
+  let title = type === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
   const cleanedTitle = input
-    .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|no caixa|na conta|reais|r\$/gi, '')
-    .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/, '')
+    .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|no caixa|na conta|reais|r\$|,00|\.00/gi, '')
+    .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/g, '')
+    .replace(/[,;]/g, '')
     .trim();
 
   if (cleanedTitle.length >= 3) {
@@ -209,7 +253,7 @@ function processWithLocalNLP(
   if (amount > 0) {
     return {
       intent: 'create_transaction',
-      replyText: `Pronto! Registrei ${type === 'income' ? 'uma entrada' : 'uma saída'} de ${formatCurrency(amount)} na conta ${targetAccount.name} (${category}).`,
+      replyText: `✅ Lançamento registrado! ${type === 'income' ? 'Receita' : 'Despesa'} de ${formatCurrency(amount)} adicionada na conta ${targetAccount.name} (${category}).`,
       transactionData: {
         type,
         amount,
@@ -225,6 +269,6 @@ function processWithLocalNLP(
 
   return {
     intent: 'general_chat',
-    replyText: 'Entendi! Para lançar, você pode dizer por exemplo: "Ganhei 1800 coloca no caixa" ou "Gastei 45 no almoço com cartão".',
+    replyText: 'Entendi! Para lançar um valor automaticamente, você pode dizer por exemplo: "Ganhei 1800,00 coloca no caixa" ou "Gastei 45 no almoço".',
   };
 }

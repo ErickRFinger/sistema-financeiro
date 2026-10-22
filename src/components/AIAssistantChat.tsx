@@ -121,11 +121,11 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 
       let actionTaken: any = undefined;
 
-      // Execute transaction if detected
-      if (result.intent === 'create_transaction' && result.transactionData) {
+      // Execute transaction if detected (check transactionData existence and amount > 0!)
+      if (result.transactionData && Number(result.transactionData.amount) > 0) {
         await onCreateTransaction({
           title: result.transactionData.title,
-          amount: result.transactionData.amount,
+          amount: Number(result.transactionData.amount),
           type: result.transactionData.type,
           account_id: result.transactionData.account_id,
           category: result.transactionData.category,
@@ -140,7 +140,7 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
         };
 
         confetti({
-          particleCount: 50,
+          particleCount: 60,
           spread: 60,
           origin: { y: 0.8 },
           colors: ['#facc15', '#22c55e', '#ffffff'],
