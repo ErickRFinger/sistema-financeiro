@@ -387,3 +387,13 @@ export function auditSupplierPrices(
     severity: 'normal',
   };
 }
+
+
+/**
+ * Gera recomendações executivas a partir do relatório de saúde financeira
+ */
+export function generateExecutiveRecommendations(
+  report: FinancialHealthReport
+): CFOExecutiveRecommendation[] {
+  return report.recommendations || [];
+}
