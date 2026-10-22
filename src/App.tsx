@@ -14,6 +14,8 @@ import { CFOModal } from './components/CFOModal';
 import { AIAssistantChat } from './components/AIAssistantChat';
 import { AuthModal } from './components/AuthModal';
 import { MercadoPagoModal } from './components/MercadoPagoModal';
+import { LandingAuthGate } from './components/LandingAuthGate';
+import { TrialPaywall } from './components/TrialPaywall';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
@@ -28,12 +30,14 @@ import {
   updateTransactionStatus, 
   deleteTransaction 
 } from './lib/supabase';
+import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [accounts, setAccounts] = useState<FinancialAccount[]>(INITIAL_DEFAULT_ACCOUNTS);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
   const [systemName, setSystemName] = useState<string>('Aura Finance');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
@@ -43,20 +47,24 @@ export function App() {
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [isCFOModalOpen, setIsCFOModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'login' | 'register'>('login');
   const [isMercadoPagoModalOpen, setIsMercadoPagoModalOpen] = useState(false);
+  const [mpModalMode, setMpModalMode] = useState<'subscription' | 'custom'>('subscription');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
 
-  // Check Supabase Auth state
+  // Check Supabase Auth state on boot
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
+      setAuthChecking(false);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
+      setAuthChecking(false);
     });
 
     return () => subscription.unsubscribe();
@@ -67,29 +75,103 @@ export function App() {
     setCurrentUser(null);
   };
 
-  // Load initial data from Supabase
-  const loadData = useCallback(async () => {
+  // Determine user permissions & subscription/trial state
+  const isAdmin = Boolean(
+    currentUser?.email === 'admin@aurafinance.com.br' || 
+    currentUser?.user_metadata?.is_admin === true ||
+    currentUser?.user_metadata?.role === 'admin'
+  );
+
+  // Calculate 7-day trial window
+  const userCreatedAt = new Date(currentUser?.created_at || Date.now());
+  const trialEndDate = new Date(userCreatedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const remainingTrialMs = trialEndDate.getTime() - Date.now();
+  const trialDaysRemaining = Math.max(0, Math.ceil(remainingTrialMs / (24 * 60 * 60 * 1000)));
+
+  // Check if user has active paid subscription
+  const isPaidSubscription = Boolean(
+    currentUser && (
+      localStorage.getItem(`aura_sub_${currentUser.id}`) === 'active' ||
+      currentUser.user_metadata?.plan === 'active' ||
+      currentUser.user_metadata?.plan === 'lifetime'
+    )
+  );
+
+  const isSubscriptionActive = isAdmin || isPaidSubscription || trialDaysRemaining > 0;
+  const isTrialExpired = Boolean(currentUser && !isAdmin && !isPaidSubscription && trialDaysRemaining <= 0);
+
+  const handleSubscriptionActivated = () => {
+    if (currentUser?.id) {
+      localStorage.setItem(`aura_sub_${currentUser.id}`, 'active');
+      setCurrentUser({
+        ...currentUser,
+        user_metadata: { ...currentUser.user_metadata, plan: 'active' },
+      });
+    }
+  };
+
+  // Load data: Admin gets corporate database; Regular users start clean and zeroed!
+  const loadData = useCallback(async (user?: any) => {
+    const activeUser = user !== undefined ? user : currentUser;
+    if (!activeUser) return;
+
     setLoading(true);
     try {
-      const [accs, txs] = await Promise.all([
-        getAccounts(),
-        getTransactions(),
-      ]);
-      setAccounts(accs);
-      setTransactions(txs);
+      const userIsAdmin = Boolean(
+        activeUser?.email === 'admin@aurafinance.com.br' || 
+        activeUser?.user_metadata?.is_admin === true
+      );
+
+      if (userIsAdmin) {
+        // Admin views the main accounts & all transactions
+        const [accs, txs] = await Promise.all([
+          getAccounts(),
+          getTransactions(),
+        ]);
+        setAccounts(accs);
+        setTransactions(txs);
+      } else {
+        // Regular user starts clean and zeroed!
+        const userKey = `aura_user_${activeUser.id}`;
+        const savedAccs = localStorage.getItem(`${userKey}_accounts`);
+        const savedTxs = localStorage.getItem(`${userKey}_transactions`);
+
+        if (savedAccs) {
+          setAccounts(JSON.parse(savedAccs));
+        } else {
+          // Zero balance initial accounts
+          const zeroed: FinancialAccount[] = [
+            { id: `acc_btg_${activeUser.id.substring(0, 8)}`, name: 'BTG Pactual', color: '#facc15', balance: 0.00 },
+            { id: `acc_inter_${activeUser.id.substring(0, 8)}`, name: 'Banco Inter', color: '#f97316', balance: 0.00 },
+            { id: `acc_sicredi_${activeUser.id.substring(0, 8)}`, name: 'Sicredi', color: '#10b981', balance: 0.00 },
+            { id: `acc_mp_${activeUser.id.substring(0, 8)}`, name: 'Mercado Pago', color: '#06b6d4', balance: 0.00 },
+          ];
+          setAccounts(zeroed);
+          localStorage.setItem(`${userKey}_accounts`, JSON.stringify(zeroed));
+        }
+
+        if (savedTxs) {
+          setTransactions(JSON.parse(savedTxs));
+        } else {
+          setTransactions([]);
+          localStorage.setItem(`${userKey}_transactions`, JSON.stringify([]));
+        }
+      }
     } catch (err) {
       console.error('Erro ao sincronizar dados com Supabase:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const savedName = localStorage.getItem('aura_system_name');
     if (savedName) setSystemName(savedName);
 
-    loadData();
-  }, [loadData]);
+    if (currentUser) {
+      loadData(currentUser);
+    }
+  }, [currentUser, loadData]);
 
   // Handle open new transaction modal
   const handleOpenNewTransaction = (type: TransactionType = 'expense') => {
@@ -97,20 +179,66 @@ export function App() {
     setIsTransactionModalOpen(true);
   };
 
-  // Handle create transaction
+  // Handle create transaction (multi-tenant safe)
   const handleCreateTransaction = async (data: Omit<FinancialTransaction, 'id' | 'created_at'>) => {
-    const created = await createTransaction(data);
-    if (created) {
-      setTransactions((prev) => [created, ...prev.filter(t => t.id !== created.id)]);
-      await loadData();
+    if (isAdmin) {
+      const created = await createTransaction(data);
+      if (created) {
+        setTransactions((prev) => [created, ...prev.filter(t => t.id !== created.id)]);
+        await loadData(currentUser);
+      }
+    } else if (currentUser) {
+      const userKey = `aura_user_${currentUser.id}`;
+      const newTx: FinancialTransaction = {
+        id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        ...data,
+        created_at: new Date().toISOString(),
+      };
+      const updatedTxs = [newTx, ...transactions];
+      setTransactions(updatedTxs);
+      localStorage.setItem(`${userKey}_transactions`, JSON.stringify(updatedTxs));
+
+      if (data.status === 'paid' && data.account_id) {
+        const delta = data.type === 'income' ? data.amount : -data.amount;
+        const updatedAccs = accounts.map(a => a.id === data.account_id ? { ...a, balance: a.balance + delta } : a);
+        setAccounts(updatedAccs);
+        localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
+      }
+
+      await createTransaction(data);
     }
   };
 
   // Handle toggle status
   const handleToggleStatus = async (tx: FinancialTransaction, newStatus: 'paid' | 'pending') => {
-    const success = await updateTransactionStatus(tx, newStatus);
-    if (success) {
-      await loadData();
+    if (isAdmin) {
+      const success = await updateTransactionStatus(tx, newStatus);
+      if (success) {
+        await loadData(currentUser);
+        if (selectedTransaction?.id === tx.id) {
+          setSelectedTransaction({ ...selectedTransaction, status: newStatus });
+        }
+      }
+    } else if (currentUser) {
+      const userKey = `aura_user_${currentUser.id}`;
+      const updatedTxs = transactions.map(t => t.id === tx.id ? { ...t, status: newStatus } : t);
+      setTransactions(updatedTxs);
+      localStorage.setItem(`${userKey}_transactions`, JSON.stringify(updatedTxs));
+
+      if (tx.account_id && tx.status !== newStatus) {
+        let delta = 0;
+        if (newStatus === 'paid' && tx.status !== 'paid') {
+          delta = tx.type === 'income' ? tx.amount : -tx.amount;
+        } else if (newStatus !== 'paid' && tx.status === 'paid') {
+          delta = tx.type === 'income' ? -tx.amount : tx.amount;
+        }
+        if (delta !== 0) {
+          const updatedAccs = accounts.map(a => a.id === tx.account_id ? { ...a, balance: a.balance + delta } : a);
+          setAccounts(updatedAccs);
+          localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
+        }
+      }
+
       if (selectedTransaction?.id === tx.id) {
         setSelectedTransaction({ ...selectedTransaction, status: newStatus });
       }
@@ -119,15 +247,35 @@ export function App() {
 
   // Handle delete transaction
   const handleDeleteTransaction = async (tx: FinancialTransaction) => {
-    const success = await deleteTransaction(tx);
-    if (success) {
-      await loadData();
+    if (isAdmin) {
+      const success = await deleteTransaction(tx);
+      if (success) {
+        await loadData(currentUser);
+        setSelectedTransaction(null);
+      }
+    } else if (currentUser) {
+      const userKey = `aura_user_${currentUser.id}`;
+      const updatedTxs = transactions.filter(t => t.id !== tx.id);
+      setTransactions(updatedTxs);
+      localStorage.setItem(`${userKey}_transactions`, JSON.stringify(updatedTxs));
+
+      if (tx.status === 'paid' && tx.account_id) {
+        const revertDelta = tx.type === 'income' ? -tx.amount : tx.amount;
+        const updatedAccs = accounts.map(a => a.id === tx.account_id ? { ...a, balance: a.balance + revertDelta } : a);
+        setAccounts(updatedAccs);
+        localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
+      }
       setSelectedTransaction(null);
     }
   };
 
-  // Seed demo data for showcase & sales presentation
+  // Seed demo data for showcase & sales presentation (Admin only)
   const handleSeedDemoData = async () => {
+    if (!isAdmin) {
+      alert('Apenas administradores podem carregar dados de demonstração corporativos.');
+      return;
+    }
+
     const today = new Date();
     const formatDateStr = (daysAgo: number) => {
       const d = new Date(today);
@@ -222,15 +370,120 @@ export function App() {
       await createTransaction(item);
     }
 
-    await loadData();
+    await loadData(currentUser);
   };
 
   const handleClearData = async () => {
-    // optional
+    if (confirm('Deseja limpar seus dados e reiniciar zerado?')) {
+      if (currentUser?.id) {
+        localStorage.removeItem(`aura_user_${currentUser.id}_transactions`);
+        localStorage.removeItem(`aura_user_${currentUser.id}_accounts`);
+        await loadData(currentUser);
+      }
+    }
   };
 
+  // 1. Initial Loading Screen
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center text-slate-100">
+        <div className="w-12 h-12 rounded-2xl bg-gold-400/20 text-gold-400 flex items-center justify-center animate-pulse mb-3">
+          <Zap size={28} />
+        </div>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          Iniciando Aura Finance PRO...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Auth Gate: User NOT logged in
+  if (!currentUser) {
+    return (
+      <>
+        <LandingAuthGate
+          onOpenLogin={() => {
+            setAuthModalInitialMode('login');
+            setIsAuthModalOpen(true);
+          }}
+          onOpenRegister={() => {
+            setAuthModalInitialMode('register');
+            setIsAuthModalOpen(true);
+          }}
+        />
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={currentUser}
+          onAuthSuccess={(user) => {
+            setCurrentUser(user);
+            setIsAuthModalOpen(false);
+          }}
+          onSignOut={handleSignOut}
+        />
+      </>
+    );
+  }
+
+  // 3. Paywall: 7-day trial expired and no paid subscription
+  if (isTrialExpired) {
+    return (
+      <>
+        <TrialPaywall
+          userEmail={currentUser.email}
+          onOpenCheckout={() => {
+            setMpModalMode('subscription');
+            setIsMercadoPagoModalOpen(true);
+          }}
+          onSignOut={handleSignOut}
+        />
+
+        <MercadoPagoModal
+          isOpen={isMercadoPagoModalOpen}
+          onClose={() => setIsMercadoPagoModalOpen(false)}
+          accounts={accounts}
+          currentUser={currentUser}
+          initialMode="subscription"
+          onRegisterIncome={async (tx) => {
+            await handleCreateTransaction(tx);
+          }}
+          onSubscriptionActivated={handleSubscriptionActivated}
+        />
+      </>
+    );
+  }
+
+  // 4. Authenticated & Active Dashboard View
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
+      {/* 7-Day Free Trial Notice Banner (non-admin, not lifetime) */}
+      {!isAdmin && !isPaidSubscription && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-gold-400/20 to-amber-500/15 border-b border-gold-400/30 px-4 py-2 text-center text-xs text-gold-300 font-semibold flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <Sparkles size={14} className="text-gold-400" />
+            <span>Período de Teste Gratuito: <strong>{trialDaysRemaining} {trialDaysRemaining === 1 ? 'dia restante' : 'dias restantes'}</strong>.</span>
+          </span>
+          <button
+            onClick={() => {
+              setMpModalMode('subscription');
+              setIsMercadoPagoModalOpen(true);
+            }}
+            className="px-3 py-1 rounded-xl bg-gold-400 text-dark-950 font-black text-[11px] hover:brightness-110 active:scale-95 transition-all shadow-gold-glow"
+          >
+            Assinar Plano PRO (R$ 9,90/mês)
+          </button>
+        </div>
+      )}
+
+      {/* Admin Lifetime Badge */}
+      {isAdmin && (
+        <div className="bg-emerald-500/10 border-b border-emerald-500/30 px-4 py-1 text-center text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-2">
+          <ShieldCheck size={14} />
+          <span>Perfil Administrador Master Ativo (Acesso Completo & Vitalício)</span>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <Navbar
         accounts={accounts}
@@ -239,7 +492,10 @@ export function App() {
         onOpenNewTransaction={handleOpenNewTransaction}
         onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
-        onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
+        onOpenMercadoPago={() => {
+          setMpModalMode('subscription');
+          setIsMercadoPagoModalOpen(true);
+        }}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         currentUser={currentUser}
         mobileMenuOpen={mobileMenuOpen}
@@ -256,7 +512,10 @@ export function App() {
           mobileOpen={mobileMenuOpen}
           setMobileOpen={setMobileMenuOpen}
           onOpenCFO={() => setIsCFOModalOpen(true)}
-          onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
+          onOpenMercadoPago={() => {
+            setMpModalMode('subscription');
+            setIsMercadoPagoModalOpen(true);
+          }}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           currentUser={currentUser}
         />
@@ -270,7 +529,10 @@ export function App() {
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
               onOpenCFO={() => setIsCFOModalOpen(true)}
-              onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
+              onOpenMercadoPago={() => {
+                setMpModalMode('subscription');
+                setIsMercadoPagoModalOpen(true);
+              }}
               onSelectTransaction={(tx) => setSelectedTransaction(tx)}
               onNavigateToStatement={() => setActiveTab('statement')}
             />
@@ -305,7 +567,7 @@ export function App() {
           {activeTab === 'accounts' && (
             <AccountsPage
               accounts={accounts}
-              onRefreshAccounts={loadData}
+              onRefreshAccounts={() => loadData(currentUser)}
             />
           )}
 
@@ -370,14 +632,17 @@ export function App() {
         accounts={accounts}
       />
 
-      {/* Mercado Pago Payment Modal */}
+      {/* Mercado Pago Payment Modal (R$ 9,90/mês ou Custom) */}
       <MercadoPagoModal
         isOpen={isMercadoPagoModalOpen}
         onClose={() => setIsMercadoPagoModalOpen(false)}
         accounts={accounts}
+        currentUser={currentUser}
+        initialMode={mpModalMode}
         onRegisterIncome={async (tx) => {
           await handleCreateTransaction(tx);
         }}
+        onSubscriptionActivated={handleSubscriptionActivated}
       />
 
       {/* Auth Modal (Login / Sign Up) */}
@@ -385,7 +650,10 @@ export function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         currentUser={currentUser}
-        onAuthSuccess={(user) => setCurrentUser(user)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          setIsAuthModalOpen(false);
+        }}
         onSignOut={handleSignOut}
       />
 

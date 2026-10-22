@@ -45,7 +45,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!email.trim() || !password) {
+    const rawEmail = email.trim();
+    const cleanEmail = rawEmail.toLowerCase() === 'admin' ? 'admin@aurafinance.com.br' : rawEmail;
+
+    if (!cleanEmail || !password) {
       setErrorMsg('Preencha seu e-mail e senha.');
       return;
     }
@@ -63,17 +66,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(true);
       try {
         const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: cleanEmail,
           password,
           options: {
-            data: { full_name: fullName.trim() || 'Usuário' },
+            data: { 
+              full_name: fullName.trim() || 'Usuário',
+              plan: 'trial',
+              trial_start: new Date().toISOString(),
+              trial_days: 7,
+              is_admin: false,
+            },
           },
         });
 
         if (error) throw error;
 
         if (data.user) {
-          setSuccessMsg('Conta criada com sucesso! Conectado automaticamente.');
+          setSuccessMsg('Conta criada com sucesso! Você tem 7 dias de acesso grátis liberado.');
           onAuthSuccess(data.user);
           setTimeout(() => onClose(), 1500);
         }
@@ -87,7 +96,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(true);
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         });
 

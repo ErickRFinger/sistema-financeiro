@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CreditCard, 
@@ -9,7 +9,9 @@ import {
   Send, 
   Share2, 
   DollarSign, 
-  AlertCircle 
+  AlertCircle,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { createMercadoPagoCharge, PaymentChargeResult } from '../lib/mercadoPago';
@@ -20,26 +22,62 @@ interface MercadoPagoModalProps {
   isOpen: boolean;
   onClose: () => void;
   accounts: FinancialAccount[];
+  currentUser?: any;
+  initialMode?: 'subscription' | 'custom';
   onRegisterIncome: (tx: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
+  onSubscriptionActivated?: () => void;
 }
 
 export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
   isOpen,
   onClose,
   accounts,
+  currentUser,
+  initialMode = 'subscription',
   onRegisterIncome,
+  onSubscriptionActivated,
 }) => {
-  const [title, setTitle] = useState('');
-  const [amountRaw, setAmountRaw] = useState('');
-  const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [mode, setMode] = useState<'subscription' | 'custom'>(initialMode);
+  const [title, setTitle] = useState('Assinatura Mensal Aura Finance PRO');
+  const [amountRaw, setAmountRaw] = useState('9,90');
+  const [customerName, setCustomerName] = useState(currentUser?.user_metadata?.full_name || 'Usuário Aura');
+  const [customerEmail, setCustomerEmail] = useState(currentUser?.email || '');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PaymentChargeResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [registered, setRegistered] = useState(false);
 
+  useEffect(() => {
+    if (initialMode === 'subscription') {
+      setMode('subscription');
+      setTitle('Assinatura Mensal Aura Finance PRO');
+      setAmountRaw('9,90');
+    }
+    if (currentUser) {
+      if (currentUser.user_metadata?.full_name) {
+        setCustomerName(currentUser.user_metadata.full_name);
+      }
+      if (currentUser.email) {
+        setCustomerEmail(currentUser.email);
+      }
+    }
+  }, [initialMode, currentUser, isOpen]);
+
   if (!isOpen) return null;
+
+  const handleModeChange = (newMode: 'subscription' | 'custom') => {
+    setMode(newMode);
+    setResult(null);
+    setErrorMsg('');
+    if (newMode === 'subscription') {
+      setTitle('Assinatura Mensal Aura Finance PRO');
+      setAmountRaw('9,90');
+    } else {
+      setTitle('');
+      setAmountRaw('');
+    }
+  };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -79,8 +117,8 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
       setRegistered(false);
 
       confetti({
-        particleCount: 40,
-        spread: 50,
+        particleCount: 50,
+        spread: 60,
         origin: { y: 0.7 },
         colors: ['#009ee3', '#facc15', '#ffffff']
       });
@@ -106,30 +144,17 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
     window.open(url, '_blank');
   };
 
-  const handleMarkAsPaid = async () => {
-    if (!result || registered) return;
-
-    // Resolve Mercado Pago or first account
-    const mpAcc = accounts.find(a => a.id === 'acc_mp' || a.name.toLowerCase().includes('mercado')) || accounts[0];
-
-    await onRegisterIncome({
-      title: `${result.title} [Mercado Pago: ${result.order_id}]`,
-      amount: result.amount,
-      type: 'income',
-      account_id: mpAcc?.id || 'acc_mp',
-      category: 'Vendas & Serviços Prestados',
-      transaction_date: new Date().toISOString().split('T')[0],
-      status: 'paid',
-      payment_method: 'PIX',
-    });
-
-    setRegistered(true);
+  const handleConfirmSubscription = () => {
+    if (onSubscriptionActivated) {
+      onSubscriptionActivated();
+    }
     confetti({
-      particleCount: 60,
+      particleCount: 80,
       spread: 70,
       origin: { y: 0.6 },
       colors: ['#22c55e', '#facc15', '#ffffff']
     });
+    onClose();
   };
 
   return (
@@ -144,14 +169,16 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-extrabold text-white">
-                  Cobrança Mercado Pago
+                  Mercado Pago Oficial
                 </h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40">
                   PIX & Cartão
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Gere links oficiais de pagamento e receba direto no seu caixa
+                {mode === 'subscription' 
+                  ? 'Assinatura Mensal do Sistema (R$ 9,90/mês)'
+                  : 'Cobrança avulsa para seus clientes'}
               </p>
             </div>
           </div>
@@ -161,6 +188,35 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
           >
             <X size={20} />
+          </button>
+        </div>
+
+        {/* Mode Selector */}
+        <div className="mt-4 grid grid-cols-2 gap-2 p-1 rounded-2xl bg-dark-950 border border-dark-800">
+          <button
+            type="button"
+            onClick={() => handleModeChange('subscription')}
+            className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              mode === 'subscription'
+                ? 'bg-gold-400 text-dark-950 shadow-gold-glow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Zap size={14} />
+            <span>Assinatura (R$ 9,90/mês)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleModeChange('custom')}
+            className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              mode === 'custom'
+                ? 'bg-sky-500 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <DollarSign size={14} />
+            <span>Cobrança de Cliente</span>
           </button>
         </div>
 
@@ -177,7 +233,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             {/* Amount */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Valor da Cobrança
+                {mode === 'subscription' ? 'Valor da Mensalidade' : 'Valor da Cobrança'}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-400 font-extrabold text-lg">
@@ -186,10 +242,13 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
                 <input
                   type="text"
                   required
+                  readOnly={mode === 'subscription'}
                   placeholder="0,00"
                   value={amountRaw}
                   onChange={handleAmountChange}
-                  className="w-full pl-12 pr-4 py-3 bg-dark-950 border border-dark-800 rounded-2xl text-2xl font-black text-sky-400 focus:outline-none focus:border-sky-400 transition-all tracking-tight"
+                  className={`w-full pl-12 pr-4 py-3 bg-dark-950 border border-dark-800 rounded-2xl text-2xl font-black text-sky-400 focus:outline-none focus:border-sky-400 transition-all tracking-tight ${
+                    mode === 'subscription' ? 'cursor-not-allowed opacity-90' : ''
+                  }`}
                 />
               </div>
             </div>
@@ -197,154 +256,150 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             {/* Title / Description */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Descrição do Serviço / Produto
+                Descrição
               </label>
               <input
                 type="text"
                 required
-                placeholder="Ex: Manutenção Mensal, Projeto Web, Instalação..."
+                readOnly={mode === 'subscription'}
+                placeholder="Ex: Consultoria, Serviço Prestado, Produto"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-sky-400 transition-all"
+                className={`w-full px-4 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-400 transition-all ${
+                  mode === 'subscription' ? 'cursor-not-allowed opacity-90' : ''
+                }`}
               />
             </div>
 
-            {/* Customer Name & Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Nome do Cliente (Opcional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Carlos Silva"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-xs text-slate-200 focus:outline-none focus:border-sky-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  E-mail do Cliente (Opcional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="cliente@email.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-xs text-slate-200 focus:outline-none focus:border-sky-400"
-                />
-              </div>
+            {/* Payer Email */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                E-mail do Pagador
+              </label>
+              <input
+                type="email"
+                placeholder="cliente@email.com"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className="w-full px-4 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-400 transition-all"
+              />
             </div>
 
+            {mode === 'subscription' && (
+              <div className="p-3.5 rounded-2xl bg-gold-400/10 border border-gold-400/20 text-xs text-slate-300 space-y-1">
+                <p className="font-bold text-gold-400 flex items-center gap-1.5">
+                  <Sparkles size={14} />
+                  <span>Benefícios da Assinatura PRO:</span>
+                </p>
+                <p>• Leitor de NF ilimitado com OCR de cupom fiscal e DANFE</p>
+                <p>• Assistente de Voz Inteligente com Google Gemini</p>
+                <p>• CFO Virtual, Diagnóstico e Auditoria anti-sobrepreço</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-dark-950 font-black text-sm hover:brightness-110 active:scale-[0.99] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-extrabold text-sm sm:text-base hover:brightness-110 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-dark-950 border-t-transparent rounded-full animate-spin" />
-                    <span>Conectando ao Mercado Pago...</span>
-                  </>
+                  <span>Conectando ao Mercado Pago...</span>
                 ) : (
                   <>
-                    <QrCode size={18} />
-                    <span>Gerar Link & QR Code de Pagamento</span>
+                    <CreditCard size={18} />
+                    <span>{mode === 'subscription' ? 'Gerar Pagamento da Mensalidade (R$ 9,90)' : 'Gerar Link de Cobrança PIX'}</span>
                   </>
                 )}
               </button>
             </div>
           </form>
         ) : (
-          /* Payment Result */
-          <div className="mt-5 space-y-4">
-            <div className="p-4 rounded-2xl bg-dark-950 border border-dark-800 text-center">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Cobrança Gerada com Sucesso
-              </span>
-              <div className="text-3xl font-black text-sky-400 mt-1">
-                {formatCurrency(result.amount)}
+          /* Result: Generated Link & QR Code Display */
+          <div className="mt-5 space-y-5 animate-fade-in">
+            {/* Success Pill */}
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} />
               </div>
-              <p className="text-xs text-slate-300 font-semibold mt-1 truncate">
-                {result.title}
-              </p>
-              <span className="text-[10px] text-slate-500 font-mono mt-1 block">
-                ID do Pedido: {result.order_id}
-              </span>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-white truncate">
+                  Cobrança Mercado Pago Criada!
+                </h4>
+                <p className="text-xs text-slate-400 truncate">
+                  Ref: {result.order_id} • {formatCurrency(result.amount)}
+                </p>
+              </div>
             </div>
 
-            {/* Checkout Link Input with Copy button */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Link de Pagamento Oficial (Checkout Mercado Pago)
+            {/* Copy Link Button */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Link de Checkout Seguro
               </label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={result.checkout_url}
-                  className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-xl text-xs text-slate-300 font-mono focus:outline-none"
+                  className="flex-1 px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-xs text-sky-400 font-mono truncate focus:outline-none"
                 />
                 <button
                   onClick={handleCopyLink}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
-                    copied
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                      : 'bg-dark-800 hover:bg-dark-750 text-slate-200 border-dark-750'
+                  className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                    copied 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-dark-800 hover:bg-dark-750 text-slate-200 border border-dark-750'
                   }`}
                 >
-                  {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                  <Copy size={14} />
                   <span>{copied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Action buttons (WhatsApp, Open, Dar Baixa) */}
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button
-                onClick={handleWhatsAppShare}
-                className="py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Share2 size={15} />
-                <span>Enviar no WhatsApp</span>
-              </button>
-
+            {/* Action Buttons: Open & WhatsApp */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <a
                 href={result.checkout_url}
                 target="_blank"
                 rel="noreferrer"
-                className="py-2.5 px-3 rounded-xl bg-dark-800 hover:bg-dark-750 border border-dark-750 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs sm:text-sm transition-all shadow-sm"
               >
+                <span>Abrir Pagamento Mercado Pago</span>
                 <ExternalLink size={15} />
-                <span>Abrir Checkout</span>
               </a>
-            </div>
 
-            {/* Reconcile / Dar Baixa no Caixa */}
-            <div className="pt-2 border-t border-dark-850">
               <button
-                onClick={handleMarkAsPaid}
-                disabled={registered}
-                className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  registered
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-                    : 'bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 shadow-gold-glow hover:brightness-110 active:scale-95'
-                }`}
+                onClick={handleWhatsAppShare}
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all shadow-sm"
               >
-                <CheckCircle2 size={16} />
-                <span>{registered ? '✓ Já Registrado no Caixa como Receita' : 'Cliente Pagou? Dar Baixa no Caixa Agora'}</span>
+                <Share2 size={15} />
+                <span>Enviar pelo WhatsApp</span>
               </button>
             </div>
 
-            <div className="text-center pt-1">
+            {/* Activate Subscription Confirmation */}
+            {mode === 'subscription' && (
+              <div className="pt-2 border-t border-dark-800">
+                <button
+                  onClick={handleConfirmSubscription}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-extrabold text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Já paguei / Liberar Acesso Imediato</span>
+                </button>
+              </div>
+            )}
+
+            {/* Reset Button */}
+            <div className="text-center pt-2">
               <button
                 onClick={() => setResult(null)}
-                className="text-xs text-slate-500 hover:text-slate-300 underline"
+                className="text-xs text-slate-400 hover:text-white underline"
               >
-                + Criar outra cobrança
+                ← Emitir outra cobrança
               </button>
             </div>
           </div>
