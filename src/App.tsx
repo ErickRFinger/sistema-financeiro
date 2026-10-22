@@ -10,6 +10,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
+import { CFOModal } from './components/CFOModal';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
@@ -36,6 +37,7 @@ export function App() {
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [transactionModalType, setTransactionModalType] = useState<TransactionType>('expense');
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [isCFOModalOpen, setIsCFOModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
 
   // Load initial data from Supabase
@@ -208,6 +210,7 @@ export function App() {
         setActiveTab={setActiveTab}
         onOpenNewTransaction={handleOpenNewTransaction}
         onOpenScanner={() => setIsScannerModalOpen(true)}
+        onOpenCFO={() => setIsCFOModalOpen(true)}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         systemName={systemName}
@@ -221,6 +224,7 @@ export function App() {
           accounts={accounts}
           mobileOpen={mobileMenuOpen}
           setMobileOpen={setMobileMenuOpen}
+          onOpenCFO={() => setIsCFOModalOpen(true)}
         />
 
         {/* Main Content Viewport */}
@@ -231,6 +235,7 @@ export function App() {
               transactions={transactions}
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
+              onOpenCFO={() => setIsCFOModalOpen(true)}
               onSelectTransaction={(tx) => setSelectedTransaction(tx)}
               onNavigateToStatement={() => setActiveTab('statement')}
             />
@@ -253,6 +258,7 @@ export function App() {
                 isOpen={true}
                 onClose={() => setActiveTab('dashboard')}
                 accounts={accounts}
+                transactions={transactions}
                 onConfirmAndCreate={async (tx) => {
                   await handleCreateTransaction(tx);
                   setActiveTab('statement');
@@ -306,6 +312,7 @@ export function App() {
         isOpen={isScannerModalOpen}
         onClose={() => setIsScannerModalOpen(false)}
         accounts={accounts}
+        transactions={transactions}
         onConfirmAndCreate={async (tx) => {
           await handleCreateTransaction(tx);
           setActiveTab('statement');
@@ -318,6 +325,14 @@ export function App() {
         accounts={accounts}
         onToggleStatus={handleToggleStatus}
         onDelete={handleDeleteTransaction}
+      />
+
+      {/* CFO Virtual Modal */}
+      <CFOModal
+        isOpen={isCFOModalOpen}
+        onClose={() => setIsCFOModalOpen(false)}
+        transactions={transactions}
+        accounts={accounts}
       />
     </div>
   );

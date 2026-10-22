@@ -9,7 +9,8 @@ import {
   HelpCircle,
   ChevronRight,
   ShieldAlert,
-  Wallet
+  Wallet,
+  Zap
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -20,6 +21,7 @@ interface SidebarProps {
   accounts: FinancialAccount[];
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  onOpenCFO?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,9 +30,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   accounts,
   mobileOpen,
   setMobileOpen,
+  onOpenCFO,
 }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: true },
     { id: 'statement', label: 'Extrato de Gastos', icon: Receipt, badge: 'Completo' },
     { id: 'scanner', label: 'Leitor de NF (IA)', icon: ScanLine, highlight: true },
     { id: 'accounts', label: 'Contas & Carteiras', icon: Landmark },
@@ -38,8 +42,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
-  const handleNavClick = (id: string) => {
-    setActiveTab(id);
+  const handleNavClick = (item: any) => {
+    if (item.isAction && item.id === 'cfo' && onOpenCFO) {
+      onOpenCFO();
+    } else {
+      setActiveTab(item.id);
+    }
     setMobileOpen(false);
   };
 
@@ -84,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleNavClick(item.id)}
+                  onClick={() => handleNavClick(item)}
                   className={`
                     w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all
                     ${isActive 

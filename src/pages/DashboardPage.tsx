@@ -9,10 +9,9 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   ChevronRight,
-  Filter,
   PieChart as PieIcon,
   BarChart3,
-  CheckCircle2
+  Zap
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -34,6 +33,7 @@ interface DashboardPageProps {
   transactions: FinancialTransaction[];
   onOpenNewTransaction: (type?: 'expense' | 'income') => void;
   onOpenScanner: () => void;
+  onOpenCFO?: () => void;
   onSelectTransaction: (tx: FinancialTransaction) => void;
   onNavigateToStatement: () => void;
 }
@@ -43,6 +43,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   transactions,
   onOpenNewTransaction,
   onOpenScanner,
+  onOpenCFO,
   onSelectTransaction,
   onNavigateToStatement,
 }) => {
@@ -156,6 +157,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         {/* Quick Launch Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {onOpenCFO && (
+            <button
+              onClick={onOpenCFO}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-black text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-gold-glow"
+            >
+              <Zap size={18} className="fill-dark-950" />
+              <span>CFO Virtual (IA)</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenScanner}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-dark-950 border border-gold-400/50 text-gold-400 hover:bg-gold-400/10 font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95"

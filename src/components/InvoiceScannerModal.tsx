@@ -8,13 +8,12 @@ import {
   AlertCircle, 
   FileText, 
   Sparkles, 
-  ArrowRight,
   RefreshCw,
-  Landmark,
-  Eye
+  AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { scanInvoice, ScanProgress } from '../lib/aiScanner';
+import { auditSupplierPrices } from '../lib/cfoAdvisor';
 import { InvoiceExtractedData, FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatCNPJ } from '../lib/formatters';
 import { uploadReceiptFile } from '../lib/supabase';
@@ -23,6 +22,7 @@ interface InvoiceScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   accounts: FinancialAccount[];
+  transactions?: FinancialTransaction[];
   onConfirmAndCreate: (tx: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
 }
 
@@ -30,6 +30,7 @@ export const InvoiceScannerModal: React.FC<InvoiceScannerModalProps> = ({
   isOpen,
   onClose,
   accounts,
+  transactions = [],
   onConfirmAndCreate,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -53,6 +54,9 @@ export const InvoiceScannerModal: React.FC<InvoiceScannerModalProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  // Supplier audit result in real-time
+  const audit = auditSupplierPrices(transactions, supplierName, amount);
 
   const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
@@ -149,7 +153,7 @@ export const InvoiceScannerModal: React.FC<InvoiceScannerModalProps> = ({
                 Leitor Inteligente de NF com IA
               </h2>
               <p className="text-xs text-slate-400">
-                Extração automática de comprovantes, cupons fiscais e DANFEs
+                Extração automática com auditoria anti-cobrança abusiva de fornecedor
               </p>
             </div>
           </div>
@@ -306,6 +310,17 @@ export const InvoiceScannerModal: React.FC<InvoiceScannerModalProps> = ({
                         {Math.round((extractedData?.confidence || 0.9) * 100)}% Precisão
                       </span>
                     </div>
+
+                    {/* Real-time Supplier Audit Card */}
+                    {audit.isAnomaly && (
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2 animate-pulse">
+                        <AlertTriangle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-extrabold uppercase tracking-wide block">Auditoria de Preço Detectada:</span>
+                          <span>{audit.alertMessage}</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Valor & Data */}
                     <div className="grid grid-cols-2 gap-3">

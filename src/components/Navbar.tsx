@@ -18,6 +18,7 @@ interface NavbarProps {
   setActiveTab: (tab: string) => void;
   onOpenNewTransaction: (type?: 'expense' | 'income') => void;
   onOpenScanner: () => void;
+  onOpenCFO?: () => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   systemName?: string;
@@ -29,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenNewTransaction,
   onOpenScanner,
+  onOpenCFO,
   mobileMenuOpen,
   setMobileMenuOpen,
   systemName = 'Aura Finance',
@@ -90,6 +92,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* CFO Button */}
+          {onOpenCFO && (
+            <button
+              onClick={onOpenCFO}
+              className="flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-gold-400/10 border border-gold-400/40 text-gold-400 hover:bg-gold-400/20 transition-all text-xs sm:text-sm font-extrabold shadow-sm active:scale-95"
+              title="Diagnóstico Estratégico com CFO Virtual"
+            >
+              <Zap size={16} className="fill-gold-400 text-gold-400" />
+              <span className="hidden sm:inline">CFO Virtual</span>
+            </button>
+          )}
+
           {/* Scanner Button */}
           <button
             onClick={onOpenScanner}
