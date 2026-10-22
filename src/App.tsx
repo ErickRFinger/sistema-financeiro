@@ -12,6 +12,8 @@ import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
 import { CFOModal } from './components/CFOModal';
 import { AIAssistantChat } from './components/AIAssistantChat';
+import { AuthModal } from './components/AuthModal';
+import { MercadoPagoModal } from './components/MercadoPagoModal';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
@@ -19,6 +21,7 @@ import {
   INITIAL_DEFAULT_ACCOUNTS 
 } from './types/financial';
 import { 
+  supabase,
   getAccounts, 
   getTransactions, 
   createTransaction, 
@@ -39,7 +42,30 @@ export function App() {
   const [transactionModalType, setTransactionModalType] = useState<TransactionType>('expense');
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [isCFOModalOpen, setIsCFOModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMercadoPagoModalOpen, setIsMercadoPagoModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+
+  // Check Supabase Auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+  };
 
   // Load initial data from Supabase
   const loadData = useCallback(async () => {
@@ -213,6 +239,9 @@ export function App() {
         onOpenNewTransaction={handleOpenNewTransaction}
         onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
+        onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        currentUser={currentUser}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         systemName={systemName}
@@ -227,6 +256,9 @@ export function App() {
           mobileOpen={mobileMenuOpen}
           setMobileOpen={setMobileMenuOpen}
           onOpenCFO={() => setIsCFOModalOpen(true)}
+          onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          currentUser={currentUser}
         />
 
         {/* Main Content Viewport */}
@@ -238,6 +270,7 @@ export function App() {
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
               onOpenCFO={() => setIsCFOModalOpen(true)}
+              onOpenMercadoPago={() => setIsMercadoPagoModalOpen(true)}
               onSelectTransaction={(tx) => setSelectedTransaction(tx)}
               onNavigateToStatement={() => setActiveTab('statement')}
             />
@@ -335,6 +368,25 @@ export function App() {
         onClose={() => setIsCFOModalOpen(false)}
         transactions={transactions}
         accounts={accounts}
+      />
+
+      {/* Mercado Pago Payment Modal */}
+      <MercadoPagoModal
+        isOpen={isMercadoPagoModalOpen}
+        onClose={() => setIsMercadoPagoModalOpen(false)}
+        accounts={accounts}
+        onRegisterIncome={async (tx) => {
+          await handleCreateTransaction(tx);
+        }}
+      />
+
+      {/* Auth Modal (Login / Sign Up) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onAuthSuccess={(user) => setCurrentUser(user)}
+        onSignOut={handleSignOut}
       />
 
       {/* Conversational AI Financial Assistant */}

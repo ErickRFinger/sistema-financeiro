@@ -11,7 +11,8 @@ import {
   ChevronRight,
   PieChart as PieIcon,
   BarChart3,
-  Zap
+  Zap,
+  CreditCard
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -34,6 +35,7 @@ interface DashboardPageProps {
   onOpenNewTransaction: (type?: 'expense' | 'income') => void;
   onOpenScanner: () => void;
   onOpenCFO?: () => void;
+  onOpenMercadoPago?: () => void;
   onSelectTransaction: (tx: FinancialTransaction) => void;
   onNavigateToStatement: () => void;
 }
@@ -44,6 +46,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onOpenNewTransaction,
   onOpenScanner,
   onOpenCFO,
+  onOpenMercadoPago,
   onSelectTransaction,
   onNavigateToStatement,
 }) => {
@@ -174,6 +177,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <ScanLine size={18} className="animate-pulse" />
             <span>Ler Nota Fiscal (IA)</span>
           </button>
+
+          {onOpenMercadoPago && (
+            <button
+              onClick={onOpenMercadoPago}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/40 hover:bg-sky-500/20 font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-sm"
+              title="Emitir cobrança PIX e Link de Pagamento Mercado Pago"
+            >
+              <CreditCard size={18} />
+              <span>Cobrar MP (PIX)</span>
+            </button>
+          )}
 
           <button
             onClick={() => onOpenNewTransaction('expense')}

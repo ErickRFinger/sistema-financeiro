@@ -10,7 +10,9 @@ import {
   ChevronRight,
   ShieldAlert,
   Wallet,
-  Zap
+  Zap,
+  CreditCard,
+  UserCheck
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -22,6 +24,9 @@ interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   onOpenCFO?: () => void;
+  onOpenMercadoPago?: () => void;
+  onOpenAuth?: () => void;
+  currentUser?: any;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -31,10 +36,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   setMobileOpen,
   onOpenCFO,
+  onOpenMercadoPago,
+  onOpenAuth,
+  currentUser,
 }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: true },
+    { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: 'cfo' },
+    { id: 'mercadopago', label: 'Cobrar Mercado Pago', icon: CreditCard, highlight: true, isAction: 'mp' },
     { id: 'statement', label: 'Extrato de Gastos', icon: Receipt, badge: 'Completo' },
     { id: 'scanner', label: 'Leitor de NF (IA)', icon: ScanLine, highlight: true },
     { id: 'accounts', label: 'Contas & Carteiras', icon: Landmark },
@@ -43,8 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const handleNavClick = (item: any) => {
-    if (item.isAction && item.id === 'cfo' && onOpenCFO) {
+    if (item.isAction === 'cfo' && onOpenCFO) {
       onOpenCFO();
+    } else if (item.isAction === 'mp' && onOpenMercadoPago) {
+      onOpenMercadoPago();
     } else {
       setActiveTab(item.id);
     }
@@ -162,17 +173,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom User Card / Version */}
-        <div className="p-4 border-t border-dark-850 bg-dark-900/40">
+        <div 
+          onClick={onOpenAuth}
+          className="p-4 border-t border-dark-850 bg-dark-900/40 hover:bg-dark-900/80 cursor-pointer transition-colors"
+          title="Clique para gerenciar login ou criar conta"
+        >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-dark-800 border border-gold-400/30 flex items-center justify-center text-gold-400 font-bold text-sm">
-              EF
+              {currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : 'EF'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-200 truncate">
-                Erick Finger
+                {currentUser ? (currentUser.user_metadata?.full_name || currentUser.email) : 'Erick Finger'}
               </p>
               <p className="text-[10px] text-slate-400 truncate">
-                Admin • Black & Gold SaaS
+                {currentUser ? 'Supabase Auth • Ativo' : 'Criar Conta / Entrar'}
               </p>
             </div>
           </div>

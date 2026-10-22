@@ -7,7 +7,10 @@ import {
   Wallet,
   Menu,
   X,
-  ShieldCheck
+  ShieldCheck,
+  CreditCard,
+  User,
+  UserPlus
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 import { FinancialAccount } from '../types/financial';
@@ -19,6 +22,9 @@ interface NavbarProps {
   onOpenNewTransaction: (type?: 'expense' | 'income') => void;
   onOpenScanner: () => void;
   onOpenCFO?: () => void;
+  onOpenMercadoPago?: () => void;
+  onOpenAuth?: () => void;
+  currentUser?: any;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   systemName?: string;
@@ -31,6 +37,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewTransaction,
   onOpenScanner,
   onOpenCFO,
+  onOpenMercadoPago,
+  onOpenAuth,
+  currentUser,
   mobileMenuOpen,
   setMobileMenuOpen,
   systemName = 'Aura Finance',
@@ -104,6 +113,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
+          {/* Mercado Pago Button */}
+          {onOpenMercadoPago && (
+            <button
+              onClick={onOpenMercadoPago}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/40 text-sky-400 hover:bg-sky-500/20 transition-all text-xs sm:text-sm font-extrabold shadow-sm active:scale-95"
+              title="Criar Cobrança PIX / Cartão com Mercado Pago"
+            >
+              <CreditCard size={16} />
+              <span className="hidden sm:inline">Cobrar MP</span>
+            </button>
+          )}
+
           {/* Scanner Button */}
           <button
             onClick={onOpenScanner}
@@ -120,8 +141,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-bold hover:brightness-110 active:scale-95 transition-all text-xs sm:text-sm shadow-gold-glow"
           >
             <PlusCircle size={17} />
-            <span>Novo Lançamento</span>
+            <span className="hidden sm:inline">Novo Lançamento</span>
+            <span className="sm:hidden">+</span>
           </button>
+
+          {/* User / Auth Button */}
+          {onOpenAuth && (
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center gap-2 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-dark-900 border border-dark-800 hover:border-gold-400/40 transition-colors"
+              title={currentUser ? `Logado como ${currentUser.email}` : 'Criar Conta ou Entrar'}
+            >
+              <div className="w-7 h-7 rounded-lg bg-gold-400/20 text-gold-400 font-extrabold text-xs flex items-center justify-center">
+                {currentUser?.email ? currentUser.email.substring(0, 2).toUpperCase() : <User size={15} />}
+              </div>
+              <span className="text-xs font-bold text-slate-200 hidden md:inline truncate max-w-[90px]">
+                {currentUser ? (currentUser.user_metadata?.full_name?.split(' ')[0] || 'Usuário') : 'Entrar'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </header>
