@@ -11,6 +11,7 @@ import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
 import { CFOModal } from './components/CFOModal';
+import { AIAssistantChat } from './components/AIAssistantChat';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
@@ -333,6 +334,14 @@ export function App() {
         onClose={() => setIsCFOModalOpen(false)}
         transactions={transactions}
         accounts={accounts}
+      />
+
+      {/* Conversational AI Financial Assistant */}
+      <AIAssistantChat
+        accounts={accounts}
+        transactions={transactions}
+        onCreateTransaction={handleCreateTransaction}
+        onOpenCFO={() => setIsCFOModalOpen(true)}
       />
     </div>
   );
