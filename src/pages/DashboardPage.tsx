@@ -26,6 +26,7 @@ import {
   Cell 
 } from 'recharts';
 import { MetricCard } from '../components/MetricCard';
+import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -407,6 +408,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Live Market Currency Quotes */}
+      <CurrencyQuotesWidget />
 
       {/* Recent Transactions Feed */}
       <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card">

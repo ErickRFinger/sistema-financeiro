@@ -8,6 +8,39 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const STORAGE_BUCKET = 'notas_fiscais';
 
+/**
+ * Universal Financial API Caller
+ * Tenta executar via Vercel Serverless Function ou dev middleware (com Service Role)
+ * para garantir 100% de estabilidade sem bloqueio por Row Level Security (RLS).
+ */
+async function callFinancialApi(bodyOrQuery: any, method: 'GET' | 'POST' = 'POST'): Promise<any> {
+  try {
+    let url = '/api/financial';
+    let options: RequestInit = {};
+
+    if (method === 'GET') {
+      const params = new URLSearchParams(bodyOrQuery).toString();
+      url += `?${params}`;
+      options = { method: 'GET' };
+    } else {
+      options = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyOrQuery),
+      };
+    }
+
+    const res = await fetch(url, options);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success) return json.data !== undefined ? json.data : true;
+    }
+  } catch (err) {
+    // API não respondeu, fallback para client direto
+  }
+  return null;
+}
+
 // Fallback initial accounts if database is empty
 export const INITIAL_DEFAULT_ACCOUNTS: FinancialAccount[] = [
   { id: 'acc_btg', name: 'BTG Pactual', color: '#facc15', balance: 5000.0 },
@@ -21,6 +54,21 @@ export const INITIAL_DEFAULT_ACCOUNTS: FinancialAccount[] = [
  */
 export async function getAccounts(): Promise<FinancialAccount[]> {
   try {
+    // 1. Try serverless API first
+    const apiData = await callFinancialApi({ action: 'get_accounts' }, 'GET');
+    if (apiData && Array.isArray(apiData) && apiData.length > 0) {
+      const accounts = apiData.map((acc: any) => ({
+        id: acc.id,
+        name: acc.name,
+        color: acc.color || '#facc15',
+        balance: Number(acc.balance) || 0,
+        created_at: acc.created_at,
+      }));
+      localStorage.setItem('aura_accounts_cache', JSON.stringify(accounts));
+      return accounts;
+    }
+
+    // 2. Direct Supabase client fallback
     const { data, error } = await supabase
       .from('financial_accounts')
       .select('*')
@@ -78,6 +126,13 @@ async function seedInitialAccounts() {
  */
 export async function updateAccountBalance(accountId: string, newBalance: number): Promise<boolean> {
   try {
+    const apiRes = await callFinancialApi({
+      action: 'update_account_balance',
+      account_id: accountId,
+      balance: newBalance,
+    });
+    if (apiRes) return true;
+
     const { error } = await supabase
       .from('financial_accounts')
       .update({ balance: newBalance })
@@ -96,19 +151,28 @@ export async function updateAccountBalance(accountId: string, newBalance: number
  */
 export async function getTransactions(): Promise<FinancialTransaction[]> {
   try {
-    const { data, error } = await supabase
-      .from('financial_transactions')
-      .select('*')
-      .order('transaction_date', { ascending: false })
-      .order('created_at', { ascending: false });
+    // 1. Try serverless API first
+    const apiData = await callFinancialApi({ action: 'get_transactions' }, 'GET');
+    const rawList = (apiData && Array.isArray(apiData)) ? apiData : null;
 
-    if (error) {
-      console.warn('Erro ao carregar transações do Supabase:', error.message);
-      const cached = localStorage.getItem('aura_transactions_cache');
-      return cached ? JSON.parse(cached) : [];
+    let sourceData = rawList;
+    if (!sourceData) {
+      // 2. Direct Supabase client fallback
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select('*')
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Erro ao carregar transações do Supabase:', error.message);
+        const cached = localStorage.getItem('aura_transactions_cache');
+        return cached ? JSON.parse(cached) : [];
+      }
+      sourceData = data || [];
     }
 
-    const transactions: FinancialTransaction[] = (data || []).map((t: any) => {
+    const transactions: FinancialTransaction[] = sourceData.map((t: any) => {
       // Extract optional metadata encoded in title or notes
       let cleanTitle = t.title || 'Sem descrição';
       let receipt_url: string | null = null;
@@ -250,6 +314,26 @@ export async function createTransaction(tx: Omit<FinancialTransaction, 'id' | 'c
       status: safeStatus,
     };
 
+    // 1. Try serverless API first
+    const apiRes = await callFinancialApi({
+      action: 'create_transaction',
+      transaction: payload,
+    });
+
+    if (apiRes) {
+      return {
+        id,
+        ...tx,
+        type: safeType,
+        account_id: safeAccountId,
+        amount: safeAmount,
+        status: safeStatus,
+        transaction_date: safeDate,
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    // 2. Direct Supabase client fallback
     const { data, error } = await supabase
       .from('financial_transactions')
       .insert([payload])
@@ -292,6 +376,12 @@ export async function createTransaction(tx: Omit<FinancialTransaction, 'id' | 'c
  */
 export async function deleteTransaction(tx: FinancialTransaction): Promise<boolean> {
   try {
+    const apiRes = await callFinancialApi({
+      action: 'delete_transaction',
+      transaction: tx,
+    });
+    if (apiRes) return true;
+
     const { error } = await supabase
       .from('financial_transactions')
       .delete()
@@ -322,6 +412,13 @@ export async function deleteTransaction(tx: FinancialTransaction): Promise<boole
 export async function updateTransactionStatus(tx: FinancialTransaction, newStatus: 'paid' | 'pending'): Promise<boolean> {
   try {
     if (tx.status === newStatus) return true;
+
+    const apiRes = await callFinancialApi({
+      action: 'update_transaction_status',
+      transaction: tx,
+      new_status: newStatus,
+    });
+    if (apiRes) return true;
 
     const { error } = await supabase
       .from('financial_transactions')
@@ -395,17 +492,23 @@ export async function uploadReceiptFile(file: File): Promise<string | null> {
  */
 export async function getInvestments(): Promise<FinancialInvestment[]> {
   try {
-    const { data, error } = await supabase
-      .from('financial_investments')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const apiData = await callFinancialApi({ action: 'get_investments' }, 'GET');
+    let sourceData = (apiData && Array.isArray(apiData)) ? apiData : null;
 
-    if (error) {
-      console.warn('Erro ao buscar investimentos:', error.message);
-      return [];
+    if (!sourceData) {
+      const { data, error } = await supabase
+        .from('financial_investments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Erro ao buscar investimentos:', error.message);
+        return [];
+      }
+      sourceData = data || [];
     }
 
-    return (data || []).map((inv: any) => ({
+    return sourceData.map((inv: any) => ({
       id: inv.id,
       name: inv.name,
       category: inv.category || 'Renda Fixa',
@@ -418,5 +521,94 @@ export async function getInvestments(): Promise<FinancialInvestment[]> {
   } catch (err) {
     console.error('Falha ao carregar investimentos:', err);
     return [];
+  }
+}
+
+/**
+ * Create a new investment
+ */
+export async function createInvestment(
+  inv: Omit<FinancialInvestment, 'id' | 'created_at'>
+): Promise<FinancialInvestment | null> {
+  const id = 'inv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+  const payload = {
+    id,
+    name: inv.name.trim(),
+    category: inv.category || 'Renda Fixa',
+    account_id: inv.account_id || 'acc_btg',
+    initial_amount: Number(inv.initial_amount) || 0,
+    current_amount: Number(inv.current_amount || inv.initial_amount) || 0,
+    last_updated: inv.last_updated || new Date().toISOString().split('T')[0],
+  };
+
+  try {
+    const apiRes = await callFinancialApi({
+      action: 'create_investment',
+      investment: payload,
+    });
+    if (apiRes) return { ...payload, created_at: new Date().toISOString() };
+
+    const { data, error } = await supabase
+      .from('financial_investments')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Erro ao cadastrar investimento:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete investment
+ */
+export async function deleteInvestment(id: string): Promise<boolean> {
+  try {
+    const apiRes = await callFinancialApi({
+      action: 'delete_investment',
+      id,
+    });
+    if (apiRes) return true;
+
+    const { error } = await supabase
+      .from('financial_investments')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Erro ao excluir investimento:', err);
+    return false;
+  }
+}
+
+/**
+ * Create or register a new bank account or wallet
+ */
+export async function createAccount(
+  account: Omit<FinancialAccount, 'created_at'>
+): Promise<FinancialAccount | null> {
+  try {
+    const apiRes = await callFinancialApi({
+      action: 'create_account',
+      account,
+    });
+    if (apiRes) return apiRes;
+
+    const { data, error } = await supabase
+      .from('financial_accounts')
+      .upsert(account)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Erro ao cadastrar nova conta:', err);
+    return null;
   }
 }

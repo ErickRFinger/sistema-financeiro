@@ -7,11 +7,13 @@ import {
   CheckCircle2, 
   TrendingUp, 
   CreditCard,
-  Edit2
+  Edit2,
+  PlusCircle
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
 import { updateAccountBalance } from '../lib/supabase';
+import { AccountModal } from '../components/AccountModal';
 
 interface AccountsPageProps {
   accounts: FinancialAccount[];
@@ -25,6 +27,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Transfer states
   const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id || '');
@@ -79,12 +82,22 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           </p>
         </div>
 
-        <div className="px-4 py-2.5 rounded-2xl bg-dark-950 border border-dark-800 flex items-center gap-3">
-          <Wallet size={18} className="text-gold-400" />
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Patrimônio Líquido</p>
-            <p className="text-lg font-black text-gold-400">{formatCurrency(totalAssets)}</p>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2.5 rounded-2xl bg-dark-950 border border-dark-800 flex items-center gap-3">
+            <Wallet size={18} className="text-gold-400" />
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Patrimônio Líquido</p>
+              <p className="text-lg font-black text-gold-400">{formatCurrency(totalAssets)}</p>
+            </div>
           </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-extrabold text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-gold-glow"
+          >
+            <PlusCircle size={18} />
+            <span>Nova Conta</span>
+          </button>
         </div>
       </div>
 
@@ -243,6 +256,14 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           </button>
         </form>
       </div>
+
+      <AccountModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAccountCreated={async () => {
+          await onRefreshAccounts();
+        }}
+      />
     </div>
   );
 };
