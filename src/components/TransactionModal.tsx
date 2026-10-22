@@ -1,0 +1,414 @@
+import React, { useState } from 'react';
+import { 
+  X, 
+  ArrowDownCircle, 
+  ArrowUpCircle, 
+  UploadCloud, 
+  Calendar, 
+  Tag, 
+  Landmark, 
+  CreditCard,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { 
+  FinancialAccount, 
+  FinancialTransaction, 
+  TransactionType, 
+  PaymentMethod,
+  DEFAULT_CATEGORIES 
+} from '../types/financial';
+import { parseCurrencyInput, formatCurrency } from '../lib/formatters';
+import { uploadReceiptFile } from '../lib/supabase';
+
+interface TransactionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (transactionData: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
+  accounts: FinancialAccount[];
+  initialType?: TransactionType;
+}
+
+export const TransactionModal: React.FC<TransactionModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  accounts,
+  initialType = 'expense',
+}) => {
+  const [type, setType] = useState<TransactionType>(initialType);
+  const [title, setTitle] = useState('');
+  const [amountRaw, setAmountRaw] = useState('');
+  const [accountId, setAccountId] = useState(accounts[0]?.id || 'acc_btg');
+  const [category, setCategory] = useState(DEFAULT_CATEGORIES[0].name);
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [status, setStatus] = useState<'paid' | 'pending'>('paid');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
+  const [installments, setInstallments] = useState(1);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '');
+    if (!val) {
+      setAmountRaw('');
+      return;
+    }
+    const num = parseFloat(val) / 100;
+    setAmountRaw(new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(num));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    const numericAmount = parseCurrencyInput(amountRaw);
+    if (numericAmount <= 0) {
+      setErrorMsg('Por favor, informe um valor válido maior que zero.');
+      return;
+    }
+
+    if (!title.trim()) {
+      setErrorMsg('Por favor, digite uma descrição ou nome do fornecedor.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let uploadedReceiptUrl: string | null = null;
+      if (selectedFile) {
+        uploadedReceiptUrl = await uploadReceiptFile(selectedFile);
+      }
+
+      // If installments > 1, create installment transactions
+      if (installments > 1 && type === 'expense') {
+        const installmentValue = Number((numericAmount / installments).toFixed(2));
+        const baseDate = new Date(transactionDate);
+
+        for (let i = 1; i <= installments; i++) {
+          const installmentDate = new Date(baseDate);
+          installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
+          const dateStr = installmentDate.toISOString().split('T')[0];
+
+          await onSubmit({
+            title: `${title} (${i}/${installments})`,
+            amount: installmentValue,
+            type,
+            account_id: accountId,
+            category,
+            transaction_date: dateStr,
+            status: i === 1 ? status : 'pending',
+            payment_method: paymentMethod,
+            receipt_url: uploadedReceiptUrl,
+          });
+        }
+      } else {
+        await onSubmit({
+          title: title.trim(),
+          amount: numericAmount,
+          type,
+          account_id: accountId,
+          category,
+          transaction_date: transactionDate,
+          status,
+          payment_method: paymentMethod,
+          receipt_url: uploadedReceiptUrl,
+        });
+      }
+
+      // Trigger celebration
+      confetti({
+        particleCount: 60,
+        spread: 60,
+        origin: { y: 0.75 },
+        colors: ['#facc15', '#eab308', '#ffffff']
+      });
+
+      onClose();
+      // Reset form
+      setTitle('');
+      setAmountRaw('');
+      setSelectedFile(null);
+      setInstallments(1);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg('Erro ao salvar lançamento. Verifique a conexão com o Supabase.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-3xl bg-dark-900 border border-dark-800 shadow-2xl p-6 my-8">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-dark-800 pb-4">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-gold-400" />
+            <h2 className="text-xl font-extrabold text-white">
+              {type === 'expense' ? 'Lançar Pagamento / Despesa' : 'Lançar Nova Receita'}
+            </h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          {/* Type Selector (Despesa vs Receita) */}
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-dark-950 border border-dark-800">
+            <button
+              type="button"
+              onClick={() => setType('expense')}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                type === 'expense'
+                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ArrowDownCircle size={18} />
+              <span>Despesa (Saída)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('income')}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                type === 'income'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ArrowUpCircle size={18} />
+              <span>Receita (Entrada)</span>
+            </button>
+          </div>
+
+          {/* Valor Input */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Valor do Lançamento
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gold-400 font-extrabold text-lg">
+                R$
+              </span>
+              <input
+                type="text"
+                required
+                placeholder="0,00"
+                value={amountRaw}
+                onChange={handleAmountChange}
+                className="w-full pl-12 pr-4 py-3 bg-dark-950 border border-dark-800 rounded-2xl text-2xl font-black text-gold-400 focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-400 transition-all tracking-tight"
+              />
+            </div>
+          </div>
+
+          {/* Descrição / Fornecedor */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Descrição / Fornecedor
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Ex: Fornecedor Hikvision, Aluguel, Posto Ipiranga..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-gold-400 transition-all"
+            />
+          </div>
+
+          {/* Grid: Conta Bancária e Categoria */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Conta / Banco
+              </label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-200 focus:outline-none focus:border-gold-400"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({formatCurrency(acc.balance)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Categoria
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-200 focus:outline-none focus:border-gold-400"
+              >
+                {DEFAULT_CATEGORIES.map((cat) => (
+                  <option key={cat.name} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Grid: Data e Forma de Pagamento */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Data
+              </label>
+              <input
+                type="date"
+                required
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-200 focus:outline-none focus:border-gold-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Forma de Pagamento
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-200 focus:outline-none focus:border-gold-400"
+              >
+                <option value="PIX">PIX</option>
+                <option value="Boleto">Boleto Bancário</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="Transferência">Transferência / TED</option>
+                <option value="Dinheiro">Dinheiro em Espécie</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Status & Parcelamento */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Situação
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStatus('paid')}
+                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                    status === 'paid'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                      : 'bg-dark-950 text-slate-400 border border-dark-800'
+                  }`}
+                >
+                  ✓ Pago / Liquidado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatus('pending')}
+                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                    status === 'pending'
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                      : 'bg-dark-950 text-slate-400 border border-dark-800'
+                  }`}
+                >
+                  ⏳ Pendente / A Pagar
+                </button>
+              </div>
+            </div>
+
+            {type === 'expense' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Parcelamento
+                </label>
+                <select
+                  value={installments}
+                  onChange={(e) => setInstallments(Number(e.target.value))}
+                  className="w-full px-3.5 py-2 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-200 focus:outline-none focus:border-gold-400"
+                >
+                  <option value={1}>À Vista (1x)</option>
+                  <option value={2}>2x Parcelas</option>
+                  <option value={3}>3x Parcelas</option>
+                  <option value={4}>4x Parcelas</option>
+                  <option value={5}>5x Parcelas</option>
+                  <option value={6}>6x Parcelas</option>
+                  <option value={10}>10x Parcelas</option>
+                  <option value={12}>12x Parcelas</option>
+                  <option value={24}>24x Parcelas</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Anexo de Comprovante / Nota Fiscal */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Anexo de Comprovante / NF (Opcional)
+            </label>
+            <label className="flex flex-col items-center justify-center p-3.5 border border-dashed border-dark-750 hover:border-gold-400/50 rounded-2xl bg-dark-950/60 cursor-pointer transition-colors group">
+              <UploadCloud size={22} className="text-slate-400 group-hover:text-gold-400 transition-colors" />
+              <span className="text-xs text-slate-300 mt-1">
+                {selectedFile ? selectedFile.name : 'Clique para anexar imagem ou PDF da NF'}
+              </span>
+              <span className="text-[10px] text-slate-500">
+                Salvo direto no Supabase Storage (notas_fiscais)
+              </span>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-extrabold text-sm sm:text-base hover:brightness-110 active:scale-[0.99] transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-dark-950 border-t-transparent rounded-full animate-spin" />
+                  <span>Salvando no Supabase...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={18} />
+                  <span>Confirmar e Registrar Lançamento</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
