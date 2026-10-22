@@ -612,3 +612,34 @@ export async function createAccount(
     return null;
   }
 }
+
+/**
+ * Fetch all registered SaaS users (Admin only)
+ */
+export async function getSaasUsers(): Promise<any[]> {
+  try {
+    const data = await callFinancialApi({ action: 'list_users' }, 'GET');
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('Erro ao buscar usuários do SaaS:', err);
+    return [];
+  }
+}
+
+/**
+ * Update user subscription plan or trial days (Admin only)
+ */
+export async function updateUserPlan(userId: string, plan: string, trialDays?: number): Promise<boolean> {
+  try {
+    const res = await callFinancialApi({
+      action: 'update_user_plan',
+      user_id: userId,
+      plan,
+      trial_days: trialDays,
+    });
+    return Boolean(res);
+  } catch (err) {
+    console.error('Erro ao atualizar plano do usuário:', err);
+    return false;
+  }
+}

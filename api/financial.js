@@ -207,6 +207,41 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      // ==========================================
+      // 4. ADMIN & GESTÃO SAAS (CLIENTES & PLANOS)
+      // ==========================================
+      case 'list_users': {
+        const { data: listData, error } = await supabase.auth.admin.listUsers();
+        if (error) throw error;
+
+        const users = (listData?.users || []).map(u => ({
+          id: u.id,
+          email: u.email,
+          full_name: u.user_metadata?.full_name || 'Usuário',
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+          plan: u.user_metadata?.plan || (u.email === 'admin@aurafinance.com.br' ? 'lifetime' : 'trial'),
+          is_admin: Boolean(u.user_metadata?.is_admin || u.email === 'admin@aurafinance.com.br'),
+          trial_days: u.user_metadata?.trial_days || 7,
+          trial_start: u.user_metadata?.trial_start || u.created_at,
+        }));
+
+        return res.status(200).json({ success: true, data: users });
+      }
+
+      case 'update_user_plan': {
+        const { user_id, plan, trial_days } = req.body;
+        const updates = { plan: plan || 'active' };
+        if (trial_days !== undefined) updates.trial_days = trial_days;
+
+        const { data, error } = await supabase.auth.admin.updateUserById(user_id, {
+          user_metadata: updates,
+        });
+
+        if (error) throw error;
+        return res.status(200).json({ success: true, data });
+      }
+
       default:
         return res.status(400).json({ error: `Ação desconhecida: "${action}"` });
     }
