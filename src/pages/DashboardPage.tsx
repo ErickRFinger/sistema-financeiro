@@ -577,25 +577,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
-      {/* Live Market Currency Quotes */}
-      <CurrencyQuotesWidget />
+      {/* Financial Health, Comparison & Subscriptions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <FinancialHealthScore
+          income={monthIncome}
+          expenses={monthExpense}
+          transactionsCount={currentMonthTransactions.length}
+          isPrivate={isPrivate}
+        />
 
-      {/* Financial Health Score */}
-      <FinancialHealthScore
-        income={monthIncome}
-        expenses={monthExpense}
-        transactionsCount={currentMonthTransactions.length}
-        isPrivate={isPrivate}
-      />
+        <MonthlyComparisonWidget
+          transactions={transactions}
+          isPrivate={isPrivate}
+        />
 
-      {/* Monthly Comparison vs Previous Month */}
-      <MonthlyComparisonWidget
-        transactions={transactions}
-        isPrivate={isPrivate}
-      />
+        <SubscriptionHubWidget isPrivate={isPrivate} />
 
-      {/* Subscription & Recurring Hub */}
-      <SubscriptionHubWidget isPrivate={isPrivate} />
+        <CurrencyQuotesWidget />
+      </div>
 
       {/* Recent Transactions Feed */}
       <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card">
