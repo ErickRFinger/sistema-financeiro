@@ -8,6 +8,9 @@ import { AccountsPage } from './pages/AccountsPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminSaasPage } from './pages/AdminSaasPage';
+import { CardsPage } from './pages/CardsPage';
+import { ShoppingListsPage } from './pages/ShoppingListsPage';
+import { SubscriptionInvoicesPage } from './pages/SubscriptionInvoicesPage';
 import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
@@ -17,10 +20,15 @@ import { AuthModal } from './components/AuthModal';
 import { MercadoPagoModal } from './components/MercadoPagoModal';
 import { LandingAuthGate } from './components/LandingAuthGate';
 import { TrialPaywall } from './components/TrialPaywall';
+import { OverdueLockScreen } from './components/OverdueLockScreen';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
   TransactionType,
+  CreditCard,
+  CreditCardExpense,
+  ShoppingList,
+  SystemSubscriptionInvoice,
   INITIAL_DEFAULT_ACCOUNTS 
 } from './types/financial';
 import { 
@@ -32,11 +40,65 @@ import {
   deleteTransaction 
 } from './lib/supabase';
 import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { formatCurrency } from './lib/formatters';
+
+// Generate recurring monthly invoices due on day 10 for SaaS subscription
+function generateDefaultInvoicesForUser(userId: string, createdAtStr: string): SystemSubscriptionInvoice[] {
+  const now = new Date();
+  const invoices: SystemSubscriptionInvoice[] = [];
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  for (let offset = -2; offset <= 1; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 10);
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthLabel = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    const dueDate = `${monthKey}-10`;
+
+    const paidKey = `aura_invoice_paid_${userId}_${monthKey}`;
+    const isPaid = localStorage.getItem(paidKey) === 'paid';
+
+    let status: 'paid' | 'pending' | 'overdue' = 'pending';
+    if (isPaid) {
+      status = 'paid';
+    } else {
+      const dueTime = new Date(d.getFullYear(), d.getMonth(), 10, 23, 59, 59).getTime();
+      if (now.getTime() > dueTime) {
+        status = 'overdue';
+      } else {
+        status = 'pending';
+      }
+    }
+
+    invoices.push({
+      id: `inv_${userId}_${monthKey}`,
+      user_id: userId,
+      reference_month: monthKey,
+      reference_label: monthLabel,
+      due_date: dueDate,
+      amount: 9.90,
+      status,
+      paid_at: isPaid ? 'Pago via Mercado Pago' : undefined,
+      payment_method: 'Mercado Pago PIX',
+    });
+  }
+
+  return invoices;
+}
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [accounts, setAccounts] = useState<FinancialAccount[]>(INITIAL_DEFAULT_ACCOUNTS);
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [cards, setCards] = useState<CreditCard[]>([]);
+  const [cardExpenses, setCardExpenses] = useState<CreditCardExpense[]>([]);
+  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
+  const [systemInvoices, setSystemInvoices] = useState<SystemSubscriptionInvoice[]>([]);
+  const [payingInvoice, setPayingInvoice] = useState<SystemSubscriptionInvoice | null>(null);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
   const [systemName, setSystemName] = useState<string>('Aura Finance');
@@ -98,20 +160,53 @@ export function App() {
     )
   );
 
-  const isSubscriptionActive = isAdmin || isPaidSubscription || trialDaysRemaining > 0;
   const isTrialExpired = Boolean(currentUser && !isAdmin && !isPaidSubscription && trialDaysRemaining <= 0);
+
+  // Delinquency Lock: after 1 month (30 days) of overdue invoice on day 10
+  const isDelinquentLocked = Boolean(
+    currentUser &&
+    !isAdmin &&
+    !isPaidSubscription &&
+    systemInvoices.some(inv => {
+      if (inv.status !== 'overdue') return false;
+      const dueTime = new Date(inv.due_date).getTime();
+      const daysLate = (Date.now() - dueTime) / (24 * 60 * 60 * 1000);
+      return daysLate > 30;
+    })
+  );
 
   const handleSubscriptionActivated = () => {
     if (currentUser?.id) {
       localStorage.setItem(`aura_sub_${currentUser.id}`, 'active');
+      
+      // If paying a specific monthly invoice, mark it as paid
+      if (payingInvoice) {
+        localStorage.setItem(`aura_invoice_paid_${currentUser.id}_${payingInvoice.reference_month}`, 'paid');
+      }
+
+      const updatedInvoices = systemInvoices.map(inv => {
+        if (!payingInvoice || inv.id === payingInvoice.id) {
+          return {
+            ...inv,
+            status: 'paid' as const,
+            paid_at: new Date().toLocaleDateString('pt-BR'),
+          };
+        }
+        return inv;
+      });
+
+      setSystemInvoices(updatedInvoices);
+      localStorage.setItem(`aura_user_${currentUser.id}_system_invoices`, JSON.stringify(updatedInvoices));
+
       setCurrentUser({
         ...currentUser,
         user_metadata: { ...currentUser.user_metadata, plan: 'active' },
       });
+      setPayingInvoice(null);
     }
   };
 
-  // Load data: Admin gets corporate database; Regular users start clean and zeroed!
+  // Load data: Admin gets corporate database; Regular users start 100% clean and zeroed!
   const loadData = useCallback(async (user?: any) => {
     const activeUser = user !== undefined ? user : currentUser;
     if (!activeUser) return;
@@ -123,6 +218,8 @@ export function App() {
         activeUser?.user_metadata?.is_admin === true
       );
 
+      const userKey = `aura_user_${activeUser.id}`;
+
       if (userIsAdmin) {
         // Admin views the main accounts & all transactions
         const [accs, txs] = await Promise.all([
@@ -131,9 +228,77 @@ export function App() {
         ]);
         setAccounts(accs);
         setTransactions(txs);
+
+        // Admin Cards
+        const savedCards = localStorage.getItem(`${userKey}_cards`);
+        if (savedCards) {
+          setCards(JSON.parse(savedCards));
+        } else {
+          const adminCards: CreditCard[] = [
+            {
+              id: 'card_xp_admin',
+              name: 'XP Visa Infinite',
+              bank: 'XP Investimentos',
+              color: 'black',
+              limit_total: 35000.00,
+              closing_day: 25,
+              due_day: 10,
+              card_brand: 'visa',
+              last_digits: '9012'
+            }
+          ];
+          setCards(adminCards);
+          localStorage.setItem(`${userKey}_cards`, JSON.stringify(adminCards));
+        }
+
+        // Admin Card Expenses
+        const savedExpenses = localStorage.getItem(`${userKey}_card_expenses`);
+        if (savedExpenses) {
+          setCardExpenses(JSON.parse(savedExpenses));
+        } else {
+          const adminExpenses: CreditCardExpense[] = [
+            { 
+              id: 'exp_1', 
+              card_id: 'card_xp_admin', 
+              title: 'Dell Computadores Servidor', 
+              amount: 3200.00, 
+              date: new Date().toISOString().split('T')[0], 
+              category: 'Equipamentos & Hardware', 
+              installments_total: 3, 
+              installments_current: 1 
+            }
+          ];
+          setCardExpenses(adminExpenses);
+          localStorage.setItem(`${userKey}_card_expenses`, JSON.stringify(adminExpenses));
+        }
+
+        // Admin Shopping Lists
+        const savedLists = localStorage.getItem(`${userKey}_shopping_lists`);
+        if (savedLists) {
+          setShoppingLists(JSON.parse(savedLists));
+        } else {
+          const adminLists: ShoppingList[] = [
+            { 
+              id: 'list_admin_office', 
+              title: 'Insumos Escritório & Café', 
+              category: 'Mercado', 
+              items: [
+                { id: '1', name: 'Café Grão Gourmet 1kg', quantity: 2, unit: 'kg', estimated_price: 65.00, is_purchased: true },
+                { id: '2', name: 'Papel A4 Chamex', quantity: 5, unit: 'cx', estimated_price: 32.00, is_purchased: false }
+              ], 
+              is_completed: false 
+            }
+          ];
+          setShoppingLists(adminLists);
+          localStorage.setItem(`${userKey}_shopping_lists`, JSON.stringify(adminLists));
+        }
+
+        // Admin System Invoices
+        const defaultInvoices = generateDefaultInvoicesForUser(activeUser.id, activeUser.created_at);
+        setSystemInvoices(defaultInvoices);
+
       } else {
         // Regular user starts clean and zeroed!
-        const userKey = `aura_user_${activeUser.id}`;
         const savedAccs = localStorage.getItem(`${userKey}_accounts`);
         const savedTxs = localStorage.getItem(`${userKey}_transactions`);
 
@@ -156,6 +321,47 @@ export function App() {
         } else {
           setTransactions([]);
           localStorage.setItem(`${userKey}_transactions`, JSON.stringify([]));
+        }
+
+        // Regular User Cards: starts with []
+        const savedCards = localStorage.getItem(`${userKey}_cards`);
+        if (savedCards) {
+          setCards(JSON.parse(savedCards));
+        } else {
+          setCards([]);
+          localStorage.setItem(`${userKey}_cards`, JSON.stringify([]));
+        }
+
+        // Regular User Card Expenses: starts with []
+        const savedCardExpenses = localStorage.getItem(`${userKey}_card_expenses`);
+        if (savedCardExpenses) {
+          setCardExpenses(JSON.parse(savedCardExpenses));
+        } else {
+          setCardExpenses([]);
+          localStorage.setItem(`${userKey}_card_expenses`, JSON.stringify([]));
+        }
+
+        // Regular User Shopping Lists: starts with 2 clean default lists
+        const savedLists = localStorage.getItem(`${userKey}_shopping_lists`);
+        if (savedLists) {
+          setShoppingLists(JSON.parse(savedLists));
+        } else {
+          const defaultLists: ShoppingList[] = [
+            { id: `list_mercado_${activeUser.id.substring(0, 6)}`, title: 'Supermercado Semanal', category: 'Mercado', items: [], is_completed: false },
+            { id: `list_casa_${activeUser.id.substring(0, 6)}`, title: 'Casa & Utilidades', category: 'Casa', items: [], is_completed: false },
+          ];
+          setShoppingLists(defaultLists);
+          localStorage.setItem(`${userKey}_shopping_lists`, JSON.stringify(defaultLists));
+        }
+
+        // Regular User System Invoices (R$ 9,90/mês due on day 10)
+        const savedInvoices = localStorage.getItem(`${userKey}_system_invoices`);
+        if (savedInvoices) {
+          setSystemInvoices(JSON.parse(savedInvoices));
+        } else {
+          const defaultInvoices = generateDefaultInvoicesForUser(activeUser.id, activeUser.created_at);
+          setSystemInvoices(defaultInvoices);
+          localStorage.setItem(`${userKey}_system_invoices`, JSON.stringify(defaultInvoices));
         }
       }
     } catch (err) {
@@ -270,6 +476,156 @@ export function App() {
     }
   };
 
+  // Card Handlers
+  const handleSaveCard = (cardData: Omit<CreditCard, 'id' | 'created_at'>) => {
+    if (!currentUser) return;
+    const newCard: CreditCard = {
+      id: `card_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      ...cardData,
+      user_id: currentUser.id,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...cards, newCard];
+    setCards(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_cards`, JSON.stringify(updated));
+  };
+
+  const handleUpdateCard = (id: string, updates: Partial<CreditCard>) => {
+    if (!currentUser) return;
+    const updated = cards.map(c => c.id === id ? { ...c, ...updates } : c);
+    setCards(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_cards`, JSON.stringify(updated));
+  };
+
+  const handleDeleteCard = (id: string) => {
+    if (!currentUser) return;
+    const updated = cards.filter(c => c.id !== id);
+    setCards(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_cards`, JSON.stringify(updated));
+  };
+
+  const handleAddCardExpense = (expenseData: Omit<CreditCardExpense, 'id' | 'created_at'>) => {
+    if (!currentUser) return;
+    const newExpense: CreditCardExpense = {
+      id: `card_exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      ...expenseData,
+      user_id: currentUser.id,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [newExpense, ...cardExpenses];
+    setCardExpenses(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_card_expenses`, JSON.stringify(updated));
+  };
+
+  const handleDeleteCardExpense = (expenseId: string) => {
+    if (!currentUser) return;
+    const updated = cardExpenses.filter(e => e.id !== expenseId);
+    setCardExpenses(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_card_expenses`, JSON.stringify(updated));
+  };
+
+  const handlePayCardInvoice = async (cardId: string, accountId: string, amount: number) => {
+    if (!currentUser) return;
+    const card = cards.find(c => c.id === cardId);
+    const cardName = card ? card.name : 'Cartão de Crédito';
+
+    // Debit from bank account
+    await handleCreateTransaction({
+      title: `Pagamento Fatura: ${cardName}`,
+      amount,
+      type: 'expense',
+      account_id: accountId,
+      category: 'Outros',
+      transaction_date: new Date().toISOString().split('T')[0],
+      status: 'paid',
+      payment_method: 'Cartão de Crédito',
+      notes: `Quitação da fatura do cartão ${cardName}`,
+    });
+
+    // Clear card expenses for this card
+    const remaining = cardExpenses.filter(e => e.card_id !== cardId);
+    setCardExpenses(remaining);
+    localStorage.setItem(`aura_user_${currentUser.id}_card_expenses`, JSON.stringify(remaining));
+
+    alert(`Fatura de ${formatCurrency(amount)} paga com sucesso! Limite liberado.`);
+  };
+
+  const handleImportInvoiceExpenses = (cardId: string, expenses: Omit<CreditCardExpense, 'id' | 'created_at'>[]) => {
+    if (!currentUser) return;
+    const newItems: CreditCardExpense[] = expenses.map(e => ({
+      id: `card_exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      ...e,
+      user_id: currentUser.id,
+      created_at: new Date().toISOString(),
+    }));
+
+    const updated = [...newItems, ...cardExpenses];
+    setCardExpenses(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_card_expenses`, JSON.stringify(updated));
+  };
+
+  // Shopping List Handlers
+  const handleSaveShoppingList = (listData: Omit<ShoppingList, 'id' | 'created_at'>) => {
+    if (!currentUser) return;
+    const newList: ShoppingList = {
+      id: `list_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      ...listData,
+      user_id: currentUser.id,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...shoppingLists, newList];
+    setShoppingLists(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_shopping_lists`, JSON.stringify(updated));
+  };
+
+  const handleUpdateShoppingList = (id: string, updates: Partial<ShoppingList>) => {
+    if (!currentUser) return;
+    const updated = shoppingLists.map(l => l.id === id ? { ...l, ...updates } : l);
+    setShoppingLists(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_shopping_lists`, JSON.stringify(updated));
+  };
+
+  const handleDeleteShoppingList = (id: string) => {
+    if (!currentUser) return;
+    const updated = shoppingLists.filter(l => l.id !== id);
+    setShoppingLists(updated);
+    localStorage.setItem(`aura_user_${currentUser.id}_shopping_lists`, JSON.stringify(updated));
+  };
+
+  const handleLaunchExpenseFromList = async (data: any) => {
+    if (data.card_id) {
+      handleAddCardExpense({
+        card_id: data.card_id,
+        title: data.title,
+        amount: data.amount,
+        date: data.date,
+        category: data.category,
+        installments_current: 1,
+        installments_total: 1,
+      });
+    }
+
+    if (data.account_id) {
+      await handleCreateTransaction({
+        title: data.title,
+        amount: data.amount,
+        type: 'expense',
+        account_id: data.account_id,
+        category: data.category,
+        transaction_date: data.date,
+        status: 'paid',
+        notes: data.notes,
+      });
+    }
+  };
+
+  // System Invoices Handlers
+  const handlePaySystemInvoice = (invoice: SystemSubscriptionInvoice) => {
+    setPayingInvoice(invoice);
+    setMpModalMode('subscription');
+    setIsMercadoPagoModalOpen(true);
+  };
+
   // Seed demo data for showcase & sales presentation (Admin only)
   const handleSeedDemoData = async () => {
     if (!isAdmin) {
@@ -379,6 +735,9 @@ export function App() {
       if (currentUser?.id) {
         localStorage.removeItem(`aura_user_${currentUser.id}_transactions`);
         localStorage.removeItem(`aura_user_${currentUser.id}_accounts`);
+        localStorage.removeItem(`aura_user_${currentUser.id}_cards`);
+        localStorage.removeItem(`aura_user_${currentUser.id}_card_expenses`);
+        localStorage.removeItem(`aura_user_${currentUser.id}_shopping_lists`);
         await loadData(currentUser);
       }
     }
@@ -427,7 +786,39 @@ export function App() {
     );
   }
 
-  // 3. Paywall: 7-day trial expired and no paid subscription
+  // 3. Delinquency Lock Screen: invoice overdue by > 30 days (1 mês de atraso)
+  if (isDelinquentLocked) {
+    const overdueInvoice = systemInvoices.find(inv => inv.status === 'overdue');
+    return (
+      <>
+        <OverdueLockScreen
+          userEmail={currentUser.email}
+          overdueDate={overdueInvoice ? `${overdueInvoice.reference_label} (Dia 10)` : 'Dia 10 do mês'}
+          amount={9.90}
+          onPayNow={() => {
+            if (overdueInvoice) setPayingInvoice(overdueInvoice);
+            setMpModalMode('subscription');
+            setIsMercadoPagoModalOpen(true);
+          }}
+          onSignOut={handleSignOut}
+        />
+
+        <MercadoPagoModal
+          isOpen={isMercadoPagoModalOpen}
+          onClose={() => setIsMercadoPagoModalOpen(false)}
+          accounts={accounts}
+          currentUser={currentUser}
+          initialMode="subscription"
+          onRegisterIncome={async (tx) => {
+            await handleCreateTransaction(tx);
+          }}
+          onSubscriptionActivated={handleSubscriptionActivated}
+        />
+      </>
+    );
+  }
+
+  // 4. Paywall: 7-day trial expired and no paid subscription
   if (isTrialExpired) {
     return (
       <>
@@ -455,7 +846,7 @@ export function App() {
     );
   }
 
-  // 4. Authenticated & Active Dashboard View
+  // 5. Authenticated & Active Dashboard View
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
       {/* 7-Day Free Trial Notice Banner (non-admin, not lifetime) */}
@@ -493,10 +884,6 @@ export function App() {
         onOpenNewTransaction={handleOpenNewTransaction}
         onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
-        onOpenMercadoPago={() => {
-          setMpModalMode('subscription');
-          setIsMercadoPagoModalOpen(true);
-        }}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         currentUser={currentUser}
         mobileMenuOpen={mobileMenuOpen}
@@ -513,10 +900,6 @@ export function App() {
           mobileOpen={mobileMenuOpen}
           setMobileOpen={setMobileMenuOpen}
           onOpenCFO={() => setIsCFOModalOpen(true)}
-          onOpenMercadoPago={() => {
-            setMpModalMode('subscription');
-            setIsMercadoPagoModalOpen(true);
-          }}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           currentUser={currentUser}
         />
@@ -530,12 +913,48 @@ export function App() {
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
               onOpenCFO={() => setIsCFOModalOpen(true)}
-              onOpenMercadoPago={() => {
-                setMpModalMode('subscription');
-                setIsMercadoPagoModalOpen(true);
-              }}
               onSelectTransaction={(tx) => setSelectedTransaction(tx)}
               onNavigateToStatement={() => setActiveTab('statement')}
+              onNavigateToCards={() => setActiveTab('cards')}
+              onNavigateToShopping={() => setActiveTab('shopping_lists')}
+            />
+          )}
+
+          {activeTab === 'cards' && (
+            <CardsPage
+              cards={cards}
+              cardExpenses={cardExpenses}
+              accounts={accounts}
+              onSaveCard={handleSaveCard}
+              onUpdateCard={handleUpdateCard}
+              onDeleteCard={handleDeleteCard}
+              onAddCardExpense={handleAddCardExpense}
+              onDeleteCardExpense={handleDeleteCardExpense}
+              onPayInvoice={handlePayCardInvoice}
+              onImportInvoiceExpenses={handleImportInvoiceExpenses}
+            />
+          )}
+
+          {activeTab === 'shopping_lists' && (
+            <ShoppingListsPage
+              lists={shoppingLists}
+              accounts={accounts}
+              cards={cards}
+              onSaveList={handleSaveShoppingList}
+              onUpdateList={handleUpdateShoppingList}
+              onDeleteList={handleDeleteShoppingList}
+              onLaunchExpense={handleLaunchExpenseFromList}
+            />
+          )}
+
+          {activeTab === 'subscription_invoices' && (
+            <SubscriptionInvoicesPage
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+              isPaidSubscription={isPaidSubscription}
+              trialDaysRemaining={trialDaysRemaining}
+              invoices={systemInvoices}
+              onPayInvoice={handlePaySystemInvoice}
             />
           )}
 
@@ -640,7 +1059,10 @@ export function App() {
       {/* Mercado Pago Payment Modal (R$ 9,90/mês ou Custom) */}
       <MercadoPagoModal
         isOpen={isMercadoPagoModalOpen}
-        onClose={() => setIsMercadoPagoModalOpen(false)}
+        onClose={() => {
+          setIsMercadoPagoModalOpen(false);
+          setPayingInvoice(null);
+        }}
         accounts={accounts}
         currentUser={currentUser}
         initialMode={mpModalMode}

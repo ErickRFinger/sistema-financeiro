@@ -13,7 +13,8 @@ import {
   Zap,
   CreditCard,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  ShoppingCart
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -49,9 +50,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS (Dono)', icon: ShieldCheck, highlight: true }] : []),
+    { id: 'cards', label: 'Cartões & Faturas', icon: CreditCard, badge: 'Novo' },
+    { id: 'shopping_lists', label: 'Lista de Compras', icon: ShoppingCart, badge: 'Mercado' },
+    { id: 'subscription_invoices', label: 'Faturas do Sistema', icon: Receipt, highlight: true },
     { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: 'cfo' },
-    { id: 'mercadopago', label: 'Cobrar Mercado Pago', icon: CreditCard, highlight: true, isAction: 'mp' },
-    { id: 'statement', label: 'Extrato de Gastos', icon: Receipt, badge: 'Completo' },
+    { id: 'statement', label: 'Extrato de Gastos', icon: Receipt },
     { id: 'scanner', label: 'Leitor de NF (IA)', icon: ScanLine, highlight: true },
     { id: 'accounts', label: 'Contas & Carteiras', icon: Landmark },
     { id: 'investments', label: 'Investimentos', icon: TrendingUp },

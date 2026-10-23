@@ -109,3 +109,66 @@ export const DEFAULT_CATEGORIES = [
   { name: 'Impostos & Taxas', icon: 'FileText', color: '#ef4444' },
   { name: 'Outros', icon: 'MoreHorizontal', color: '#94a3b8' },
 ];
+
+export interface CreditCard {
+  id: string;
+  user_id?: string;
+  name: string; // Ex: "Nubank Ultravioleta", "Inter Black", "XP Infinite"
+  bank: string; // Ex: "Nubank", "Banco Inter", "BTG", "XP", "Itaú", "Bradesco", "Santander", "C6 Bank", "Caixa", "Outro"
+  color: string; // "black" | "gold" | "purple" | "orange" | "blue" | "emerald" | "rose"
+  limit_total: number;
+  closing_day: number; // Dia de fechamento da fatura (1 a 31)
+  due_day: number; // Dia de vencimento da fatura (1 a 31)
+  card_brand?: 'visa' | 'mastercard' | 'elo' | 'amex' | 'outro';
+  last_digits?: string; // Ex: "4892"
+  created_at?: string;
+}
+
+export interface CreditCardExpense {
+  id: string;
+  card_id: string;
+  user_id?: string;
+  title: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  category: string;
+  installments_current?: number;
+  installments_total?: number;
+  created_at?: string;
+}
+
+export interface ShoppingListItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit?: string; // 'un', 'kg', 'g', 'l', 'pct', 'cx'
+  estimated_price?: number;
+  actual_price?: number;
+  is_purchased: boolean;
+  category?: string;
+}
+
+export interface ShoppingList {
+  id: string;
+  user_id?: string;
+  title: string;
+  category: 'Mercado' | 'Casa' | 'Construção' | 'Farmácia' | 'Escritório' | 'Outros';
+  items: ShoppingListItem[];
+  is_completed?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SystemSubscriptionInvoice {
+  id: string;
+  user_id: string;
+  reference_month: string; // "2026-10"
+  reference_label: string; // "Outubro 2026"
+  due_date: string; // "2026-10-10"
+  amount: number; // 9.90
+  status: 'paid' | 'pending' | 'overdue';
+  paid_at?: string;
+  payment_method?: string;
+  mp_payment_id?: string;
+}
+

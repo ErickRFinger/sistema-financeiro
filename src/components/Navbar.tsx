@@ -113,18 +113,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Mercado Pago Button */}
-          {onOpenMercadoPago && (
-            <button
-              onClick={onOpenMercadoPago}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/40 text-sky-400 hover:bg-sky-500/20 transition-all text-xs sm:text-sm font-extrabold shadow-sm active:scale-95"
-              title="Criar Cobrança PIX / Cartão com Mercado Pago"
-            >
-              <CreditCard size={16} />
-              <span className="hidden sm:inline">Cobrar MP</span>
-            </button>
-          )}
-
           {/* Scanner Button */}
           <button
             onClick={onOpenScanner}

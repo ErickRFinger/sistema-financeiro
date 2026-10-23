@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { MetricCard } from '../components/MetricCard';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
+import { PWAInstallBanner } from '../components/PWAInstallBanner';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -39,6 +40,8 @@ interface DashboardPageProps {
   onOpenMercadoPago?: () => void;
   onSelectTransaction: (tx: FinancialTransaction) => void;
   onNavigateToStatement: () => void;
+  onNavigateToCards?: () => void;
+  onNavigateToShopping?: () => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -179,17 +182,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <span>Ler Nota Fiscal (IA)</span>
           </button>
 
-          {onOpenMercadoPago && (
-            <button
-              onClick={onOpenMercadoPago}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/40 hover:bg-sky-500/20 font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-sm"
-              title="Emitir cobrança PIX e Link de Pagamento Mercado Pago"
-            >
-              <CreditCard size={18} />
-              <span>Cobrar MP (PIX)</span>
-            </button>
-          )}
-
           <button
             onClick={() => onOpenNewTransaction('expense')}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 font-bold text-xs sm:text-sm transition-all active:scale-95"
@@ -207,6 +199,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </button>
         </div>
       </div>
+
+      {/* PWA Download Banner */}
+      <PWAInstallBanner />
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -42,7 +42,7 @@ export interface AssistantActionPayload {
     new_category?: string;
     new_account_id?: string;
   };
-  targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard';
+  targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard' | 'cards' | 'shopping_lists' | 'subscription_invoices';
   replyText: string;
 }
 
@@ -356,6 +356,30 @@ function processWithLocalNLP(
       intent: 'open_screen',
       targetScreen: 'investments',
       replyText: '🪙 Abrindo a carteira de Investimentos e Cotações ao Vivo...',
+    };
+  }
+
+  if (lower.includes('cartao') || lower.includes('cartões') || lower.includes('cartoes') || lower.includes('fatura do cartao') || lower.includes('limite do cartao')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'cards',
+      replyText: '💳 Abrindo o módulo de Cartões de Crédito, Limites e Leitor de Fatura...',
+    };
+  }
+
+  if (lower.includes('lista de compras') || lower.includes('lista de compra') || lower.includes('compras') || lower.includes('mercado') || lower.includes('supermercado')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'shopping_lists',
+      replyText: '🛒 Abrindo suas Listas de Compras Inteligentes (Mercado, Casa, Obras)...',
+    };
+  }
+
+  if (lower.includes('faturas do sistema') || lower.includes('minha assinatura') || lower.includes('fatura do sistema') || lower.includes('minhas faturas')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'subscription_invoices',
+      replyText: '📄 Abrindo Faturas do Sistema e Assinatura Aura Finance PRO (R$ 9,90/mês)...',
     };
   }
 
