@@ -119,6 +119,19 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
 
+  // Privacy Mode (Hide balances with 1-click)
+  const [isPrivate, setIsPrivate] = useState<boolean>(() => {
+    return localStorage.getItem('aura_privacy_mode') === 'true';
+  });
+
+  const handleTogglePrivacy = () => {
+    setIsPrivate(prev => {
+      const next = !prev;
+      localStorage.setItem('aura_privacy_mode', String(next));
+      return next;
+    });
+  };
+
   // Check Supabase Auth state on boot
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -964,6 +977,8 @@ export function App() {
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         systemName={systemName}
+        isPrivate={isPrivate}
+        onTogglePrivacy={handleTogglePrivacy}
       />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
@@ -985,6 +1000,8 @@ export function App() {
             <DashboardPage
               accounts={accounts}
               transactions={transactions}
+              currentUser={currentUser}
+              isPrivate={isPrivate}
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
               onOpenCFO={() => setIsCFOModalOpen(true)}

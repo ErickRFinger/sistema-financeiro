@@ -172,3 +172,8 @@ export interface SystemSubscriptionInvoice {
   mp_payment_id?: string;
 }
 
+export interface CategoryBudget {
+  category: string;
+  monthly_limit: number;
+}
+

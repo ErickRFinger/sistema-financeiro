@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   CreditCard,
   User,
-  UserPlus
+  UserPlus,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 import { FinancialAccount } from '../types/financial';
@@ -28,6 +30,8 @@ interface NavbarProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   systemName?: string;
+  isPrivate?: boolean;
+  onTogglePrivacy?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,6 +47,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   mobileMenuOpen,
   setMobileMenuOpen,
   systemName = 'Aura Finance',
+  isPrivate = false,
+  onTogglePrivacy,
 }) => {
   const totalBalance = accounts.reduce((acc, a) => acc + (a.balance || 0), 0);
 
@@ -94,13 +100,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Wallet size={14} className="text-gold-400" />
             <span>Patrimônio:</span>
             <span className="text-gold-400 font-bold tracking-tight">
-              {formatCurrency(totalBalance)}
+              {isPrivate ? '••••••' : formatCurrency(totalBalance)}
             </span>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Privacy Toggle Button */}
+          {onTogglePrivacy && (
+            <button
+              onClick={onTogglePrivacy}
+              className={`p-2 rounded-xl border transition-all text-xs font-bold flex items-center justify-center active:scale-95 ${
+                isPrivate 
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' 
+                  : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white'
+              }`}
+              title={isPrivate ? 'Modo Privacidade Ativo: Clique para revelar valores' : 'Clique para ocultar saldos (Modo Privacidade)'}
+            >
+              {isPrivate ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          )}
           {/* CFO Button */}
           {onOpenCFO && (
             <button

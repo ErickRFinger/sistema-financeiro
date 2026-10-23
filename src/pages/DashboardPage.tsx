@@ -33,12 +33,15 @@ import {
 import { MetricCard } from '../components/MetricCard';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
+import { CategoryBudgetWidget } from '../components/CategoryBudgetWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
 interface DashboardPageProps {
   accounts: FinancialAccount[];
   transactions: FinancialTransaction[];
+  currentUser?: any;
+  isPrivate?: boolean;
   onOpenNewTransaction: (type?: 'expense' | 'income') => void;
   onOpenScanner: () => void;
   onOpenCFO?: () => void;
@@ -56,6 +59,8 @@ interface DashboardPageProps {
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   accounts,
   transactions,
+  currentUser,
+  isPrivate = false,
   onOpenNewTransaction,
   onOpenScanner,
   onOpenCFO,
@@ -348,7 +353,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Saldo Consolidado"
-          value={formatCurrency(totalBalance)}
+          value={isPrivate ? '••••••' : formatCurrency(totalBalance)}
           subtitle="Soma de todas as contas"
           icon={Wallet}
           highlight={true}
@@ -357,7 +362,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <MetricCard
           title="Receitas no Mês"
-          value={formatCurrency(monthIncome)}
+          value={isPrivate ? '••••••' : formatCurrency(monthIncome)}
           subtitle="Entradas liquidadas"
           icon={TrendingUp}
           variant="green"
@@ -366,7 +371,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <MetricCard
           title="Despesas no Mês"
-          value={formatCurrency(monthExpense)}
+          value={isPrivate ? '••••••' : formatCurrency(monthExpense)}
           subtitle="Saídas pagas"
           icon={TrendingDown}
           variant="red"
@@ -375,7 +380,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         <MetricCard
           title="Contas a Pagar"
-          value={formatCurrency(pendingBills)}
+          value={isPrivate ? '••••••' : formatCurrency(pendingBills)}
           subtitle="Pendentes no período"
           icon={Clock}
           variant="default"
@@ -507,6 +512,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
+      {/* Monthly Category Budgets & Goals */}
+      <CategoryBudgetWidget 
+        transactions={transactions} 
+        currentUser={currentUser} 
+        isPrivate={isPrivate}
+        onOpenNewExpense={() => onOpenNewTransaction('expense')}
+      />
+
       {/* Bank Accounts Row */}
       <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card">
         <div className="flex items-center justify-between mb-4">
@@ -534,7 +547,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 />
               </div>
               <div className="text-xl font-black text-white group-hover:text-gold-400 transition-colors">
-                {formatCurrency(acc.balance)}
+                {isPrivate ? '••••••' : formatCurrency(acc.balance)}
               </div>
               <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between">
                 <span>Disponível</span>

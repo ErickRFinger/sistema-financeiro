@@ -173,3 +173,8 @@ VITE_GEMINI_API_KEY=
   * **Detecção Automática & Webhook:** Polling em tempo real a cada 3 segundos com reconhecimento imediato de status `approved` e endpoint webhook `/api/mercadopago-webhook` com atualização automática do plano no Supabase.
   * **Emissão de Recibo Oficial em PDF:** Geração client-side de comprovante de quitação com layout Black & Gold executivo via jsPDF.
   * **Otimização de Build & Chunking:** Divisão do bundle Vite em chunks modulares (`vendor-react`, `vendor-charts`, `vendor-pdf`, `vendor-icons`), acelerando o carregamento inicial no celular.
+* **v1.3.0 (23/10/2026):**
+  * **Metas de Orçamento por Categoria (Budget Tracker):** Gestor interativo de teto de gastos mensais com barras de progresso dinâmicas em 4 níveis (Verde, Amarelo, Laranja, Vermelho/Alerta), cálculo de saldo restante no mês e modal de personalização rápida de tetos por categoria.
+  * **Modo Privacidade (Eye / EyeOff):** Ocultação instantânea de patrimônio e saldos na Navbar e Dashboard com 1 clique (exibindo `••••••`) e persistência no LocalStorage.
+  * **Auto-Categorização Inteligente de Gastos:** Detecção de categorias em tempo real conforme o usuário digita a descrição no modal de lançamento.
+  * **Modo Lançamento Contínuo ("Salvar e Novo"):** Permite cadastrar múltiplos gastos e boletos em sequência sem precisar reabrir o modal.

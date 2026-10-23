@@ -9,7 +9,9 @@ import {
   Landmark, 
   CreditCard,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Plus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -30,6 +32,41 @@ interface TransactionModalProps {
   initialType?: TransactionType;
 }
 
+export const guessCategory = (text: string): string | null => {
+  const lower = text.toLowerCase();
+  if (lower.includes('uber') || lower.includes('99') || lower.includes('gasolina') || lower.includes('posto') || lower.includes('shell') || lower.includes('ipiranga') || lower.includes('estacionamento') || lower.includes('pedagio') || lower.includes('pedágio')) {
+    return 'Combustível & Transporte';
+  }
+  if (lower.includes('mercado') || lower.includes('supermercado') || lower.includes('almoço') || lower.includes('almoco') || lower.includes('jantar') || lower.includes('restaurante') || lower.includes('ifood') || lower.includes('padaria') || lower.includes('café') || lower.includes('cafe') || lower.includes('pizza') || lower.includes('lanche') || lower.includes('açougue') || lower.includes('acougue')) {
+    return 'Alimentação & Refeição';
+  }
+  if (lower.includes('copel') || lower.includes('enel') || lower.includes('celesc') || lower.includes('luz') || lower.includes('energia') || lower.includes('água') || lower.includes('agua') || lower.includes('aluguel') || lower.includes('condomínio') || lower.includes('condominio') || lower.includes('iptu') || lower.includes('gás') || lower.includes('gas')) {
+    return 'Aluguel & Contas Fixas';
+  }
+  if (lower.includes('internet') || lower.includes('fibra') || lower.includes('claro') || lower.includes('vivo') || lower.includes('tim') || lower.includes('servidor') || lower.includes('hospedagem') || lower.includes('software') || lower.includes('assinatura') || lower.includes('chatgpt') || lower.includes('openai')) {
+    return 'Serviços & Internet';
+  }
+  if (lower.includes('peça') || lower.includes('peca') || lower.includes('fornecedor') || lower.includes('camera') || lower.includes('câmera') || lower.includes('dvr') || lower.includes('cabo') || lower.includes('conector') || lower.includes('fonte') || lower.includes('disco') || lower.includes('hd') || lower.includes('switch') || lower.includes('roteador')) {
+    return 'Fornecedores & Peças';
+  }
+  if (lower.includes('ferramenta') || lower.includes('alicate') || lower.includes('furadeira') || lower.includes('escada') || lower.includes('parafuso') || lower.includes('chave')) {
+    return 'Infraestrutura & Ferramentas';
+  }
+  if (lower.includes('anúncio') || lower.includes('anuncio') || lower.includes('ads') || lower.includes('meta') || lower.includes('google ads') || lower.includes('marketing') || lower.includes('tráfego') || lower.includes('trafego')) {
+    return 'Marketing & Comercial';
+  }
+  if (lower.includes('imposto') || lower.includes('darf') || lower.includes('das') || lower.includes('simples') || lower.includes('taxa') || lower.includes('tributo')) {
+    return 'Impostos & Taxas';
+  }
+  if (lower.includes('salário') || lower.includes('salario') || lower.includes('adiantamento') || lower.includes('pró-labore') || lower.includes('comissão') || lower.includes('comissao')) {
+    return 'Salários & Pró-labore';
+  }
+  if (lower.includes('venda') || lower.includes('instalação') || lower.includes('instalacao') || lower.includes('manutenção') || lower.includes('manutencao') || lower.includes('contrato') || lower.includes('honorário')) {
+    return 'Vendas & Serviços Prestados';
+  }
+  return null;
+};
+
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
@@ -49,6 +86,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [autoDetectedCategory, setAutoDetectedCategory] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -62,8 +100,22 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setAmountRaw(new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(num));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+
+    if (type === 'expense') {
+      const guessed = guessCategory(newTitle);
+      if (guessed) {
+        setCategory(guessed);
+        setAutoDetectedCategory(guessed);
+      } else {
+        setAutoDetectedCategory(null);
+      }
+    }
+  };
+
+  const executeSave = async (createAnother: boolean = false) => {
     setErrorMsg('');
 
     const numericAmount = parseCurrencyInput(amountRaw);
@@ -123,24 +175,33 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
       // Trigger celebration
       confetti({
-        particleCount: 60,
+        particleCount: createAnother ? 35 : 60,
         spread: 60,
         origin: { y: 0.75 },
         colors: ['#facc15', '#eab308', '#ffffff']
       });
 
-      onClose();
+      if (!createAnother) {
+        onClose();
+      }
+
       // Reset form
       setTitle('');
       setAmountRaw('');
       setSelectedFile(null);
       setInstallments(1);
+      setAutoDetectedCategory(null);
     } catch (err: any) {
       console.error(err);
       setErrorMsg('Erro ao salvar lançamento. Verifique a conexão com o Supabase.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeSave(false);
   };
 
   return (
@@ -220,15 +281,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Descrição / Fornecedor */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Descrição / Fornecedor
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Descrição / Fornecedor
+              </label>
+              {autoDetectedCategory && (
+                <span className="text-[10px] text-gold-400 font-bold flex items-center gap-1 animate-fade-in">
+                  <Sparkles size={11} />
+                  <span>Sugerido: {autoDetectedCategory}</span>
+                </span>
+              )}
+            </div>
             <input
               type="text"
               required
               placeholder="Ex: Fornecedor Hikvision, Aluguel, Posto Ipiranga..."
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={handleTitleChange}
               className="w-full px-4 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-gold-400 transition-all"
             />
           </div>
@@ -387,12 +456,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </label>
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-2">
+          {/* Submit Action Buttons */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => executeSave(true)}
+              className="w-full sm:w-auto px-4 py-3.5 rounded-2xl bg-dark-950 border border-gold-400/40 text-gold-400 hover:bg-gold-400/10 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+              title="Salvar e continuar lançando outro gasto"
+            >
+              <Plus size={16} />
+              <span>Salvar e Novo</span>
+            </button>
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-extrabold text-sm sm:text-base hover:brightness-110 active:scale-[0.99] transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-extrabold text-sm sm:text-base hover:brightness-110 active:scale-[0.99] transition-all shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -402,7 +482,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               ) : (
                 <>
                   <CheckCircle2 size={18} />
-                  <span>Confirmar e Registrar Lançamento</span>
+                  <span>Confirmar Lançamento</span>
                 </>
               )}
             </button>
