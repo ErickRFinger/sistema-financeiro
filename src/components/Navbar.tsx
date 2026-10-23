@@ -14,7 +14,8 @@ import {
   Eye,
   EyeOff,
   Bell,
-  Clock
+  Clock,
+  Search
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 import { FinancialAccount } from '../types/financial';
@@ -28,6 +29,7 @@ interface NavbarProps {
   onOpenCFO?: () => void;
   onOpenMercadoPago?: () => void;
   onOpenAuth?: () => void;
+  onOpenCommandPalette?: () => void;
   currentUser?: any;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
@@ -45,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCFO,
   onOpenMercadoPago,
   onOpenAuth,
+  onOpenCommandPalette,
   currentUser,
   mobileMenuOpen,
   setMobileMenuOpen,
@@ -162,6 +165,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Quick Command / Spotlight Button (⌘K) */}
+          {onOpenCommandPalette && (
+            <button
+              onClick={onOpenCommandPalette}
+              className="p-2 sm:px-3 rounded-xl border border-dark-800 bg-dark-900 text-slate-400 hover:text-white hover:border-gold-400/40 hover:bg-dark-850 transition-all text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 cursor-pointer group"
+              title="Buscar ou Executar Comando (Cmd + K ou Ctrl + K)"
+              aria-label="Abrir Spotlight Command Palette"
+            >
+              <Search size={15} className="text-yellow-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden xl:inline text-slate-400 group-hover:text-slate-200">Buscar...</span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-dark-950/80 border border-dark-800 text-slate-400 group-hover:text-yellow-400 leading-none">
+                ⌘K
+              </span>
+            </button>
+          )}
+
           {/* Privacy Toggle Button */}
           {onTogglePrivacy && (
             <button
@@ -292,6 +311,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
           </div>
+          {/* Command Palette Button */}
+          {onOpenCommandPalette && (
+            <button
+              onClick={onOpenCommandPalette}
+              className="flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-dark-900 border border-slate-700 text-slate-300 hover:bg-gold-400/10 hover:border-gold-400/40 hover:text-gold-400 transition-all text-xs sm:text-sm font-semibold shadow-sm active:scale-95"
+              title="Buscar ou comando (⌘K)"
+            >
+              <Search size={16} className="text-slate-400 hover:text-gold-400" />
+              <span className="hidden sm:inline text-slate-400">Buscar</span>
+              <span className="hidden sm:inline font-mono text-[10px] px-1.5 py-0.5 rounded bg-gold-400/20 text-gold-400 border border-gold-400/30">⌘K</span>
+            </button>
+          )}
+
           {/* CFO Button */}
           {onOpenCFO && (
             <button

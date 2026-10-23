@@ -234,6 +234,13 @@ VITE_GEMINI_API_KEY=
   * **Aporte Rápido de Liquidez:** Botões de incremento imediato (`+R$ 100`, `+R$ 250`, `+R$ 500` e valor livre) para alimentar as caixinhas sem fricção.
   * **Formulário de Novos Objetivos:** Cadastro completo de título, valor alvo, aporte inicial, categoria com ícones automáticos (*Escudo, Avião, Carro, Gráfico*) e color picker nativo.
   * **Modo Privacidade:** Valores monetários das metas e saldos restantes protegidos dinamicamente com `••••••` ao ativar o atalho `P` ou botão de olho.
+* **v2.6.0 (23/10/2026):**
+  * **Command Palette Executivo & Spotlight Global (`Cmd + K` / `Ctrl + K` - Inspirado no Linear & Raycast):** Barra de comando centralizada flutuante (`CommandPalette.tsx`) com backdrop blur escuro (`backdrop-blur-md bg-black/80`), acionada de qualquer lugar do sistema via teclado (`Cmd + K`, `Ctrl + K`) ou pelo botão de busca com badge mono `⌘K` na Navbar.
+  * **Navegação Expressa por Abas:** Salto instantâneo entre Dashboard, Extrato, Cartões de Crédito, Contas Bancárias, Investimentos & Quitação de Dívidas, Listas de Compras e Tutoriais.
+  * **Ações Imediatas sem Fricção:** Disparo com 1 toque no teclado para `+ Nova Despesa`, `+ Nova Receita`, `📥 Importar Extrato (OFX/CSV)`, `📸 Escanear Fatura com IA`, `🤖 Abrir CFO Virtual` e `👁️ Alternar Modo Privacidade`.
+  * **Busca Dinâmica de Transações:** Digite o nome de qualquer estabelecimento ou valor (ex: *Uber, iFood, Mercado, Aluguel*) para filtrar despesas e receitas em tempo real, navegando com as setas `↑` `↓` e abrindo o detalhe com `Enter`.
+  * **Credenciais de Teste Executivo (Gabriely Tosin):** Usuária `gabrielytosin06@gmail.com` cadastrada e ativada no Supabase Auth com plano `lifetime` (Acesso PRO Vitalício Permanente, isenta de paywall e expiração de trial).
+
 
 
 

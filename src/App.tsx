@@ -22,6 +22,7 @@ import { MercadoPagoModal } from './components/MercadoPagoModal';
 import { LandingAuthGate } from './components/LandingAuthGate';
 import { TrialPaywall } from './components/TrialPaywall';
 import { OverdueLockScreen } from './components/OverdueLockScreen';
+import { CommandPalette } from './components/CommandPalette';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
@@ -123,6 +124,20 @@ export function App() {
   const [isPrivate, setIsPrivate] = useState<boolean>(() => {
     return localStorage.getItem('aura_privacy_mode') === 'true';
   });
+
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut listener for Executive Spotlight
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleTogglePrivacy = () => {
     setIsPrivate(prev => {
@@ -973,6 +988,7 @@ export function App() {
         onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         currentUser={currentUser}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
@@ -1005,7 +1021,7 @@ export function App() {
               onOpenNewTransaction={handleOpenNewTransaction}
               onOpenScanner={() => setIsScannerModalOpen(true)}
               onOpenCFO={() => setIsCFOModalOpen(true)}
-              onSelectTransaction={(tx) => setSelectedTransaction(tx)}
+              onSelectTransaction={(tx: FinancialTransaction) => setSelectedTransaction(tx)}
               onNavigateToStatement={() => setActiveTab('statement')}
               onNavigateToCards={() => setActiveTab('cards')}
               onNavigateToShopping={() => setActiveTab('shopping_lists')}
@@ -1069,7 +1085,7 @@ export function App() {
             <StatementPage
               transactions={transactions}
               accounts={accounts}
-              onSelectTransaction={(tx) => setSelectedTransaction(tx)}
+              onSelectTransaction={(tx: FinancialTransaction) => setSelectedTransaction(tx)}
               onOpenNewTransaction={handleOpenNewTransaction}
               onToggleStatus={handleToggleStatus}
               onDeleteTransaction={handleDeleteTransaction}
@@ -1210,6 +1226,24 @@ export function App() {
           setIsMercadoPagoModalOpen(true);
         }}
         onNavigateTab={(tab) => setActiveTab(tab)}
+      />
+
+      {/* Global Executive Command Palette & Spotlight (⌘K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenNewTransaction={handleOpenNewTransaction}
+        onOpenScanner={() => setIsScannerModalOpen(true)}
+        onOpenCFO={() => setIsCFOModalOpen(true)}
+        onTogglePrivacy={handleTogglePrivacy}
+        onOpenImporter={() => {
+          setActiveTab('statement');
+        }}
+        transactions={transactions}
+        onSelectTransaction={(tx: FinancialTransaction) => setSelectedTransaction(tx)}
+        isPrivate={isPrivate}
       />
     </div>
   );
