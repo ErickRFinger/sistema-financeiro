@@ -52,6 +52,8 @@ export interface AssistantActionPayload {
     | 'query_expenses' 
     | 'cfo_advice' 
     | 'create_investment'
+    | 'update_investment'
+    | 'delete_investment'
     | 'bank_print_processed'
     | 'general_chat';
   transactionData?: {
@@ -74,6 +76,9 @@ export interface AssistantActionPayload {
   targetAccountId?: string;
   targetAccountName?: string;
   newBalance?: number;
+  targetInvestmentId?: string;
+  targetInvestmentName?: string;
+  newInvestmentAmount?: number;
   targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard' | 'cards' | 'shopping_lists' | 'subscription_invoices';
   investmentData?: {
     name: string;
@@ -152,11 +157,12 @@ Comandos que você deve reconhecer:
 8. EXCLUIR / CANCELAR: "exclui o último lançamento", "cancela o almoço", "apaga a conta de luz" -> intent: "delete_transaction"
 9. ALTERAR: "altera o almoço para 95 reais", "muda o valor para 200", "marca como pago", "marca como pendente" -> intent: "update_transaction"
 10. ABRIR TELAS: "abre o leitor de nota fiscal", "abre o extrato", "cobrar com mercado pago", "abre o cfo" -> intent: "open_screen"
-11. SALDO: "qual meu saldo?", "quanto tenho?" -> intent: "query_balance"
+11. INVESTIMENTOS / RESERVAS: "guardei 5000 no nubank", "adicionar 2000 no tesouro selic", "aporte de 1500" -> intent: "create_investment"
+12. SALDO: "qual meu saldo?", "quanto tenho?" -> intent: "query_balance"
 
 Responda APENAS em JSON estrito (sem markdown):
 {
-  "intent": "create_transaction" | "delete_transaction" | "update_transaction" | "reset_bank_balances" | "set_account_balance" | "reset_transactions" | "reset_investments" | "reset_all_data" | "undo_action" | "open_screen" | "query_balance" | "general_chat",
+  "intent": "create_transaction" | "delete_transaction" | "update_transaction" | "reset_bank_balances" | "set_account_balance" | "reset_transactions" | "reset_investments" | "create_investment" | "update_investment" | "delete_investment" | "reset_all_data" | "undo_action" | "open_screen" | "query_balance" | "general_chat",
   "replyText": "Resposta clara em português confirmando o que você executou.",
   "targetAccountId": "id_da_conta" (opcional para set_account_balance),
   "targetAccountName": "nome_da_conta" (opcional para set_account_balance),

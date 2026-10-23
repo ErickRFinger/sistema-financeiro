@@ -5,7 +5,7 @@ import {
   ScanLine, 
   Landmark, 
   Settings,
-  Plus
+  Bot
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -19,7 +19,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   activeTab,
   setActiveTab,
   onOpenScanner,
-  onOpenNewTransaction,
+  onOpenNewTransaction: _onOpenNewTransaction,
 }) => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-dark-950/95 backdrop-blur-lg border-t border-dark-800 px-3 py-2 pb-safe">
@@ -27,7 +27,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* Dashboard */}
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors ${
             activeTab === 'dashboard' ? 'text-gold-400 font-bold' : 'text-slate-400'
           }`}
         >
@@ -35,15 +35,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px]">Início</span>
         </button>
 
-        {/* Extrato */}
+        {/* Chat IA Flagship */}
         <button
-          onClick={() => setActiveTab('statement')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors ${
-            activeTab === 'statement' ? 'text-gold-400 font-bold' : 'text-slate-400'
+          onClick={() => setActiveTab('ai_chat')}
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors relative ${
+            activeTab === 'ai_chat' ? 'text-gold-400 font-bold' : 'text-slate-400 hover:text-gold-400'
           }`}
         >
-          <Receipt size={20} />
-          <span className="text-[10px]">Extrato</span>
+          <div className="relative">
+            <Bot size={20} className={activeTab === 'ai_chat' ? 'text-gold-400' : ''} />
+            <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-gold-400 animate-pulse" />
+          </div>
+          <span className="text-[10px] font-medium">Chat IA</span>
         </button>
 
         {/* Center Floating AI Scanner Button */}
@@ -58,26 +61,26 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] font-bold text-gold-400 mt-1">Ler NF</span>
         </div>
 
+        {/* Extrato */}
+        <button
+          onClick={() => setActiveTab('statement')}
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors ${
+            activeTab === 'statement' ? 'text-gold-400 font-bold' : 'text-slate-400'
+          }`}
+        >
+          <Receipt size={20} />
+          <span className="text-[10px]">Extrato</span>
+        </button>
+
         {/* Contas */}
         <button
           onClick={() => setActiveTab('accounts')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors ${
             activeTab === 'accounts' ? 'text-gold-400 font-bold' : 'text-slate-400'
           }`}
         >
           <Landmark size={20} />
           <span className="text-[10px]">Contas</span>
-        </button>
-
-        {/* Configurações */}
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg transition-colors ${
-            activeTab === 'settings' ? 'text-gold-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Settings size={20} />
-          <span className="text-[10px]">Ajustes</span>
         </button>
       </div>
     </div>

@@ -626,6 +626,34 @@ export async function createInvestment(
 }
 
 /**
+ * Update investment current amount
+ */
+export async function updateInvestment(id: string, currentAmount: number): Promise<boolean> {
+  try {
+    const apiRes = await callFinancialApi({
+      action: 'update_investment',
+      id,
+      current_amount: currentAmount,
+    });
+    if (apiRes) return true;
+
+    const { error } = await supabase
+      .from('financial_investments')
+      .update({
+        current_amount: currentAmount,
+        last_updated: new Date().toISOString().split('T')[0],
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Erro ao atualizar valor do investimento:', err);
+    return false;
+  }
+}
+
+/**
  * Delete investment
  */
 export async function deleteInvestment(id: string): Promise<boolean> {

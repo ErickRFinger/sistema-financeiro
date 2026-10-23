@@ -226,6 +226,22 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data });
       }
 
+      case 'update_investment': {
+        const { id, current_amount } = req.body;
+        const { data, error } = await supabase
+          .from('financial_investments')
+          .update({ 
+            current_amount: Number(current_amount),
+            last_updated: new Date().toISOString().split('T')[0]
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return res.status(200).json({ success: true, data });
+      }
+
       case 'delete_investment': {
         const { id } = req.body;
         const { error } = await supabase

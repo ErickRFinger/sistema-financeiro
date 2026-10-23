@@ -12,6 +12,7 @@ import { CardsPage } from './pages/CardsPage';
 import { ShoppingListsPage } from './pages/ShoppingListsPage';
 import { SubscriptionInvoicesPage } from './pages/SubscriptionInvoicesPage';
 import { TutorialPage } from './pages/TutorialPage';
+import { AIChatPage } from './pages/AIChatPage';
 import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
@@ -42,6 +43,8 @@ import {
   updateTransactionStatus, 
   deleteTransaction,
   createInvestment,
+  updateInvestment,
+  deleteInvestment,
   updateAccountBalance,
   resetAllAccountBalances,
   resetAllTransactions,
@@ -726,6 +729,34 @@ export function App() {
     });
   };
 
+  const handleUpdateInvestment = async (id: string, currentAmount: number) => {
+    if (!currentUser) return;
+    const userKey = `aura_user_${currentUser.id}`;
+    const savedInvestments = localStorage.getItem(`${userKey}_investments`);
+    if (savedInvestments) {
+      const list: FinancialInvestment[] = JSON.parse(savedInvestments);
+      const updated = list.map(inv => inv.id === id ? { ...inv, current_amount: currentAmount, last_updated: new Date().toISOString().split('T')[0] } : inv);
+      localStorage.setItem(`${userKey}_investments`, JSON.stringify(updated));
+    }
+    if (isAdmin) {
+      await updateInvestment(id, currentAmount);
+    }
+  };
+
+  const handleDeleteInvestment = async (id: string) => {
+    if (!currentUser) return;
+    const userKey = `aura_user_${currentUser.id}`;
+    const savedInvestments = localStorage.getItem(`${userKey}_investments`);
+    if (savedInvestments) {
+      const list: FinancialInvestment[] = JSON.parse(savedInvestments);
+      const updated = list.filter(inv => inv.id !== id);
+      localStorage.setItem(`${userKey}_investments`, JSON.stringify(updated));
+    }
+    if (isAdmin) {
+      await deleteInvestment(id);
+    }
+  };
+
   // System Invoices Handlers
   const handlePaySystemInvoice = (invoice: SystemSubscriptionInvoice) => {
     setPayingInvoice(invoice);
@@ -1126,6 +1157,33 @@ export function App() {
             />
           )}
 
+          {activeTab === 'ai_chat' && (
+            <AIChatPage
+              accounts={accounts}
+              transactions={transactions}
+              currentUser={currentUser}
+              isPrivate={isPrivate}
+              onCreateTransaction={handleCreateTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
+              onUpdateTransactionStatus={handleToggleStatus}
+              onResetBankBalances={handleResetBankBalances}
+              onUpdateAccountBalance={handleUpdateAccountBalance}
+              onResetTransactions={handleResetTransactions}
+              onResetInvestments={handleResetInvestments}
+              onResetAllData={handleClearData}
+              onCreateInvestment={handleCreateInvestment}
+              onUpdateInvestment={handleUpdateInvestment}
+              onDeleteInvestment={handleDeleteInvestment}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenScanner={() => setIsScannerModalOpen(true)}
+              onOpenCFO={() => setIsCFOModalOpen(true)}
+              onOpenMercadoPago={() => {
+                setMpModalMode('subscription');
+                setIsMercadoPagoModalOpen(true);
+              }}
+            />
+          )}
+
           {activeTab === 'tutorial' && (
             <TutorialPage
               setActiveTab={setActiveTab}
@@ -1305,26 +1363,28 @@ export function App() {
       />
 
       {/* Conversational AI Financial Assistant (Full Control & Bank Prints) */}
-      <AIAssistantChat
-        accounts={accounts}
-        transactions={transactions}
-        onCreateTransaction={handleCreateTransaction}
-        onDeleteTransaction={handleDeleteTransaction}
-        onUpdateTransactionStatus={handleToggleStatus}
-        onResetBankBalances={handleResetBankBalances}
-        onUpdateAccountBalance={handleUpdateAccountBalance}
-        onResetTransactions={handleResetTransactions}
-        onResetInvestments={handleResetInvestments}
-        onResetAllData={handleClearData}
-        onCreateInvestment={handleCreateInvestment}
-        onOpenScanner={() => setIsScannerModalOpen(true)}
-        onOpenCFO={() => setIsCFOModalOpen(true)}
-        onOpenMercadoPago={() => {
-          setMpModalMode('subscription');
-          setIsMercadoPagoModalOpen(true);
-        }}
-        onNavigateTab={(tab) => setActiveTab(tab)}
-      />
+      {activeTab !== 'ai_chat' && (
+        <AIAssistantChat
+          accounts={accounts}
+          transactions={transactions}
+          onCreateTransaction={handleCreateTransaction}
+          onDeleteTransaction={handleDeleteTransaction}
+          onUpdateTransactionStatus={handleToggleStatus}
+          onResetBankBalances={handleResetBankBalances}
+          onUpdateAccountBalance={handleUpdateAccountBalance}
+          onResetTransactions={handleResetTransactions}
+          onResetInvestments={handleResetInvestments}
+          onResetAllData={handleClearData}
+          onCreateInvestment={handleCreateInvestment}
+          onOpenScanner={() => setIsScannerModalOpen(true)}
+          onOpenCFO={() => setIsCFOModalOpen(true)}
+          onOpenMercadoPago={() => {
+            setMpModalMode('subscription');
+            setIsMercadoPagoModalOpen(true);
+          }}
+          onNavigateTab={(tab) => setActiveTab(tab)}
+        />
+      )}
 
       {/* Global Executive Command Palette & Spotlight (⌘K) */}
       <CommandPalette

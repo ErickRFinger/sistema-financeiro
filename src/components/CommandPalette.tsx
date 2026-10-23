@@ -89,6 +89,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
+      id: 'nav-ai-chat',
+      title: 'Copiloto IA (Chat Autônomo)',
+      subtitle: 'Controle total do sistema por voz, texto e prints de bancos',
+      category: 'navigation',
+      icon: <Bot className="w-4 h-4 text-gold-400" />,
+      action: () => {
+        setActiveTab('ai_chat');
+        onClose();
+      },
+    },
+    {
       id: 'nav-statement',
       title: 'Extrato & Lançamentos',
       subtitle: 'Histórico completo de entradas e saídas',

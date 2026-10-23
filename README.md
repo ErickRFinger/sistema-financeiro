@@ -247,6 +247,20 @@ VITE_GEMINI_API_KEY=
   * **Zerar Extrato & Despesas:** Comandos como *"zerar extrato"*, *"limpar lançamentos"*, *"apagar todas as despesas"* limpam o histórico de movimentações mantendo as contas bancárias preservadas.
   * **Execução Autônoma sem Bloqueio de UI:** Bypassa diálogos síncronos de confirmação do navegador quando comandado diretamente pelo chat da IA, permitindo operações instantâneas com histórico de `Desfazer` (*Undo*).
   * **Endpoints Serverless Resilientes:** Adição de rotas em `api/financial.js` (`reset_all_account_balances`, `reset_all_transactions`, `reset_all_investments`) com Service Role para execução segura em produção.
+* **v2.8.0 (23/10/2026):**
+  * **Cockpit Oficial "Chat IA (Copiloto)" — O Carro-Chefe da Plataforma (`AIChatPage.tsx`):** Criação de uma página dedicada em tela cheia posicionada como recurso central do sistema, oferecendo controle operacional 100% autônomo sobre todo o ecossistema financeiro.
+  * **Acesso e Autonomia Irrestrita no Sistema:**
+    * *Lançar & Criar:* Adiciona receitas e despesas com categorização inteligente e vínculo bancário automático por voz ou texto.
+    * *Excluir & Modificar:* Altera valores, status de lançamentos (`pago` / `pendente`) e remove transações com histórico de *Desfazer* imediato.
+    * *Saldos Bancários:* Zera ou ajusta saldos de todos os bancos ou contas específicas (*"coloca 1500 no inter"*, *"zerar saldo dos bancos"*).
+    * *Carteira de Investimentos & Caixinhas:* Cria, ajusta montantes e gerencia reservas em renda fixa, Selic e Porquinhos digitais.
+    * *Prints de Bancos & Comprovantes:* Suporte a upload, arrastar e soltar (drag & drop) e colar direto do clipboard (`Ctrl+V`) de extratos e telas de bancos com leitura automática multimodal.
+  * **Navegação & Posicionamento de Destaque:**
+    * *Sidebar Desktop:* Posicionada logo abaixo do Dashboard com ícone de robô, efeito Glow Dourado e badge de prestígio `"Carro-Chefe"`.
+    * *Navegação Mobile (`MobileBottomNav.tsx`):* Botão fixo com ícone e ponto luminoso pulsante acessível com o polegar.
+    * *Command Palette (`Cmd + K`):* Atalho de salto direto `"Copiloto IA (Chat Autônomo)"`.
+    * *Mini-Chat Flutuante:* Botão de expansão em tela cheia (`Maximize2`) para transitar do widget para o Cockpit completo.
+  * **Interação por Voz:** Botão de microfone integrado com a API nativa Web Speech Recognition com feedback e animação de fala em tempo real.
 
 
 

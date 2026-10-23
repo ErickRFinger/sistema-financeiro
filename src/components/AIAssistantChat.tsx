@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   Coins,
-  Loader2
+  Loader2,
+  Maximize2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -557,12 +558,28 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-dark-800 transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  title="Expandir para o Cockpit IA Completo"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onNavigateTab('ai_chat');
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-gold-400 rounded-lg hover:bg-dark-800 transition-colors"
+                >
+                  <Maximize2 size={16} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-dark-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Quick Suggestions Chips */}

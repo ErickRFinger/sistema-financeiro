@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   ShoppingCart,
   PlayCircle,
-  BookOpen
+  BookOpen,
+  Bot
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -51,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'ai_chat', label: 'Copiloto IA (Chat)', icon: Bot, badge: 'Carro-Chefe', highlight: true },
     { id: 'tutorial', label: 'Como Usar & Vídeos', icon: PlayCircle, badge: 'Vídeo' },
     ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS', icon: ShieldCheck, badge: 'Admin' }] : []),
     { id: 'cards', label: 'Cartões & Faturas', icon: CreditCard, badge: 'Novo' },
