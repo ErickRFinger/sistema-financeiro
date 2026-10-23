@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Users, 
@@ -11,7 +11,8 @@ import {
   Sparkles, 
   RefreshCw,
   PlusCircle,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 import { getSaasUsers, updateUserPlan } from '../lib/supabase';
 import { formatCurrency, formatDate } from '../lib/formatters';
@@ -76,6 +77,12 @@ export const AdminSaasPage: React.FC = () => {
       setTimeout(() => setActionSuccess(''), 3000);
       await loadUsers();
     }
+  };
+
+  const handleWhatsAppCharge = (userName: string, userEmail: string) => {
+    const msg = `Olá, ${userName}! Notamos que seu período de teste do *Aura Finance PRO* expirou ou está próximo do vencimento.\n\nPara continuar aproveitando o Leitor de Notas Fiscais com IA, importação de faturas e controle completo com design Black & Gold, ative sua assinatura por apenas *R$ 9,90/mês* via PIX instantâneo pelo link:\nhttps://sistema-financeiro-six-self.vercel.app\n\nQualquer dúvida estamos à disposição!`;
+    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
   };
 
   // Metrics
@@ -289,6 +296,15 @@ export const AdminSaasPage: React.FC = () => {
                     <td className="py-3 text-right pr-2">
                       {!isUserAdmin && (
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleWhatsAppCharge(u.name, u.email)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition-all flex items-center gap-1"
+                            title="Enviar mensagem de cobrança ou boas-vindas no WhatsApp"
+                          >
+                            <MessageSquare size={12} />
+                            <span>Cobrar WhatsApp</span>
+                          </button>
+
                           {isTrial && (
                             <>
                               <button
@@ -309,7 +325,7 @@ export const AdminSaasPage: React.FC = () => {
                           )}
                           {isActive && !isUserAdmin && (
                             <span className="text-[11px] text-emerald-400 font-bold">
-                              ✓ Assinatura Ativa
+                              ✓ Ativo
                             </span>
                           )}
                         </div>
