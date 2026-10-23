@@ -840,6 +840,61 @@ function processWithLocalNLP(
   }
 
   // ==========================================
+  // 7.6 AUDITORIA DE DUPLICIDADES (NOVO)
+  // Ex: "tem lançamento duplicado?", "ver duplicados", "auditar duplicidades"
+  // ==========================================
+  if (/duplicad|duplicidade|lancamento repetido|despesa repetida/i.test(lower)) {
+    const duplicates: Array<{ t1: FinancialTransaction; t2: FinancialTransaction }> = [];
+    for (let i = 0; i < transactions.length; i++) {
+      for (let j = i + 1; j < transactions.length; j++) {
+        const a = transactions[i];
+        const b = transactions[j];
+        if (Math.abs(a.amount - b.amount) < 0.01) {
+          const diffDays = Math.abs(new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()) / (1000 * 3600 * 24);
+          if (diffDays <= 4 && (a.title.toLowerCase() === b.title.toLowerCase() || a.category === b.category)) {
+            duplicates.push({ t1: a, t2: b });
+          }
+        }
+      }
+    }
+
+    if (duplicates.length > 0) {
+      const dupList = duplicates.slice(0, 3).map(d => 
+        `• **"${d.t1.title}"** e **"${d.t2.title}"**: ${formatCurrency(d.t1.amount)} (${d.t1.transaction_date})`
+      ).join('\n');
+
+      return {
+        intent: 'cfo_advice',
+        replyText: `⚠️ **Atenção! Encontrei ${duplicates.length} possível(is) duplicidade(s) no seu extrato:**\n\n${dupList}\n\n*Dica do Copiloto:* Para excluir uma das duplicatas, basta dizer: *"excluir ${duplicates[0].t1.title}"*.`,
+        suggestedChips: [`🗑️ Excluir ${duplicates[0].t1.title}`, '📑 Ver no Extrato', '📊 CFO Virtual'],
+      };
+    } else {
+      return {
+        intent: 'cfo_advice',
+        replyText: `✅ **Auditoria de Integridade Concluída:** Nenhum lançamento duplicado encontrado no seu extrato! Todos os seus ${transactions.length} registros estão 100% íntegros.`,
+        suggestedChips: ['📑 Ver no Extrato', '📊 Saúde do Caixa', '➕ Novo Lançamento'],
+      };
+    }
+  }
+
+  // ==========================================
+  // 7.7 REGRA 50/30/20 & PLANO DE ECONOMIA (NOVO)
+  // Ex: "regra 50 30 20", "plano de economia", "como economizar 1000 reais", "meta de economia"
+  // ==========================================
+  if (/50\/30\/20|50 30 20|plano de economia|como economizar|meta de economia/i.test(lower)) {
+    const baseIncome = totalIncome > 0 ? totalIncome : 5000;
+    const essentialBudget = baseIncome * 0.50;
+    const lifestyleBudget = baseIncome * 0.30;
+    const investmentBudget = baseIncome * 0.20;
+
+    return {
+      intent: 'cfo_advice',
+      replyText: `🎯 **Plano Executivo de Distribuição Financeira (Regra 50/30/20):**\n\nCom base no seu faturamento (${formatCurrency(baseIncome)}), o modelo ideal de divisão patrimonial é:\n\n• **50% Necessidades Essenciais:** até **${formatCurrency(essentialBudget)}** *(Aluguel, Luz, Comida, Contas Fixas)*\n• **30% Estilo de Vida & Desejos:** até **${formatCurrency(lifestyleBudget)}** *(Lazer, Restaurantes, Compras Pessoais)*\n• **20% Liberdade Financeira & Reserva:** **${formatCurrency(investmentBudget)}** *(Aportes mensais no Tesouro Selic / CDI)*\n\n💡 *Diagnóstico Atual:* Suas despesas totais estão em ${formatCurrency(totalExpenses)}. ${totalExpenses <= essentialBudget ? 'Você está gastando abaixo do teto de necessidades essenciais! 🟢' : 'Suas despesas ultrapassaram o teto ideal de 50%. Recomendo cortar custos variáveis.'}`,
+      suggestedChips: ['🪙 Investir 20%', '🔍 Qual meu maior gasto?', '📑 Ver Extrato'],
+    };
+  }
+
+  // ==========================================
   // 8. CONSULTA DE SALDO E PATRIMÔNIO (apenas se NÃO for comando de zerar)
   // ==========================================
   const hasZeroWord = /zera|limpa|apaga|reset|coloca|muda|ajusta|definir/i.test(lower);
@@ -854,7 +909,63 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 7. LANÇAR TRANSAÇÃO (ÚNICA OU MÚLTIPLAS / BATCH)
+  // 8.1 PARCELAMENTO AUTOMÁTICO DE COMPRAS (NOVO & EXCLUSIVO)
+  // Ex: "comprei um celular em 10x de 350", "parcele 1200 em 6 vezes", "lança notebook em 12x de 450 no cartão"
+  // ==========================================
+  const installmentRegex1 = /(\d{1,2})\s*x(?:\s+de)?\s*(?:r\$\s*)?(\d+(?:[,\.]\d{2})?|\d+)/i;
+  const installmentRegex2 = /(\d{1,2})\s+(?:vezes|parcelas)(?:\s+de)?\s*(?:r\$\s*)?(\d+(?:[,\.]\d{2})?|\d+)/i;
+  const matchInst1 = input.match(installmentRegex1);
+  const matchInst2 = input.match(installmentRegex2);
+
+  if (matchInst1 || matchInst2) {
+    const activeMatch = matchInst1 || matchInst2;
+    if (activeMatch) {
+      const installmentsCount = parseInt(activeMatch[1]);
+      const installmentValue = parseFloat(activeMatch[2].replace(/\./g, '').replace(',', '.'));
+
+      if (installmentsCount >= 2 && installmentsCount <= 60 && installmentValue > 0) {
+        let productName = input
+          .replace(/(?:comprei|gastei|lança(r)?|parcela(r|e)?|um|uma|no|na|cartao|cartão|de credito|de crédito)\s*/gi, '')
+          .replace(/em\s+\d{1,2}\s*(?:x|vezes|parcelas).*$/gi, '')
+          .replace(/\d{1,2}\s*x.*$/gi, '')
+          .replace(/\d{1,2}\s+(?:vezes|parcelas).*$/gi, '')
+          .trim();
+
+        if (productName.length < 2) productName = 'Compra Parcelada';
+        productName = productName.charAt(0).toUpperCase() + productName.slice(1);
+
+        const generatedInstallments = [];
+        const now = new Date();
+
+        for (let i = 1; i <= installmentsCount; i++) {
+          const dueDate = new Date(now.getFullYear(), now.getMonth() + (i - 1), now.getDate());
+          const dateStr = dueDate.toISOString().split('T')[0];
+
+          generatedInstallments.push({
+            type: 'expense' as TransactionType,
+            amount: parseFloat(installmentValue.toFixed(2)),
+            title: `${productName} (${i}/${installmentsCount})`,
+            category: /celular|computador|notebook|tv|hardware|peca/i.test(productName) ? 'Equipamentos & Hardware' : 'Outros',
+            account_id: accounts[0]?.id || 'acc_btg',
+            payment_method: 'Cartão de Crédito' as PaymentMethod,
+            date: dateStr,
+            status: i === 1 ? ('paid' as const) : ('pending' as const),
+          });
+        }
+
+        const totalCalculated = installmentValue * installmentsCount;
+        return {
+          intent: 'create_multiple_transactions',
+          multipleTransactions: generatedInstallments,
+          replyText: `💳 **Parcelamento Inteligente Programado!**\n\n• **Item:** ${productName}\n• **Total:** ${formatCurrency(totalCalculated)} dividido em **${installmentsCount}x de ${formatCurrency(installmentValue)}** no Cartão de Crédito.\n• **Vencimentos:** De ${generatedInstallments[0].date} até ${generatedInstallments[generatedInstallments.length - 1].date}.\n\n✅ Primeira parcela lançada e as ${installmentsCount - 1} restantes agendadas como pendentes nos seus respectivos meses!`,
+          suggestedChips: ['📑 Ver no Extrato', '💳 Abrir Cartões', '📊 Saúde do Caixa'],
+        };
+      }
+    }
+  }
+
+  // ==========================================
+  // 9. LANÇAR TRANSAÇÃO (ÚNICA OU MÚLTIPLAS / BATCH)
   // Ex: "lançamento pra gabi de 150", "lança 50 pra gabi e 100 de gasolina", "gastei 85 no almoço"
   // ==========================================
   const isLaunchVerb = /lança(r)?|lançamento(s)?|anota(r)?|registra(r)?|cadastra(r)?|adiciona(r)?|coloca(r)?|bota(r)?|passa(r)?|pix(zinho)?|pagamento/i.test(lower);

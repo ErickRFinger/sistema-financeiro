@@ -300,6 +300,14 @@ VITE_GEMINI_API_KEY=
     * Botão de alto-falante (`Volume2`) integrado em cada resposta da IA, permitindo ao usuário escutar o parecer financeiro com voz neural em português do Brasil sem gastar tokens.
   * **Action Chips Dinâmicos & Contextuais:**
     * Botões de ação rápida abaixo das mensagens da IA (ex: *[📑 Ver no Extrato]*, *[📊 Abrir CFO]*, *[🔍 Qual meu maior gasto?]*) para navegação executiva com 1 toque no celular ou mouse.
+* **v3.1.0 (23/10/2026) — Automações de Elite & Planejamento Financeiro:**
+  * **Parcelamento Automático por Voz e Chat:**
+    * A IA agora entende comandos como *"comprei um celular em 10x de 350"* ou *"lança notebook em 12x de 450 no cartão"*.
+    * Ela gera automaticamente as N parcelas mensais futuras (`Notebook (1/12)`, `Notebook (2/12)`...), define a 1ª como paga e agenda as 11 restantes com status pendente nas suas respectivas datas de vencimento mês a mês.
+  * **Auditoria de Duplicidades em Tempo Real:**
+    * Comandos como *"auditar duplicidades"* ou *"tem algum lançamento duplicado?"* varrem o extrato em busca de despesas idênticas com o mesmo valor e descrição no intervalo de 96h, sugerindo exclusão com 1 clique.
+  * **Simulador & Planejador da Regra 50/30/20:**
+    * Ao perguntar *"regra 50 30 20"* ou *"plano de economia"*, a IA calcula com base no faturamento real do cliente e entrega a divisão ideal em Reais (R$) para Gastos Essenciais (50%), Estilo de Vida (30%) e Investimentos (20%), comparando com o que o cliente realmente gastou até o momento.
 
 
 
