@@ -197,5 +197,12 @@ VITE_GEMINI_API_KEY=
   * **Sincronização Bidirecional e Destaque Visual:** Pílula ativa destacada em borda dourada (`border-gold-400`), fundo `bg-gold-400/20` e brilho `shadow-gold-glow`, mantendo compatibilidade total com os inputs manuais de data e exportação em PDF e Excel.
 * **v1.9.0 (23/10/2026):**
   * **Widget de Comparativo Mensal ("Mês Atual vs Mês Anterior") no Dashboard (`MonthlyComparisonWidget`):** Comparação executiva em tempo real entre receitas e despesas do mês corrente contra o mês anterior, com badges dinâmicos de variação percentual (verde com `TrendingDown` para economia e vermelho com `TrendingUp` para aumento de despesas), e suporte nativo ao Modo Privacidade.
+* **v1.10.0 (23/10/2026):**
+  * **Card Resumo da "Regra 50/30/20" no Rodapé do Orçamento (`CategoryBudgetWidget`):** Análise e enquadramento automático das despesas do mês corrente nos 3 pilares consagrados da metodologia: **50% Necessidades** (Moradia, Alimentação, Saúde), **30% Estilo de Vida** (Lazer, Compras, Transporte) e **20% Futuro** (Investimentos e Poupança).
+  * **Barra de Progresso Trifásica Colorida:** Visualização com preenchimento em 3 cores distintas (Azul para Necessidades, Ouro para Estilo de Vida e Esmeralda para Futuro), indicando as porcentagens reais atingidas no mês e os valores monetários calculados, com compatibilidade com o Modo Privacidade.
+* **v2.0.0 (23/10/2026):**
+  * **Card "Disponível para Gastar Hoje" (*Safe to Spend* - Inspirado no Copilot Money & Nubank):** Widget de alto impacto no topo do Dashboard que calcula matematicamente o valor máximo seguro que o usuário pode desembolsar por dia até o último dia do mês corrente (`(Saldo Atual - Contas Comprometidas) / Dias Restantes`).
+  * **Blindagem de Caixa & Modo Privacidade:** Detecção automática de dias restantes, status dinâmico (Verde se positivo, Vermelho com alerta se negativo) e suporte completo à ocultação de valores sensíveis com o olhinho (`isPrivate`).
+
 
 

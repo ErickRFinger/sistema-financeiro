@@ -10,7 +10,8 @@ import {
   Check, 
   RotateCcw,
   ChevronRight,
-  Info
+  Info,
+  PieChart
 } from 'lucide-react';
 import { FinancialTransaction, DEFAULT_CATEGORIES } from '../types/financial';
 import { formatCurrency, parseCurrencyInput } from '../lib/formatters';
@@ -32,6 +33,64 @@ export const DEFAULT_BUDGET_LIMITS: Record<string, number> = {
   'Impostos & Taxas': 1200,
   'Outros': 500,
 };
+
+type BudgetRuleGroup = 'needs' | 'lifestyle' | 'future';
+
+function classifyCategoryToRule(category: string, title?: string): BudgetRuleGroup {
+  const normalized = `${category} ${title || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // 1. Futuro (20% - Investimentos e Poupança)
+  if (
+    normalized.includes('invest') ||
+    normalized.includes('poupan') ||
+    normalized.includes('futuro') ||
+    normalized.includes('aporte') ||
+    normalized.includes('reserva') ||
+    normalized.includes('previden') ||
+    normalized.includes('caixinha') ||
+    normalized.includes('cofrinho') ||
+    normalized.includes('tesouro') ||
+    normalized.includes('cdb') ||
+    normalized.includes('acoes') ||
+    normalized.includes('fii') ||
+    normalized.includes('fundo') ||
+    normalized.includes('cripto')
+  ) {
+    return 'future';
+  }
+
+  // 2. Necessidades (50% - Moradia, Alimentação, Saúde)
+  if (
+    normalized.includes('aliment') ||
+    normalized.includes('refeic') ||
+    normalized.includes('moradia') ||
+    normalized.includes('aluguel') ||
+    normalized.includes('contas fixas') ||
+    normalized.includes('saude') ||
+    normalized.includes('medic') ||
+    normalized.includes('farmacia') ||
+    normalized.includes('hospital') ||
+    normalized.includes('supermercado') ||
+    normalized.includes('mercado') ||
+    normalized.includes('luz') ||
+    normalized.includes('agua') ||
+    normalized.includes('energia') ||
+    normalized.includes('gas') ||
+    normalized.includes('internet') ||
+    normalized.includes('servicos') ||
+    normalized.includes('imposto') ||
+    normalized.includes('taxa') ||
+    normalized.includes('fornecedor') ||
+    normalized.includes('infraestrutura') ||
+    normalized.includes('essencial') ||
+    normalized.includes('condominio')
+  ) {
+    return 'needs';
+  }
+
+  // 3. Estilo de Vida (30% - Lazer, Compras, Transporte)
+  return 'lifestyle';
+}
 
 interface CategoryBudgetWidgetProps {
   transactions: FinancialTransaction[];
@@ -159,6 +218,38 @@ export const CategoryBudgetWidget: React.FC<CategoryBudgetWidgetProps> = ({
 
   const displayedCategories = showAll ? categoriesData : categoriesData.slice(0, 5);
   const exceededCount = categoriesData.filter(c => c.isExceeded).length;
+
+  // Cálculo dos percentuais reais da Regra 50/30/20 nas despesas do mês
+  const rule503020Data = useMemo(() => {
+    let needsTotal = 0;
+    let lifestyleTotal = 0;
+    let futureTotal = 0;
+
+    transactions
+      .filter(t => t.type === 'expense' && t.transaction_date.startsWith(currentMonthPrefix))
+      .forEach(t => {
+        const group = classifyCategoryToRule(t.category || '', t.title || '');
+        if (group === 'needs') needsTotal += t.amount;
+        else if (group === 'lifestyle') lifestyleTotal += t.amount;
+        else if (group === 'future') futureTotal += t.amount;
+      });
+
+    const total = needsTotal + lifestyleTotal + futureTotal;
+
+    const needsPct = total > 0 ? (needsTotal / total) * 100 : 0;
+    const lifestylePct = total > 0 ? (lifestyleTotal / total) * 100 : 0;
+    const futurePct = total > 0 ? (futureTotal / total) * 100 : 0;
+
+    return {
+      total,
+      needsTotal,
+      lifestyleTotal,
+      futureTotal,
+      needsPct,
+      lifestylePct,
+      futurePct,
+    };
+  }, [transactions, currentMonthPrefix]);
 
   return (
     <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card space-y-5">
@@ -333,6 +424,147 @@ export const CategoryBudgetWidget: React.FC<CategoryBudgetWidgetProps> = ({
             </button>
           </div>
         )}
+      </div>
+
+      {/* Card Resumo da Regra 50/30/20 (Rodapé) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-dark-950 border border-dark-800 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold-400/20 to-amber-500/20 border border-gold-400/30 text-gold-400 flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+              <PieChart size={17} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-extrabold text-white tracking-tight">
+                  Regra 50/30/20 (Distribuição de Gastos)
+                </h4>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold-400/10 text-gold-300 font-bold border border-gold-400/20 hidden sm:inline">
+                  Equilíbrio Financeiro
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Comparativo da sua distribuição real de despesas deste mês com o método ideal
+              </p>
+            </div>
+          </div>
+
+          <div className="text-left sm:text-right">
+            <span className="text-[10px] text-slate-500 font-medium block">Total Gasto no Mês:</span>
+            <span className="text-xs sm:text-sm font-black text-slate-200">
+              {isPrivate ? '••••••' : formatCurrency(rule503020Data.total)}
+            </span>
+          </div>
+        </div>
+
+        {/* Barra de Progresso Trifásica Colorida (Azul, Ouro, Esmeralda) */}
+        <div className="space-y-1.5">
+          <div className="h-3.5 w-full bg-dark-900 rounded-full overflow-hidden flex p-0.5 border border-dark-800 gap-0.5 shadow-inner">
+            {rule503020Data.total === 0 ? (
+              <div className="h-full w-full flex items-center justify-center text-[9px] text-slate-500 font-medium">
+                Sem despesas registradas em {capitalizedMonth}
+              </div>
+            ) : (
+              <>
+                {rule503020Data.needsPct > 0 && (
+                  <div
+                    className="h-full bg-gradient-to-r from-sky-500 to-blue-500 rounded-l-full first:rounded-l-full last:rounded-r-full transition-all duration-500"
+                    style={{ width: `${rule503020Data.needsPct}%` }}
+                    title={`Necessidades: ${rule503020Data.needsPct.toFixed(1)}%`}
+                  />
+                )}
+                {rule503020Data.lifestylePct > 0 && (
+                  <div
+                    className="h-full bg-gradient-to-r from-gold-400 to-amber-500 first:rounded-l-full last:rounded-r-full transition-all duration-500"
+                    style={{ width: `${rule503020Data.lifestylePct}%` }}
+                    title={`Estilo de Vida: ${rule503020Data.lifestylePct.toFixed(1)}%`}
+                  />
+                )}
+                {rule503020Data.futurePct > 0 && (
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-r-full first:rounded-l-full last:rounded-r-full transition-all duration-500"
+                    style={{ width: `${rule503020Data.futurePct}%` }}
+                    title={`Futuro: ${rule503020Data.futurePct.toFixed(1)}%`}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Grid dos 3 Pilares com Metas Ideais e Reais */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          {/* Pilar 1: Necessidades (50% - Azul) */}
+          <div className="p-3 sm:p-3.5 rounded-xl bg-dark-900 border border-sky-500/25 hover:border-sky-500/50 transition-all space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 font-bold text-sky-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0" />
+                Necessidades
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 font-extrabold border border-sky-500/30">
+                Alvo: 50%
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base sm:text-lg font-black text-white">
+                {rule503020Data.needsPct.toFixed(0)}%
+              </span>
+              <span className="text-xs text-slate-300 font-semibold">
+                {isPrivate ? '••••••' : formatCurrency(rule503020Data.needsTotal)}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Moradia, Alimentação, Saúde
+            </p>
+          </div>
+
+          {/* Pilar 2: Estilo de Vida (30% - Ouro) */}
+          <div className="p-3 sm:p-3.5 rounded-xl bg-dark-900 border border-gold-400/25 hover:border-gold-400/50 transition-all space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 font-bold text-gold-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-gold-400 shrink-0" />
+                Estilo de Vida
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold-400/15 text-gold-300 font-extrabold border border-gold-400/30">
+                Alvo: 30%
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base sm:text-lg font-black text-white">
+                {rule503020Data.lifestylePct.toFixed(0)}%
+              </span>
+              <span className="text-xs text-slate-300 font-semibold">
+                {isPrivate ? '••••••' : formatCurrency(rule503020Data.lifestyleTotal)}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Lazer, Compras, Transporte
+            </p>
+          </div>
+
+          {/* Pilar 3: Futuro (20% - Esmeralda) */}
+          <div className="p-3 sm:p-3.5 rounded-xl bg-dark-900 border border-emerald-500/25 hover:border-emerald-500/50 transition-all space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 font-bold text-emerald-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                Futuro
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-extrabold border border-emerald-500/30">
+                Alvo: 20%
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base sm:text-lg font-black text-white">
+                {rule503020Data.futurePct.toFixed(0)}%
+              </span>
+              <span className="text-xs text-slate-300 font-semibold">
+                {isPrivate ? '••••••' : formatCurrency(rule503020Data.futureTotal)}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Investimentos e Poupança
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Modal de Configuração de Metas */}

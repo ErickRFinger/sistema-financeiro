@@ -37,6 +37,7 @@ import { PWAInstallBanner } from '../components/PWAInstallBanner';
 import { CategoryBudgetWidget } from '../components/CategoryBudgetWidget';
 import { FinancialHealthScore } from '../components/FinancialHealthScore';
 import { MonthlyComparisonWidget } from '../components/MonthlyComparisonWidget';
+import { SafeToSpendWidget } from '../components/SafeToSpendWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -260,6 +261,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       <UpcomingBillsAlert
         transactions={transactions}
         onNavigateToStatement={onNavigateToStatement}
+        isPrivate={isPrivate}
+      />
+
+      {/* Safe to Spend Today / Rest of Month (Copilot Money style) */}
+      <SafeToSpendWidget
+        accounts={accounts}
+        transactions={transactions}
         isPrivate={isPrivate}
       />
 
