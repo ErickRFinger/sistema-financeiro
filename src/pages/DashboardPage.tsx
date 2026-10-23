@@ -30,6 +30,7 @@ import {
   Pie, 
   Cell 
 } from 'recharts';
+import { UpcomingBillsAlert } from '../components/UpcomingBillsAlert';
 import { MetricCard } from '../components/MetricCard';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
@@ -252,6 +253,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Upcoming Bills Alert */}
+      <UpcomingBillsAlert
+        transactions={transactions}
+        onNavigateToStatement={onNavigateToStatement}
+        isPrivate={isPrivate}
+      />
 
       {/* System Subscription Invoice Alert / Trial Reminder Banner */}
       {onNavigateToSubscription && (

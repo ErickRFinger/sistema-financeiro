@@ -181,3 +181,6 @@ VITE_GEMINI_API_KEY=
 * **v1.4.0 (23/10/2026):**
   * **Simulador de Juros Compostos & Viver de Renda:** Ferramenta interativa de projeção patrimonial com 4 sliders em tempo real (Aporte Inicial, Aporte Mensal, Prazo em Anos e Taxa Selic/Anual), gráfico de curva exponencial com Recharts e cálculo de renda passiva mensal estimada.
   * **Delegação Arquitetural para Cline:** Criação do arquivo de tarefa estruturada `CLINE_TASK.md` para execução desacoplada de alertas no Dashboard.
+* **v1.5.0 (23/10/2026):**
+  * **Alerta Inteligente de Contas a Vencer (`UpcomingBillsAlert`):** Widget destacado no Dashboard avisando o usuário sobre boletos e despesas com vencimento previsto para hoje ou nos próximos 3 dias, prevenindo juros e atrasos.
+  * **Compatibilidade com Modo Privacidade:** Valores ofuscados dinamicamente quando a privacidade estiver ativada, com navegação em 1 clique direto para o Extrato filtrado.
