@@ -88,48 +88,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [autoDetectedCategory, setAutoDetectedCategory] = useState<string | null>(null);
 
-  const executeSaveRef = useRef<(createAnother?: boolean) => Promise<void>>(async () => {});
-  const onCloseRef = useRef(onClose);
-
-  // Mantém refs sincronizadas sem mutar durante o render
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    executeSaveRef.current = executeSave;
-  });
-
-  // Atalhos de teclado para produtividade (Cmd+Enter, Cmd+Shift+Enter, Esc)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 3. Escape -> Fecha o modal
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-
-      // 1 e 2. Cmd/Ctrl + Enter (com ou sem Shift)
-      const isMetaOrCtrl = e.metaKey || e.ctrlKey;
-      if (isMetaOrCtrl && e.key === 'Enter') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          executeSaveRef.current(true);
-        } else {
-          executeSaveRef.current(false);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
     if (!val) {
@@ -240,12 +198,40 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
-  executeSaveRef.current = executeSave;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await executeSave(false);
   };
+
+  // Atalhos de teclado para produtividade (Cmd + Enter, Cmd + Shift + Enter, Esc)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 3. Escape -> Fecha o modal
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      // 1 e 2. Cmd/Ctrl + Enter (com ou sem Shift)
+      const isMetaOrCtrl = e.metaKey || e.ctrlKey;
+      if (isMetaOrCtrl && e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          executeSave(true);
+        } else {
+          executeSave(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose, executeSave]);
 
   if (!isOpen) return null;
 
