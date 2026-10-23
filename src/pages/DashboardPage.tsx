@@ -38,6 +38,7 @@ import { CategoryBudgetWidget } from '../components/CategoryBudgetWidget';
 import { FinancialHealthScore } from '../components/FinancialHealthScore';
 import { MonthlyComparisonWidget } from '../components/MonthlyComparisonWidget';
 import { SafeToSpendWidget } from '../components/SafeToSpendWidget';
+import { SubscriptionHubWidget } from '../components/SubscriptionHubWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -592,6 +593,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         transactions={transactions}
         isPrivate={isPrivate}
       />
+
+      {/* Subscription & Recurring Hub */}
+      <SubscriptionHubWidget isPrivate={isPrivate} />
 
       {/* Recent Transactions Feed */}
       <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card">

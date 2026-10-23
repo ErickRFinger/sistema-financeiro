@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   ArrowDownCircle, 
@@ -88,7 +88,47 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [autoDetectedCategory, setAutoDetectedCategory] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  const executeSaveRef = useRef<(createAnother?: boolean) => Promise<void>>(async () => {});
+  const onCloseRef = useRef(onClose);
+
+  // Mantém refs sincronizadas sem mutar durante o render
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    executeSaveRef.current = executeSave;
+  });
+
+  // Atalhos de teclado para produtividade (Cmd+Enter, Cmd+Shift+Enter, Esc)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 3. Escape -> Fecha o modal
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      // 1 e 2. Cmd/Ctrl + Enter (com ou sem Shift)
+      const isMetaOrCtrl = e.metaKey || e.ctrlKey;
+      if (isMetaOrCtrl && e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          executeSaveRef.current(true);
+        } else {
+          executeSaveRef.current(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -116,6 +156,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   };
 
   const executeSave = async (createAnother: boolean = false) => {
+    if (isSubmitting) return;
     setErrorMsg('');
 
     const numericAmount = parseCurrencyInput(amountRaw);
@@ -199,10 +240,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
+  executeSaveRef.current = executeSave;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await executeSave(false);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
@@ -487,6 +532,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               )}
             </button>
           </div>
+
+          {/* Legenda de atalhos de teclado */}
+          <p className="text-[11px] text-center text-slate-500 font-medium select-none pt-1">
+            [⌘ + Enter para salvar • ⌘ + Shift + Enter para Salvar e Novo • Esc para fechar]
+          </p>
         </form>
       </div>
     </div>
