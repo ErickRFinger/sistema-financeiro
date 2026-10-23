@@ -55,6 +55,40 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Listener global da tecla 'P' para alternar Modo Privacidade
+  useEffect(() => {
+    if (!onTogglePrivacy) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignora quando estiver digitando em campos de texto/formulário
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Evita interceptar atalhos com modificadores (como Cmd+P ou Ctrl+P de impressão)
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        onTogglePrivacy();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onTogglePrivacy]);
+
   // Fecha dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -132,14 +166,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onTogglePrivacy && (
             <button
               onClick={onTogglePrivacy}
-              className={`p-2 rounded-xl border transition-all text-xs font-bold flex items-center justify-center active:scale-95 ${
+              className={`p-2 px-2.5 rounded-xl border transition-all text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
                 isPrivate 
                   ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' 
-                  : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white'
+                  : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white hover:border-dark-700'
               }`}
-              title={isPrivate ? 'Modo Privacidade Ativo: Clique para revelar valores' : 'Clique para ocultar saldos (Modo Privacidade)'}
+              title={isPrivate ? 'Modo Privacidade Ativo: Clique ou pressione [P] para revelar valores' : 'Clique ou pressione [P] para ocultar saldos (Modo Privacidade)'}
+              aria-label="Alternar Modo Privacidade (Tecla P)"
             >
               {isPrivate ? <EyeOff size={16} /> : <Eye size={16} />}
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-dark-950/80 border border-dark-800 text-slate-400 group-hover:text-slate-200 leading-none">
+                [P]
+              </span>
             </button>
           )}
 

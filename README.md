@@ -225,6 +225,9 @@ VITE_GEMINI_API_KEY=
   * **Parser Inteligente Dual (OFX & CSV):** Extração de dados nativa sem bibliotecas pesadas, tratando blocos `<STMTTRN>` e separadores de planilhas CSV, convertendo datas e sinais de movimentação com precisão cirúrgica.
   * **Auto-Categorização Heurística Brasileira:** Reconhecimento automático de despesas e receitas por termos populares (*Supermercado, iFood, Posto, Uber, Netflix, Aluguel, Salário*), atribuindo instantaneamente as categorias correspondentes.
   * **Tabela de Conciliação em Lote no Extrato (`StatementPage.tsx`):** Revisão antes de importar, com seleção em massa, personalização de categoria por item, métricas consolidadas (Total de Entradas vs Saídas) e destinação para a conta bancária escolhida.
+* **v2.4.1 (23/10/2026):**
+  * **Atalho Global de Teclado 'P' para Modo Privacidade (`Navbar.tsx`):** Pressionar a tecla `P` no teclado agora alterna instantaneamente o Modo Privacidade entre visível e oculto (`••••••`), com proteção contextual que ignora disparos acidentais enquanto o usuário digita em `input`, `textarea`, `select` ou elementos editáveis, preservando também atalhos nativos do sistema (como `Cmd+P` de impressão).
+  * **Badge Visual `[P]` no Botão da Navbar:** Exibição de uma pílula sutil em estilo mono `[P]` integrada ao botão de privacidade ao lado do ícone de olho, tornando a descoberta do atalho rápida e intuitiva.
 
 
 
