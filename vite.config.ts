@@ -24,6 +24,18 @@ function apiDevServerPlugin(): Plugin {
             // @ts-expect-error dynamic JS import in Vite
             const mod = await import('./api/create-preference.js');
             handler = mod.default;
+          } else if (pathname === '/api/create-pix') {
+            // @ts-expect-error dynamic JS import in Vite
+            const mod = await import('./api/create-pix.js');
+            handler = mod.default;
+          } else if (pathname === '/api/check-payment') {
+            // @ts-expect-error dynamic JS import in Vite
+            const mod = await import('./api/check-payment.js');
+            handler = mod.default;
+          } else if (pathname === '/api/mercadopago-webhook') {
+            // @ts-expect-error dynamic JS import in Vite
+            const mod = await import('./api/mercadopago-webhook.js');
+            handler = mod.default;
           }
 
           if (!handler) {
@@ -80,4 +92,25 @@ function apiDevServerPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [react(), apiDevServerPlugin()],
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'vendor-charts';
+          }
+          if (id.includes('node_modules/jspdf') || id.includes('node_modules/xlsx') || id.includes('node_modules/jspdf-autotable')) {
+            return 'vendor-pdf';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+        },
+      },
+    },
+  },
 });

@@ -15,6 +15,7 @@ import {
   Info
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
+import { generateReceiptPdf } from '../lib/generateReceiptPdf';
 import { SystemSubscriptionInvoice } from '../types/financial';
 
 interface SubscriptionInvoicesPageProps {
@@ -245,12 +246,33 @@ export const SubscriptionInvoicesPage: React.FC<SubscriptionInvoicesPageProps> =
               </div>
             </div>
 
-            <button
-              onClick={() => setSelectedReceipt(null)}
-              className="w-full py-2.5 rounded-xl bg-dark-800 text-slate-200 font-bold text-xs hover:bg-dark-750 transition-colors"
-            >
-              Fechar
-            </button>
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={() => {
+                  generateReceiptPdf({
+                    invoiceNumber: `INV-${selectedReceipt.reference_month.replace('-', '')}-${selectedReceipt.id.slice(-4)}`,
+                    customerName: currentUser?.user_metadata?.full_name || 'Assinante Aura',
+                    customerEmail: currentUser?.email || 'contato@aurafinance.com.br',
+                    referenceMonth: selectedReceipt.reference_label,
+                    amount: selectedReceipt.amount,
+                    paymentId: `MP-${Date.now().toString(36).toUpperCase()}`,
+                    paymentDate: selectedReceipt.paid_at || new Date().toLocaleDateString('pt-BR'),
+                    paymentMethod: 'PIX Mercado Pago',
+                  });
+                }}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-black text-xs hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-gold-glow"
+              >
+                <Download size={14} />
+                <span>Baixar Recibo Oficial em PDF</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="w-full py-2.5 rounded-xl bg-dark-800 text-slate-200 font-bold text-xs hover:bg-dark-750 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -168,3 +168,8 @@ VITE_GEMINI_API_KEY=
   * Criação da régua de cobrança SaaS: 7 dias grátis, R$ 9,90/mês, vencimento dia 10 e bloqueio em 30 dias de atraso.
   * Central oficial de tutoriais com 10 tópicos e player com locução de voz neural de estúdio.
   * Configuração de resiliência em três camadas (Serverless API -> Supabase Client -> LocalStorage cache).
+* **v1.2.0 (23/10/2026):**
+  * **Pagamento PIX Direto In-App:** Integração com Mercado Pago `/v1/payments` gerando QR Code dinâmico em Base64 e código Copia e Cola dentro do modal, sem redirecionar para fora do app.
+  * **Detecção Automática & Webhook:** Polling em tempo real a cada 3 segundos com reconhecimento imediato de status `approved` e endpoint webhook `/api/mercadopago-webhook` com atualização automática do plano no Supabase.
+  * **Emissão de Recibo Oficial em PDF:** Geração client-side de comprovante de quitação com layout Black & Gold executivo via jsPDF.
+  * **Otimização de Build & Chunking:** Divisão do bundle Vite em chunks modulares (`vendor-react`, `vendor-charts`, `vendor-pdf`, `vendor-icons`), acelerando o carregamento inicial no celular.
