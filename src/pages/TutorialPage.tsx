@@ -24,7 +24,15 @@ import {
   ChevronRight,
   Info,
   DollarSign,
-  Maximize2
+  Maximize2,
+  MessageSquareCode,
+  Lock,
+  ArrowRight,
+  RefreshCw,
+  Trash2,
+  Undo2,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 
 interface TutorialPageProps {
@@ -32,9 +40,12 @@ interface TutorialPageProps {
   currentUser?: any;
 }
 
-export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, currentUser }) => {
-  const [activeCategory, setActiveCategory] = useState<'video' | 'ia' | 'cards' | 'shopping' | 'scanner' | 'pwa' | 'subscription' | 'investments'>('video');
+export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab }) => {
+  const [activeCategory, setActiveCategory] = useState<
+    'video' | 'subscription' | 'ia' | 'cards' | 'shopping' | 'scanner' | 'pwa' | 'investments' | 'cheatsheet' | 'faq'
+  >('video');
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -43,20 +54,57 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
   };
 
   const categories = [
-    { id: 'video', label: 'Vídeo Demonstrativo', icon: PlayCircle, badge: 'Voz Neural HD' },
+    { id: 'video', label: 'Vídeo Demonstrativo', icon: PlayCircle, badge: 'Voz Neural' },
     { id: 'subscription', label: '7 Dias Grátis & R$ 9,90/mês', icon: Receipt, badge: 'Assinatura' },
-    { id: 'ia', label: 'IA Completa & Prints Bancários', icon: Sparkles, badge: 'Porquinhos' },
+    { id: 'ia', label: 'IA Completa & Prints de Bancos', icon: Sparkles, badge: 'Porquinhos' },
     { id: 'cards', label: 'Cartões & Scanner de Fatura', icon: CreditCard, badge: 'PDF / Foto' },
     { id: 'shopping', label: 'Listas de Compras', icon: ShoppingCart, badge: 'Mercado' },
     { id: 'scanner', label: 'Leitor de Cupom Fiscal', icon: ScanLine, badge: 'NFC-e' },
     { id: 'pwa', label: 'Como Baixar no Celular', icon: Smartphone, badge: 'PWA' },
     { id: 'investments', label: 'Investimentos & Selic 13,75%', icon: TrendingUp, badge: 'Rentabilidade' },
+    { id: 'cheatsheet', label: 'Comandos Prontos da IA', icon: MessageSquareCode, badge: 'Copiar' },
+    { id: 'faq', label: 'Perguntas Frequentes', icon: HelpCircle, badge: 'Dúvidas' },
+  ];
+
+  const faqList = [
+    {
+      q: 'Como funciona o período de 7 dias grátis?',
+      a: 'Assim que você cadastra sua conta com seu e-mail e senha, o sistema libera automaticamente 7 dias de degustação 100% gratuita. Você tem acesso irrestrito a todas as funções, incluindo IA completa, scanner de notas e leitura de faturas em PDF. Não é exigido cadastrar cartão de crédito para iniciar o teste.'
+    },
+    {
+      q: 'Quanto custa a mensalidade e qual é a data de vencimento?',
+      a: 'O sistema custa apenas R$ 9,90 por mês após os 7 dias grátis. A fatura mensal vence sempre no dia 10 de cada mês. O pagamento é realizado de forma instantânea via PIX Copia e Cola do Mercado Pago, com compensação em menos de 10 segundos.'
+    },
+    {
+      q: 'O que acontece se a mensalidade estiver atrasada?',
+      a: 'Caso a fatura não seja paga até o dia 10 do mês, o sistema continuará funcionando, porém exibirá um aviso amarelo com status "Em Atraso" na aba Faturas do Sistema. Se o atraso ultrapassar 30 dias (1 mês completo de inadimplência), o sistema ativa uma tela de bloqueio temporário até a quitação via PIX, sendo reativado imediatamente após o pagamento.'
+    },
+    {
+      q: 'Meus dados começam zerados ou misturados com outros usuários?',
+      a: 'Isolamento total! O Aura Finance é uma plataforma multi-tenant segura via Supabase. Cada novo usuário começa com patrimônio rigorosamente em R$ 0,00 zerado. Seus lançamentos, extratos, cartões e fotos são 100% privados e nunca são compartilhados com outros usuários ou com o administrador.'
+    },
+    {
+      q: 'Como a IA faz a leitura de fotos de Porquinhos e Caixinhas?',
+      a: 'No chat da IA (ícone no canto inferior direito), você pode clicar no botão de anexo ou simplesmente colar com Ctrl+V o print da tela do seu banco (ex: NuBank Porquinho/Caixinha, PicPay Cofrinho, Inter Poupança). A IA analisa a imagem, extrai o valor exato (por exemplo R$ 45.000,00) e lança automaticamente na sua carteira de investimentos e saldo consolidado.'
+    },
+    {
+      q: 'Como peço para a IA zerar ou desfazer lançamentos?',
+      a: 'A nossa Inteligência Artificial tem controle operacional real sobre o sistema. Se você disser "Zere todos os lançamentos", ela confirma e limpa o extrato. Se você disser "Desfaça o último lançamento", ela reverte a ação anterior. Você também pode pedir para alterar o valor de compras passadas ou excluir gastos específicos pelo nome.'
+    },
+    {
+      q: 'Como ler faturas completas de cartão de crédito em PDF?',
+      a: 'Na aba "Cartões & Faturas", clique no botão "Ler Fatura com IA" no cartão correspondente. Carregue o arquivo PDF emitido pelo seu banco (Nubank, Itaú, Inter, etc.). O motor de OCR reconhece todos os lançamentos, parcelas, datas e valores, gerando uma lista que você importa com apenas 1 clique.'
+    },
+    {
+      q: 'Como instalar o aplicativo no celular sem lojas de apps?',
+      a: 'O Aura Finance é um Progressive Web App (PWA). No Android (Google Chrome), toque nos 3 pontinhos do topo e selecione "Instalar aplicativo" ou "Adicionar à tela inicial". No iPhone (Safari), toque no botão Compartilhar (quadrado com seta para cima) e selecione "Adicionar à Tela de Início". O aplicativo abre em tela cheia sem barras de navegador e não ocupa espaço na memória.'
+    }
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
       {/* Top Banner Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 border border-gold-400/25 p-6 sm:p-8 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 border border-gold-400/25 p-5 sm:p-8 shadow-2xl">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-gold-400/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
@@ -80,66 +128,64 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
               Aprenda a Dominar <span className="bg-gradient-to-r from-gold-300 via-gold-400 to-amber-500 bg-clip-text text-transparent">Todas as Funções</span> do Sistema
             </h1>
             
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-              Guia completo e material didático oficial. Assista ao vídeo narrado em alta definição, aprenda como a Inteligência Artificial gerencia suas contas, envie prints de bancos (Porquinhos NuBank/PicPay), escaneie faturas em PDF e instale o aplicativo no seu celular.
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Manual completo e material de apoio em alta definição. Assista ao vídeo oficial gravado com locução neural em estúdio, aprenda como a Inteligência Artificial gerencia suas contas, envie prints de bancos (Porquinhos NuBank/PicPay), escaneie faturas em PDF e instale o aplicativo no seu celular.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
             <button
               onClick={() => setActiveCategory('video')}
-              className="flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-gold-400 via-amber-400 to-yellow-500 text-dark-950 font-black text-sm shadow-gold-glow hover:brightness-110 active:scale-95 transition-all"
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-gold-400 via-amber-400 to-yellow-500 text-dark-950 font-black text-xs sm:text-sm shadow-gold-glow hover:brightness-110 active:scale-95 transition-all"
             >
-              <PlayCircle size={19} className="fill-dark-950 text-gold-400" />
-              <span>Assistir Vídeo Narrado</span>
+              <PlayCircle size={18} className="fill-dark-950 text-gold-400" />
+              <span>Assistir Vídeo com Áudio</span>
             </button>
-            <a
-              href="/demo-video.html"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setActiveCategory('cheatsheet')}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-dark-900 border border-dark-750 text-slate-300 hover:text-white hover:border-gold-400/40 text-xs font-semibold transition-all"
             >
-              <ExternalLink size={14} className="text-gold-400" />
-              <span>Abrir Vídeo em Tela Cheia</span>
-            </a>
+              <MessageSquareCode size={14} className="text-gold-400" />
+              <span>Comandos Prontos da IA</span>
+            </button>
           </div>
         </div>
 
         {/* System Plan Rule Notice */}
-        <div className="mt-6 pt-5 border-t border-dark-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-dark-950/60 border border-dark-800">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+        <div className="mt-6 pt-5 border-t border-dark-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-dark-950/60 border border-dark-800">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
               <Sparkles size={18} />
             </div>
             <div>
               <p className="text-xs font-bold text-white">7 Dias 100% Grátis</p>
-              <p className="text-[11px] text-slate-400">Todo novo cadastro ganha 7 dias sem cobrança com acesso ilimitado.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Todo novo usuário ganha 7 dias sem cobrança com acesso ilimitado.</p>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-dark-950/60 border border-dark-800">
-            <div className="w-8 h-8 rounded-lg bg-gold-400/10 text-gold-400 flex items-center justify-center shrink-0">
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-dark-950/60 border border-dark-800">
+            <div className="w-8 h-8 rounded-xl bg-gold-400/10 text-gold-400 flex items-center justify-center shrink-0">
               <DollarSign size={18} />
             </div>
             <div>
               <p className="text-xs font-bold text-white">Apenas R$ 9,90 por Mês</p>
-              <p className="text-[11px] text-slate-400">Vencimento todo dia 10. Valor mínimo e acessível para manter toda a IA ativa.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Vencimento todo dia 10. Valor mínimo e acessível para manter toda a IA ativa.</p>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-dark-950/60 border border-dark-800">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-dark-950/60 border border-dark-800">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
               <ShieldCheck size={18} />
             </div>
             <div>
               <p className="text-xs font-bold text-white">Dados 100% Isolados</p>
-              <p className="text-[11px] text-slate-400">Cada usuário começa R$ 0,00 zerado. Seus dados nunca se misturam com ninguém.</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Cada usuário começa R$ 0,00 zerado. Seus dados nunca se misturam com ninguém.</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation Pills */}
+      {/* Navigation Pills (Responsive Scrollable) */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-dark-800">
         {categories.map((cat) => {
           const Icon = cat.icon;
@@ -148,7 +194,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border shrink-0 ${
                 isActive
                   ? 'bg-gradient-to-r from-gold-500/20 to-amber-500/10 border-gold-400 text-gold-300 shadow-sm'
                   : 'bg-dark-950 border-dark-800 text-slate-400 hover:text-slate-200 hover:border-dark-700'
@@ -157,7 +203,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
               <Icon size={16} className={isActive ? 'text-gold-400' : 'text-slate-400'} />
               <span>{cat.label}</span>
               {cat.badge && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                   isActive ? 'bg-gold-400/20 text-gold-300' : 'bg-dark-850 text-slate-400'
                 }`}>
                   {cat.badge}
@@ -168,7 +214,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
         })}
       </div>
 
-      {/* Content Container */}
+      {/* Main Content Viewports */}
       <div className="space-y-6">
 
         {/* 1. VÍDEO DEMONSTRATIVO */}
@@ -184,75 +230,75 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                 Roteiro do Vídeo & Capítulos Abordados:
               </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 01</span>
-                      <span className="text-[10px] text-slate-400">00:00 - 00:22</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">Boas-Vindas & Arquitetura SaaS</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Apresentação da interface Cyber Gold, 7 dias grátis e isolamento total de dados para cada novo usuário.
-                    </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 01</span>
+                    <span className="text-[10px] text-slate-400">00:00 - 00:22</span>
                   </div>
+                  <p className="text-xs font-bold text-white">Boas-Vindas & Arquitetura SaaS</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Apresentação da interface Cyber Gold, 7 dias grátis e isolamento total de dados para cada novo usuário.
+                  </p>
+                </div>
 
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 02</span>
-                      <span className="text-[10px] text-slate-400">00:22 - 00:52</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">IA Completa & OCR de Prints de Banco</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Leitura de fotos de Porquinhos NuBank/PicPay, comandos de voz, "zerar tudo" e reverter ações.
-                    </p>
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 02</span>
+                    <span className="text-[10px] text-slate-400">00:22 - 00:52</span>
                   </div>
+                  <p className="text-xs font-bold text-white">IA Completa & OCR de Prints de Banco</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Leitura de fotos de Porquinhos NuBank/PicPay, comandos de voz, "zerar tudo" e reverter ações.
+                  </p>
+                </div>
 
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 03</span>
-                      <span className="text-[10px] text-slate-400">00:52 - 01:21</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">Cartões de Crédito & Leitura de Fatura</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Cadastro de cartões, controle de limites e leitura inteligente de faturas em PDF ou foto.
-                    </p>
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 03</span>
+                    <span className="text-[10px] text-slate-400">00:52 - 01:21</span>
                   </div>
+                  <p className="text-xs font-bold text-white">Cartões de Crédito & Leitura de Fatura</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Cadastro de cartões, controle de limites e leitura inteligente de faturas em PDF ou foto.
+                  </p>
+                </div>
 
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 04</span>
-                      <span className="text-[10px] text-slate-400">01:21 - 01:46</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">Listas de Compras Inteligentes</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Crie listas de Mercado/Casa com checklist no carrinho e conversão em despesa com 1 clique.
-                    </p>
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 04</span>
+                    <span className="text-[10px] text-slate-400">01:21 - 01:46</span>
                   </div>
+                  <p className="text-xs font-bold text-white">Listas de Compras Inteligentes</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Crie listas de Mercado/Casa com checklist no carrinho e conversão em despesa com 1 clique.
+                  </p>
+                </div>
 
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 05</span>
-                      <span className="text-[10px] text-slate-400">01:46 - 02:18</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">Faturas do Sistema (R$ 9,90/mês)</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Assinatura acessível, vencimento no dia 10, quitação instantânea por PIX e regras de atraso.
-                    </p>
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 05</span>
+                    <span className="text-[10px] text-slate-400">01:46 - 02:18</span>
                   </div>
+                  <p className="text-xs font-bold text-white">Faturas do Sistema (R$ 9,90/mês)</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Assinatura acessível, vencimento no dia 10, quitação instantânea por PIX e regras de atraso.
+                  </p>
+                </div>
 
-                  <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-bold text-gold-400">Capítulo 06</span>
-                      <span className="text-[10px] text-slate-400">02:18 - 02:45</span>
-                    </div>
-                    <p className="text-xs font-bold text-white">Instalação no Celular (PWA)</p>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Como baixar o aplicativo direto no Android ou iPhone sem precisar de loja da Google ou Apple.
-                    </p>
+                <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-gold-400">Capítulo 06</span>
+                    <span className="text-[10px] text-slate-400">02:18 - 02:45</span>
                   </div>
+                  <p className="text-xs font-bold text-white">Instalação no Celular (PWA)</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Como baixar o aplicativo direto no Android ou iPhone sem precisar de loja da Google ou Apple.
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
         )}
 
         {/* 2. ASSINATURA, 7 DIAS GRÁTIS & R$ 9,90 */}
@@ -317,7 +363,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                     <li><strong>Liberação:</strong> Confirmação em menos de 10 segundos no sistema.</li>
                   </ul>
                   <div className="p-3 rounded-xl bg-gold-400/10 border border-gold-400/20 text-gold-300 text-xs">
-                    🪙 <strong>Valor Simbólico:</strong> Esse valor cobre nossos custos de servidores em nuvem e créditos da OpenAI/Gemini para que sua IA nunca pare.
+                    🪙 <strong>Valor Simbólico:</strong> Esse valor cobre nossos custos de servidores em nuvem e créditos de Inteligência Artificial para que suas respostas nunca parem.
                   </div>
                 </div>
 
@@ -333,7 +379,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                   <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
                     <li><strong>Até o dia 10:</strong> Status <span className="text-emerald-400 font-bold">Em Aberto</span>;</li>
                     <li><strong>Após o dia 10:</strong> Status muda para <span className="text-amber-400 font-bold">Em Atraso</span> com aviso ao lado da fatura;</li>
-                    <li><strong>Mais de 30 dias de atraso:</strong> O sistema ativa uma tela de bloqueio temporário até a quitação.</li>
+                    <li><strong>Mais de 30 dias de atraso:</strong> O sistema ativa uma tela de bloqueio temporário até a quitação via PIX.</li>
                   </ul>
                 </div>
 
@@ -344,7 +390,7 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                   </div>
                   <h3 className="text-base font-bold text-white">4. Privacidade & Começo Zerado</h3>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Segurança de nível bancário com o Supabase:
+                    Segurança de nível bancário com isolamento multi-tenant:
                   </p>
                   <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
                     <li>Cada novo usuário <strong>começa R$ 0,00 zerado</strong>;</li>
@@ -391,21 +437,21 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-dark-950/80 border border-dark-800">
+                  <div className="p-3.5 rounded-xl bg-dark-950/80 border border-dark-800">
                     <p className="font-bold text-gold-400 mb-1">1. Tire o Print da Tela</p>
                     <p className="text-slate-400">
                       Tire um print no seu celular ou computador mostrando o saldo (ex: Porquinho guardado de R$ 45.000,00).
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-dark-950/80 border border-dark-800">
+                  <div className="p-3.5 rounded-xl bg-dark-950/80 border border-dark-800">
                     <p className="font-bold text-gold-400 mb-1">2. Envie para o Chat da IA</p>
                     <p className="text-slate-400">
                       Abra o chat da IA e clique no botão de clipe/câmera, ou simplesmente pressione <strong>Ctrl+V</strong> para colar a imagem.
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-dark-950/80 border border-dark-800">
+                  <div className="p-3.5 rounded-xl bg-dark-950/80 border border-dark-800">
                     <p className="font-bold text-gold-400 mb-1">3. Lançamento Automático</p>
                     <p className="text-slate-400">
                       A IA analisa o valor numérico, identifica o banco ou caixinha e cadastra instantaneamente nos seus Investimentos ou Saldo!
@@ -793,6 +839,172 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                     <li>Sugere realocações inteligentes de saldo para render mais juros compostos.</li>
                   </ul>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 9. CHEAT SHEET DE COMANDOS DA IA */}
+        {activeCategory === 'cheatsheet' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-3xl bg-dark-950 border border-gold-400/30 shadow-xl space-y-6">
+              <div className="border-b border-dark-850 pb-5">
+                <span className="px-3 py-1 rounded-full bg-gold-400/20 text-gold-300 text-xs font-bold uppercase">
+                  Copiar e Colar com 1 Clique
+                </span>
+                <h2 className="text-2xl font-black text-white mt-2">
+                  Guia Rápido de Comandos para a Inteligência Artificial
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Clique no ícone de cópia ao lado de qualquer comando e envie direto para o chat da IA pelo microfone ou teclado.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    category: 'Reinício & Limpeza',
+                    icon: Trash2,
+                    color: 'text-rose-400',
+                    items: [
+                      { title: 'Zerar todo o sistema', cmd: 'Zere todos os lançamentos do sistema e deixe tudo zerado' },
+                      { title: 'Zerar apenas despesas', cmd: 'Limpe todas as despesas deste mês mantendo minhas receitas' },
+                    ]
+                  },
+                  {
+                    category: 'Desfazer & Correções',
+                    icon: Undo2,
+                    color: 'text-amber-400',
+                    items: [
+                      { title: 'Desfazer última ação', cmd: 'Desfaça o último lançamento que foi adicionado agora' },
+                      { title: 'Corrigir valor', cmd: 'Altere o valor da despesa de farmácia de ontem para R$ 68,00' },
+                      { title: 'Excluir registro específico', cmd: 'Exclua a corrida de Uber que lancei hoje cedo' },
+                    ]
+                  },
+                  {
+                    category: 'Lançamentos Rápidos de Gastos',
+                    icon: ShoppingCart,
+                    color: 'text-gold-400',
+                    items: [
+                      { title: 'Gasto em cartão', cmd: 'Gastei R$ 145 no supermercado no cartão Nubank' },
+                      { title: 'Despesa fixa em dinheiro', cmd: 'Paguei a conta de energia de R$ 230 via PIX da conta Inter' },
+                      { title: 'Compra parcelada', cmd: 'Comprei uma mesa de R$ 900 parcelado em 3x no cartão Itaú' },
+                    ]
+                  },
+                  {
+                    category: 'Entradas de Dinheiro & Salário',
+                    icon: TrendingUp,
+                    color: 'text-emerald-400',
+                    items: [
+                      { title: 'Recebimento de Salário', cmd: 'Recebi meu salário de R$ 4.500 na conta principal' },
+                      { title: 'PIX ou Freelance', cmd: 'Recebi um PIX de R$ 350 referente a consultoria' },
+                    ]
+                  },
+                  {
+                    category: 'Porquinhos & Caixinhas de Banco',
+                    icon: Camera,
+                    color: 'text-purple-400',
+                    items: [
+                      { title: 'Lançar Porquinho NuBank', cmd: 'Acabei de mandar o print do meu Porquinho com R$ 45.000,00' },
+                      { title: 'Aporte em Caixinha', cmd: 'Adicione R$ 1.500 na minha Caixinha de Reserva de Emergência' },
+                    ]
+                  },
+                  {
+                    category: 'Relatórios & Diagnósticos',
+                    icon: Zap,
+                    color: 'text-blue-400',
+                    items: [
+                      { title: 'Fluxo do mês', cmd: 'Como está o meu saldo e quanto dinheiro sobrou este mês?' },
+                      { title: 'Maiores vilões do bolso', cmd: 'Qual categoria consumiu a maior parte dos meus gastos?' },
+                    ]
+                  },
+                ].map((group, gIdx) => {
+                  const GroupIcon = group.icon;
+                  return (
+                    <div key={gIdx} className="p-4 sm:p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <GroupIcon size={18} className={group.color} />
+                        <h3 className="text-sm font-bold text-white">{group.category}</h3>
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.items.map((item, iIdx) => (
+                          <div 
+                            key={iIdx}
+                            className="p-3 rounded-xl bg-dark-950/80 border border-dark-850 hover:border-dark-750 transition-colors flex items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-gold-400">{item.title}</p>
+                              <p className="text-xs font-mono text-slate-300 truncate mt-0.5">
+                                "{item.cmd}"
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(item.cmd)}
+                              className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-slate-400 hover:text-white transition-colors shrink-0"
+                              title="Copiar comando"
+                            >
+                              {copiedPrompt === item.cmd ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 10. FAQ / PERGUNTAS FREQUENTES */}
+        {activeCategory === 'faq' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-3xl bg-dark-950 border border-gold-400/30 shadow-xl space-y-6">
+              <div className="border-b border-dark-850 pb-5">
+                <span className="px-3 py-1 rounded-full bg-gold-400/20 text-gold-300 text-xs font-bold uppercase">
+                  Central de Dúvidas
+                </span>
+                <h2 className="text-2xl font-black text-white mt-2">
+                  Perguntas Frequentes (FAQ Oficial)
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Respostas claras e imediatas sobre cobrança, privacidade, suporte e funcionamento de todos os módulos.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {faqList.map((item, idx) => {
+                  const isOpen = expandedFaq === idx;
+                  return (
+                    <div
+                      key={idx}
+                      className="rounded-2xl bg-dark-900 border border-dark-800 overflow-hidden transition-all"
+                    >
+                      <button
+                        onClick={() => setExpandedFaq(isOpen ? null : idx)}
+                        className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 hover:bg-dark-850/50 transition-colors"
+                      >
+                        <span className="text-sm sm:text-base font-bold text-white flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-gold-400/10 text-gold-400 text-xs flex items-center justify-center shrink-0 font-black">
+                            {idx + 1}
+                          </span>
+                          {item.q}
+                        </span>
+                        <ChevronDown
+                          size={18}
+                          className={`text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180 text-gold-400' : ''}`}
+                        />
+                      </button>
+
+                      {isOpen && (
+                        <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-dark-850/60 bg-dark-950/40">
+                          {item.a}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -51,14 +51,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'tutorial', label: 'Tutoriais & Vídeos', icon: PlayCircle, badge: 'Vídeo HD', highlight: true },
-    ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS (Dono)', icon: ShieldCheck, highlight: true }] : []),
+    { id: 'tutorial', label: 'Como Usar & Vídeos', icon: PlayCircle, badge: 'Vídeo' },
+    ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS', icon: ShieldCheck, badge: 'Admin' }] : []),
     { id: 'cards', label: 'Cartões & Faturas', icon: CreditCard, badge: 'Novo' },
     { id: 'shopping_lists', label: 'Lista de Compras', icon: ShoppingCart, badge: 'Mercado' },
-    { id: 'subscription_invoices', label: 'Faturas do Sistema', icon: Receipt, highlight: true },
-    { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: 'cfo' },
+    { id: 'subscription_invoices', label: 'Faturas do Sistema', icon: Receipt, badge: 'R$ 9,90' },
+    { id: 'cfo', label: 'CFO Virtual', icon: Zap, badge: 'IA', highlight: true, isAction: 'cfo' },
     { id: 'statement', label: 'Extrato de Gastos', icon: Receipt },
-    { id: 'scanner', label: 'Leitor de NF (IA)', icon: ScanLine, highlight: true },
+    { id: 'scanner', label: 'Scanner de NF', icon: ScanLine, badge: 'IA', highlight: true },
     { id: 'accounts', label: 'Contas & Carteiras', icon: Landmark },
     { id: 'investments', label: 'Investimentos', icon: TrendingUp },
     { id: 'settings', label: 'Configurações', icon: Settings },
@@ -87,13 +87,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 w-72 bg-dark-950 border-r border-dark-800 flex flex-col justify-between
+        fixed top-0 bottom-0 left-0 z-50 w-72 h-full bg-dark-950 border-r border-dark-800 flex flex-col justify-between
         transition-transform duration-300 ease-in-out
-        md:translate-x-0 md:static md:z-30
+        md:translate-x-0 md:static md:z-30 md:h-auto
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Top Section */}
-        <div className="p-5 flex flex-col gap-6">
+        <div className="p-5 flex flex-col gap-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-dark-800">
           {/* Mobile Header Inside Drawer */}
           <div className="flex items-center justify-between md:hidden border-b border-dark-800 pb-3">
             <span className="text-gold-400 font-extrabold text-lg">MENU PRINCIPAL</span>
@@ -126,19 +126,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ${item.highlight && !isActive ? 'text-amber-300/90' : ''}
                   `}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon size={19} className={isActive ? 'text-gold-400' : (item.highlight ? 'text-gold-400 animate-pulse' : 'text-slate-400')} />
-                    <span>{item.label}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon size={19} className={isActive ? 'text-gold-400 shrink-0' : (item.highlight ? 'text-gold-400 shrink-0' : 'text-slate-400 shrink-0')} />
+                    <span className="truncate">{item.label}</span>
                   </div>
                   
                   {item.badge && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-800 text-slate-300 border border-dark-750">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0 ${
+                      item.highlight || item.id === 'tutorial'
+                        ? 'bg-gold-400/15 text-gold-300 border-gold-400/30'
+                        : 'bg-dark-800 text-slate-300 border-dark-750'
+                    }`}>
                       {item.badge}
-                    </span>
-                  )}
-                  {item.highlight && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold-400/20 text-gold-300 border border-gold-400/30 font-semibold animate-pulse">
-                      IA
                     </span>
                   )}
                 </button>

@@ -862,39 +862,52 @@ export const DemoVideoPlayer: React.FC = () => {
         {!isPlaying && (
           <div 
             onClick={handlePlay}
-            className="absolute inset-0 bg-black/65 backdrop-blur-sm flex flex-col items-center justify-center cursor-pointer transition-opacity z-20 group"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center cursor-pointer transition-opacity z-20 group"
           >
             <button className="w-20 h-20 rounded-full bg-gradient-to-tr from-gold-500 via-yellow-400 to-amber-300 text-dark-950 flex items-center justify-center text-3xl font-black shadow-gold-glow group-hover:scale-110 active:scale-95 transition-transform">
               <Play size={34} className="fill-dark-950 ml-1 text-dark-950" />
             </button>
-            <p className="text-base font-extrabold text-white mt-4 drop-shadow text-center px-4">
-              Clique para Iniciar o Vídeo com Locução de Estúdio
+            <p className="text-base sm:text-lg font-black text-white mt-4 drop-shadow text-center px-4">
+              Clique para Assistir com Locução Neural em Estúdio
             </p>
-            <p className="text-xs text-gold-300/90 mt-1">Voz Humana Neural • Duração: ~70 segundos</p>
+            <p className="text-xs text-gold-300/90 mt-1">Voz Humana Natural • Qualidade Comercial • 70s</p>
           </div>
         )}
+      </div>
 
-        {/* Subtitle Ribbon with Sound Visualizer */}
-        <div className="absolute bottom-4 left-4 right-4 sm:left-6 sm:right-6 pointer-events-none z-10">
-          <div className="bg-black/90 backdrop-blur-md border border-gold-400/40 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 text-center shadow-2xl flex flex-col items-center gap-2">
-            {/* Voice Visualizer Waves */}
-            {isPlaying && isVoiceActive && (
-              <div className="flex items-center gap-1.5 h-5">
-                {[0.1, 0.3, 0.5, 0.2, 0.4, 0.6, 0.25, 0.45].map((delay, idx) => (
+      {/* Dedicated Subtitle & Studio Sound Visualizer Ribbon (Never overlaps video) */}
+      <div className="px-4 py-3 bg-dark-900 border-b border-dark-800 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0">
+            {isPlaying && isVoiceActive ? (
+              <div className="flex items-center gap-0.5 h-4">
+                {[0.1, 0.3, 0.5, 0.2].map((delay, idx) => (
                   <span
                     key={idx}
                     className="w-1 bg-gold-400 rounded-full animate-pulse"
                     style={{
-                      height: `${10 + Math.sin(idx * 1.5) * 8}px`,
-                      animationDuration: `${0.6 + delay}s`
+                      height: `${6 + (idx % 2) * 8}px`,
+                      animationDuration: `${0.5 + delay}s`
                     }}
                   />
                 ))}
               </div>
+            ) : (
+              <Volume2 size={16} />
             )}
+          </div>
 
-            <p className="text-xs sm:text-sm font-bold text-slate-100 max-w-3xl leading-relaxed">
-              {subtitle}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-gold-400">
+                Capítulo {currentSceneIdx + 1} de {scenes.length} • {scenes[currentSceneIdx]?.badge}
+              </span>
+              {isPlaying && isVoiceActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              )}
+            </div>
+            <p className="text-xs sm:text-sm font-medium text-slate-200 leading-snug">
+              "{subtitle}"
             </p>
           </div>
         </div>
