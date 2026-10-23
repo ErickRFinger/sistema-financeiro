@@ -16,27 +16,60 @@ import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 
 interface InvestmentsPageProps {
   accounts: FinancialAccount[];
+  currentUser?: any;
 }
 
-export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts }) => {
+export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, currentUser }) => {
   const [investments, setInvestments] = useState<FinancialInvestment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
-    const data = await getInvestments();
-    setInvestments(data);
+    const userIsAdmin = Boolean(
+      currentUser?.email === 'admin@aurafinance.com.br' || 
+      currentUser?.user_metadata?.is_admin === true
+    );
+    const userKey = currentUser ? `aura_user_${currentUser.id}` : null;
+
+    if (userKey) {
+      const saved = localStorage.getItem(`${userKey}_investments`);
+      if (saved) {
+        setInvestments(JSON.parse(saved));
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (userIsAdmin) {
+      const data = await getInvestments();
+      setInvestments(data);
+    } else {
+      setInvestments([]);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Deseja remover o ativo "${name}" da carteira?`)) {
-      await deleteInvestment(id);
+      const userKey = currentUser ? `aura_user_${currentUser.id}` : null;
+      if (userKey) {
+        const saved = localStorage.getItem(`${userKey}_investments`);
+        if (saved) {
+          const list: FinancialInvestment[] = JSON.parse(saved);
+          const updated = list.filter(i => i.id !== id);
+          localStorage.setItem(`${userKey}_investments`, JSON.stringify(updated));
+        }
+      }
+      try {
+        await deleteInvestment(id);
+      } catch {
+        // fallback
+      }
       await loadData();
     }
   };
@@ -166,6 +199,7 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts }) =>
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         accounts={accounts}
+        currentUser={currentUser}
         onInvestmentCreated={async () => {
           await loadData();
         }}

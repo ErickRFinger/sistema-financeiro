@@ -1081,6 +1081,7 @@ export function App() {
           {activeTab === 'investments' && (
             <InvestmentsPage
               accounts={accounts}
+              currentUser={currentUser}
             />
           )}
 
