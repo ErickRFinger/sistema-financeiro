@@ -283,6 +283,12 @@ VITE_GEMINI_API_KEY=
     * *Arquitetura Reativa:* `ToastProvider` global com hook `useToast()` e método exportado `showToast(msg, type)` para feedback instantâneo de operações.
     * *Auto-Dismiss com Barra Regressiva:* Desaparecimento automático em 3 segundos com barra animada via GPU e suporte a fechar manual.
     * *Identidade Visual Consistente:* Estilos dedicados para `success`, `error`, `warning` e `info` totalmente harmonizados com a paleta Black Obsidian & Gold Glow.
+* **v2.9.1 (23/10/2026):**
+  * **Motor de IA Autônomo Turbo — Multi-Lançamentos & Baixa Instantânea (`geminiAssistant.ts`, `AIChatPage.tsx`, `AIAssistantChat.tsx`):**
+    * *Reconhecimento de Jargões Financeiros Brasileiros:* Compreensão nativa e imediata de termos como *"baixar uns valores"*, *"dar baixa na conta"*, *"baixa a gabi"*, *"quitar"*, *"liquidar"*, *"lançamento pra [pessoa]"* e *"anota/lança/cadastra"*.
+    * *Baixa em Lote Inteligente (`bulk_mark_paid`):* Comandos genéricos como *"baixar uns valores"* ou *"dar baixa em tudo"* localizam automaticamente as contas com status `pending` e as marcam como pagas em lote com celebração de confetes.
+    * *Multi-Lançamentos em Único Comando (Batch Parsing):* A IA agora processa múltiplos lançamentos simultâneos separados por "e", vírgula ou linha (ex: *"lança 50 pra gabi e 100 de gasolina"*), criando todas as transações de uma só vez com cálculo do total consolidado.
+    * *Captura Automática de Nomes:* Frases como *"lançamento pra gabi de 150"* extraem o destinatário *"Gabi"* como título do lançamento de forma limpa e automática.
 
 
 

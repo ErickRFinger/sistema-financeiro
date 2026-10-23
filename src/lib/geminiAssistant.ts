@@ -10,6 +10,8 @@ export interface AssistantMessage {
   actionTaken?: {
     type: 
       | 'transaction_created' 
+      | 'multiple_transactions_created'
+      | 'bulk_paid'
       | 'transaction_deleted' 
       | 'transaction_updated' 
       | 'bank_balances_reset'
@@ -22,6 +24,7 @@ export interface AssistantMessage {
       | 'investment_created' 
       | 'bank_print_processed';
     transaction?: any;
+    count?: number;
     previousState?: any;
     investment?: any;
     accountName?: string;
@@ -39,6 +42,8 @@ export interface AssistantMessage {
 export interface AssistantActionPayload {
   intent: 
     | 'create_transaction' 
+    | 'create_multiple_transactions'
+    | 'bulk_mark_paid'
     | 'delete_transaction' 
     | 'update_transaction' 
     | 'reset_bank_balances'
@@ -66,6 +71,17 @@ export interface AssistantActionPayload {
     date: string;
     status: 'paid' | 'pending';
   };
+  multipleTransactions?: Array<{
+    type: TransactionType;
+    amount: number;
+    title: string;
+    category: string;
+    account_id: string;
+    payment_method: PaymentMethod;
+    date: string;
+    status: 'paid' | 'pending';
+  }>;
+  bulkTargetTxs?: FinancialTransaction[];
   targetTransaction?: FinancialTransaction;
   transactionUpdates?: {
     new_amount?: number;
@@ -474,7 +490,80 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 4. ALTERAR LANÇAMENTO
+  // 4. BAIXAR / DAR BAIXA / QUITAR / LIQUIDAR (NOVO & ULTRA-AUTÔNOMO)
+  // Ex: "baixar uns valores", "dar baixa na conta da gabi", "baixa o almoço", "quitar 150", "dar baixa em tudo", "baixar todas as pendentes"
+  // ==========================================
+  const isBaixaCommand = /baixa(r)?|dar baixa|dei baixa|quita(r)?|quitei|liquida(r)?|liquidado|paguei a conta/i.test(lower);
+  if (isBaixaCommand) {
+    if (transactions.length === 0) {
+      return {
+        intent: 'general_chat',
+        replyText: 'Você ainda não possui nenhum lançamento para dar baixa.',
+      };
+    }
+
+    const pendingTxs = transactions.filter(t => t.status === 'pending');
+
+    // 4.1 Baixar em massa (todas as pendentes ou "baixar uns valores" sem especificar)
+    const isGenericBulk = 
+      /baixa(r)?\s+(uns\s+)?valores/i.test(lower) ||
+      /baixa(r)?\s+(em\s+)?tudo/i.test(lower) ||
+      /baixa(r)?\s+(todas|todos)/i.test(lower) ||
+      /dar baixa\s+(em\s+)?tudo/i.test(lower) ||
+      /dar baixa\s+nas\s+pendentes/i.test(lower) ||
+      /baixa(r)?\s+(as\s+)?pendentes/i.test(lower);
+
+    if (isGenericBulk) {
+      if (pendingTxs.length > 0) {
+        return {
+          intent: 'bulk_mark_paid',
+          bulkTargetTxs: pendingTxs,
+          replyText: `✅ Baixa executada com sucesso! ${pendingTxs.length} conta(s) pendente(s) foram marcadas como PAGAS no seu extrato.`,
+        };
+      } else {
+        return {
+          intent: 'general_chat',
+          replyText: '🎉 Todas as suas contas já estão com status de PAGO! Não há pendências para dar baixa.',
+        };
+      }
+    }
+
+    // 4.2 Baixar lançamento específico por nome (ex: "baixa a conta da gabi", "dar baixa no almoço")
+    let target = transactions.find(t => {
+      const titleLower = t.title.toLowerCase();
+      // Match words of length >= 3
+      const words = lower.replace(/baixa(r)?|dar baixa|dei baixa|quita(r)?|quitei|liquida(r)?|conta|lançamento|valor|pra|para|o|a|de|do|da/gi, ' ')
+        .trim().split(/\s+/).filter(w => w.length >= 3);
+      return words.some(w => titleLower.includes(w));
+    });
+
+    // 4.3 Se não achou por nome, busca por valor (ex: "baixa o de 150")
+    if (!target) {
+      const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
+      if (amountMatch) {
+        const val = parseFloat(amountMatch[1].replace(/\./g, '').replace(',', '.'));
+        target = transactions.find(t => Math.abs(t.amount - val) < 0.01 && t.status === 'pending') ||
+                 transactions.find(t => Math.abs(t.amount - val) < 0.01);
+      }
+    }
+
+    // 4.4 Se não achou específico, pega a primeira pendente ou a última transação
+    if (!target) {
+      target = pendingTxs[0] || transactions[0];
+    }
+
+    if (target) {
+      return {
+        intent: 'update_transaction',
+        targetTransaction: target,
+        transactionUpdates: { new_status: 'paid' },
+        replyText: `✅ Baixa confirmada! Lançamento "${target.title}" no valor de ${formatCurrency(target.amount)} foi marcado como PAGO.`,
+      };
+    }
+  }
+
+  // ==========================================
+  // 5. ALTERAR LANÇAMENTO (STATUS OU VALOR)
   // ==========================================
   if (
     lower.includes('altera') || 
@@ -617,92 +706,133 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 7. LANÇAR TRANSAÇÃO (RECEITA / DESPESA)
+  // 7. LANÇAR TRANSAÇÃO (ÚNICA OU MÚLTIPLAS / BATCH)
+  // Ex: "lançamento pra gabi de 150", "lança 50 pra gabi e 100 de gasolina", "gastei 85 no almoço"
   // ==========================================
-  let amount = 0;
-  const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
-  if (amountMatch) {
-    const rawNum = amountMatch[1].replace(/\./g, '').replace(',', '.');
-    amount = parseFloat(rawNum);
-  }
-
+  const isLaunchVerb = /lança(r)?|lançamento(s)?|anota(r)?|registra(r)?|cadastra(r)?|adiciona(r)?|coloca(r)?|bota(r)?|passa(r)?|pix(zinho)?|pagamento/i.test(lower);
   const isIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido|deposito/i.test(lower);
-  const isExpense = /gastei|paguei|comprei|saiu|boleto|despesa|custo|debitou|debita|pagar|compra/i.test(lower);
+  const isExpense = /gastei|paguei|comprei|saiu|boleto|despesa|custo|debitou|debita|pagar|compra|pra |para /i.test(lower);
 
-  if (amount > 0 && (isIncome || isExpense || lower.includes('caixa') || lower.includes('coloca'))) {
-    const type: TransactionType = (isIncome && !isExpense) || lower.includes('ganhei') || lower.includes('recebi') ? 'income' : 'expense';
+  // Helper para extrair dados estruturados de um trecho de texto
+  const parseSegmentToTx = (segment: string) => {
+    const segLower = segment.toLowerCase();
+    const amountMatch = segment.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?|\d+)/);
+    if (!amountMatch) return null;
 
-    let targetAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
+    const rawNum = amountMatch[1].replace(/\./g, '').replace(',', '.');
+    const segAmount = parseFloat(rawNum);
+    if (isNaN(segAmount) || segAmount <= 0) return null;
+
+    const segIsIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido|deposito/i.test(segLower);
+    const segType: TransactionType = segIsIncome ? 'income' : 'expense';
+
+    // Identificar Conta
+    let segAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
     for (const acc of accounts) {
       const accName = acc.name.toLowerCase();
       if (
-        lower.includes(accName) || 
-        (accName.includes('btg') && lower.includes('btg')) || 
-        (accName.includes('inter') && lower.includes('inter')) || 
-        (accName.includes('mercado') && lower.includes('mercado')) || 
-        (accName.includes('sicredi') && lower.includes('sicredi'))
+        segLower.includes(accName) || 
+        (accName.includes('btg') && segLower.includes('btg')) || 
+        (accName.includes('inter') && segLower.includes('inter')) || 
+        (accName.includes('mercado') && segLower.includes('mercado')) || 
+        (accName.includes('sicredi') && segLower.includes('sicredi'))
       ) {
-        targetAccount = acc;
+        segAccount = acc;
         break;
       }
     }
 
-    if (lower.includes('caixa') || lower.includes('carteira')) {
+    if (segLower.includes('caixa') || segLower.includes('carteira')) {
       const found = accounts.find(a => 
         a.id.includes('mp') || 
         a.name.toLowerCase().includes('mercado') || 
         a.name.toLowerCase().includes('caixa')
       );
-      if (found) targetAccount = found;
+      if (found) segAccount = found;
     }
 
-    let category = type === 'income' ? 'Vendas & Serviços Prestados' : 'Outros';
-    if (/almoco|almoço|jantar|lanche|comida|mercado|padaria|restaurante|cafe|café|ifood/.test(lower)) {
-      category = 'Alimentação & Refeição';
-    } else if (/gasolina|combustivel|combustível|etanol|diesel|posto|uber|estacionamento|pedagio|pedágio/.test(lower)) {
-      category = 'Combustível & Transporte';
-    } else if (/ferramenta|parafuso|bucha|material|obra|construcao|construção|cabo|fita/.test(lower)) {
-      category = 'Infraestrutura & Ferramentas';
-    } else if (/camera|câmera|dvr|switch|servidor|computador|notebook|pecas|peças|hardware/.test(lower)) {
-      category = 'Equipamentos & Hardware';
-    } else if (/luz|agua|água|aluguel|internet|vivo|energia|claro|enel/.test(lower)) {
-      category = 'Aluguel & Contas Fixas';
+    // Identificar Categoria
+    let segCategory = segType === 'income' ? 'Vendas & Serviços Prestados' : 'Outros';
+    if (/almoco|almoço|jantar|lanche|comida|mercado|padaria|restaurante|cafe|café|ifood/.test(segLower)) {
+      segCategory = 'Alimentação & Refeição';
+    } else if (/gasolina|combustivel|combustível|etanol|diesel|posto|uber|estacionamento|pedagio|pedágio/.test(segLower)) {
+      segCategory = 'Combustível & Transporte';
+    } else if (/ferramenta|parafuso|bucha|material|obra|construcao|construção|cabo|fita/.test(segLower)) {
+      segCategory = 'Infraestrutura & Ferramentas';
+    } else if (/camera|câmera|dvr|switch|servidor|computador|notebook|pecas|peças|hardware/.test(segLower)) {
+      segCategory = 'Equipamentos & Hardware';
+    } else if (/luz|agua|água|aluguel|internet|vivo|energia|claro|enel/.test(segLower)) {
+      segCategory = 'Aluguel & Contas Fixas';
     }
 
-    let payment_method: PaymentMethod = 'PIX';
-    if (/credito|crédito|cartao de credito|cartão de crédito/.test(lower)) payment_method = 'Cartão de Crédito';
-    else if (/debito|débito|cartao de debito|cartão de débito/.test(lower)) payment_method = 'Cartão de Débito';
-    else if (/boleto/.test(lower)) payment_method = 'Boleto';
-    else if (/dinheiro|especie|espécie/.test(lower)) payment_method = 'Dinheiro';
+    // Forma de Pagamento
+    let segPaymentMethod: PaymentMethod = 'PIX';
+    if (/credito|crédito|cartao de credito|cartão de crédito/.test(segLower)) segPaymentMethod = 'Cartão de Crédito';
+    else if (/debito|débito|cartao de debito|cartão de débito/.test(segLower)) segPaymentMethod = 'Cartão de Débito';
+    else if (/boleto/.test(segLower)) segPaymentMethod = 'Boleto';
+    else if (/dinheiro|especie|espécie/.test(segLower)) segPaymentMethod = 'Dinheiro';
 
-    const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(lower);
-    const status: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
+    const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(segLower);
+    const segStatus: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
 
-    let title = type === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
-    const cleanedTitle = input
-      .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|no caixa|na conta|reais|r\$|,00|\.00/gi, '')
-      .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/g, '')
-      .replace(/[,;]/g, '')
-      .trim();
+    // Título inteligente
+    let segTitle = segType === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
 
-    if (cleanedTitle.length >= 3) {
-      title = cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1);
+    // Captura se foi "pra [pessoa]" (ex: "pra gabi", "para o joao", "pro carlos")
+    const personMatch = segment.match(/(?:pra|para|pro)\s+([a-zA-ZÀ-ÿ]+)/i);
+    if (personMatch) {
+      const personName = personMatch[1].charAt(0).toUpperCase() + personMatch[1].slice(1).toLowerCase();
+      segTitle = `${personName}`;
+    } else {
+      const cleaned = segment
+        .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|lança(r)?|lançamento|anota(r)?|registra(r)?|cadastra(r)?|no caixa|na conta|reais|r\$|,00|\.00|de /gi, '')
+        .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?|\d+)/g, '')
+        .replace(/[,;]/g, '')
+        .trim();
+      if (cleaned.length >= 2) {
+        segTitle = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      }
     }
 
     return {
-      intent: 'create_transaction',
-      replyText: `✅ Lançamento registrado! ${type === 'income' ? 'Receita' : 'Despesa'} de ${formatCurrency(amount)} adicionada na conta ${targetAccount.name} (${category}).`,
-      transactionData: {
-        type,
-        amount,
-        title,
-        category,
-        account_id: targetAccount.id,
-        payment_method,
-        date: new Date().toISOString().split('T')[0],
-        status,
-      },
+      type: segType,
+      amount: segAmount,
+      title: segTitle,
+      category: segCategory,
+      account_id: segAccount.id,
+      payment_method: segPaymentMethod,
+      date: new Date().toISOString().split('T')[0],
+      status: segStatus,
     };
+  };
+
+  // 7.1 Checar se há múltiplos lançamentos separados por "e", vírgula ou quebra de linha
+  // Ex: "lança 50 pra gabi e 100 de gasolina", "150 pra gabi, 80 almoço, 40 uber"
+  const rawSegments = input.split(/\s+e\s+|,\s*|\n+/i).map(s => s.trim()).filter(s => s.length > 0);
+  if (rawSegments.length >= 2) {
+    const multiTxs = rawSegments.map(s => parseSegmentToTx(s)).filter((t): t is NonNullable<typeof t> => t !== null);
+    if (multiTxs.length >= 2) {
+      const totalMulti = multiTxs.reduce((sum, t) => sum + t.amount, 0);
+      const summaryList = multiTxs.map(t => `• ${t.title}: ${formatCurrency(t.amount)} (${t.category})`).join('\n');
+      return {
+        intent: 'create_multiple_transactions',
+        multipleTransactions: multiTxs,
+        replyText: `🚀 Perfeito! Registrei ${multiTxs.length} lançamentos de uma só vez (Total: ${formatCurrency(totalMulti)}):\n\n${summaryList}`,
+      };
+    }
+  }
+
+  // 7.2 Lançamento Único
+  if (isIncome || isExpense || isLaunchVerb || lower.includes('caixa') || lower.includes('coloca')) {
+    const singleTx = parseSegmentToTx(input);
+    if (singleTx) {
+      const targetAcc = accounts.find(a => a.id === singleTx.account_id) || accounts[0] || { name: 'Conta Principal' };
+      return {
+        intent: 'create_transaction',
+        replyText: `✅ Lançamento registrado! ${singleTx.type === 'income' ? 'Receita' : 'Despesa'} "${singleTx.title}" de ${formatCurrency(singleTx.amount)} lançada na conta ${targetAcc.name} (${singleTx.category}).`,
+        transactionData: singleTx,
+      };
+    }
   }
 
   // Default Fallback

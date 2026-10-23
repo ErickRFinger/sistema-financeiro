@@ -427,7 +427,38 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
         actionTaken = { type: 'screen_opened' };
       }
 
-      // 12. CRIAR TRANSAÇÃO (RECEITA / DESPESA)
+      // 12. CRIAR MÚLTIPLAS TRANSAÇÕES (BATCH)
+      else if (result.intent === 'create_multiple_transactions' && result.multipleTransactions && onCreateTransaction) {
+        const createdList: any[] = [];
+        for (const txData of result.multipleTransactions) {
+          const newTx = {
+            title: txData.title,
+            amount: txData.amount,
+            type: txData.type,
+            category: txData.category,
+            account_id: txData.account_id,
+            payment_method: txData.payment_method,
+            transaction_date: txData.date,
+            status: txData.status,
+          };
+          await onCreateTransaction(newTx);
+          createdList.push(newTx);
+        }
+        setUndoStack((prev) => [{ type: 'multiple_created', txs: createdList }, ...prev]);
+        actionTaken = { type: 'multiple_transactions_created', count: createdList.length };
+        confetti({ particleCount: 60, spread: 70, origin: { y: 0.8 } });
+      }
+
+      // 13. BAIXA EM MASSA (BULK MARK PAID)
+      else if (result.intent === 'bulk_mark_paid' && result.bulkTargetTxs && onUpdateTransactionStatus) {
+        for (const tx of result.bulkTargetTxs) {
+          await onUpdateTransactionStatus(tx, 'paid');
+        }
+        actionTaken = { type: 'bulk_paid', count: result.bulkTargetTxs.length };
+        confetti({ particleCount: 50, spread: 65, origin: { y: 0.8 } });
+      }
+
+      // 14. CRIAR TRANSAÇÃO ÚNICA (RECEITA / DESPESA)
       else if (result.intent === 'create_transaction' && result.transactionData) {
         const txData = result.transactionData;
         const newTx = {
