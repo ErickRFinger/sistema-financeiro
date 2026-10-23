@@ -184,3 +184,6 @@ VITE_GEMINI_API_KEY=
 * **v1.5.0 (23/10/2026):**
   * **Alerta Inteligente de Contas a Vencer (`UpcomingBillsAlert`):** Widget destacado no Dashboard avisando o usuário sobre boletos e despesas com vencimento previsto para hoje ou nos próximos 3 dias, prevenindo juros e atrasos.
   * **Compatibilidade com Modo Privacidade:** Valores ofuscados dinamicamente quando a privacidade estiver ativada, com navegação em 1 clique direto para o Extrato filtrado.
+* **v1.6.0 (23/10/2026):**
+  * **Score de Saúde Financeira (`FinancialHealthScore`):** Diagnóstico executivo (0 a 1000 pontos) com régua de 4 níveis (Excelente, Bom, Atenção, Crítico) baseada em taxa de poupança e regularidade de lançamentos, com recomendação personalizada e suporte ao Modo Privacidade.
+  * **Configuração Tri-Agent (Antigravity + Cline + Gemini):** Integração do Antigravity IDE com otimização de RAM, Tailwind CSS IntelliSense, Prettier auto-format e execução ágil via tarefas estruturadas.

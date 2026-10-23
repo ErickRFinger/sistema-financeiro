@@ -35,6 +35,7 @@ import { MetricCard } from '../components/MetricCard';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
 import { CategoryBudgetWidget } from '../components/CategoryBudgetWidget';
+import { FinancialHealthScore } from '../components/FinancialHealthScore';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -568,6 +569,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Live Market Currency Quotes */}
       <CurrencyQuotesWidget />
+
+      {/* Financial Health Score */}
+      <FinancialHealthScore
+        income={monthIncome}
+        expenses={monthExpense}
+        transactionsCount={currentMonthTransactions.length}
+        isPrivate={isPrivate}
+      />
 
       {/* Recent Transactions Feed */}
       <div className="p-5 sm:p-6 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card">
