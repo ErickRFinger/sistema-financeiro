@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -8,7 +8,11 @@ import {
   Award, 
   ArrowUpRight,
   Info,
-  HelpCircle
+  HelpCircle,
+  Zap,
+  Sprout,
+  Rocket,
+  Crown
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -25,6 +29,62 @@ interface CompoundInterestSimulatorProps {
   isPrivate?: boolean;
 }
 
+interface PresetPlan {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  initialAmount: number;
+  monthlyDeposit: number;
+  years: number;
+  tag: string;
+  description: string;
+  activeBorder: string;
+  badgeActive: string;
+  iconActive: string;
+}
+
+const PRESETS: PresetPlan[] = [
+  {
+    id: 'iniciante',
+    name: 'Iniciante',
+    icon: Sprout,
+    initialAmount: 100,
+    monthlyDeposit: 100,
+    years: 5,
+    tag: '5 anos',
+    description: 'R$ 100 inicial • R$ 100/mês',
+    activeBorder: 'border-emerald-500/70 bg-gradient-to-br from-emerald-500/15 via-dark-900 to-dark-950 text-emerald-300 shadow-[0_0_20px_-3px_rgba(16,185,129,0.25)]',
+    badgeActive: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    iconActive: 'bg-emerald-500/20 text-emerald-400',
+  },
+  {
+    id: 'construtor',
+    name: 'Construtor de Renda',
+    icon: Rocket,
+    initialAmount: 1000,
+    monthlyDeposit: 500,
+    years: 15,
+    tag: '15 anos',
+    description: 'R$ 1.000 inicial • R$ 500/mês',
+    activeBorder: 'border-sky-500/70 bg-gradient-to-br from-sky-500/15 via-dark-900 to-dark-950 text-sky-300 shadow-[0_0_20px_-3px_rgba(14,165,233,0.25)]',
+    badgeActive: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+    iconActive: 'bg-sky-500/20 text-sky-400',
+  },
+  {
+    id: 'liberdade',
+    name: 'Liberdade Financeira',
+    icon: Crown,
+    initialAmount: 10000,
+    monthlyDeposit: 2000,
+    years: 25,
+    tag: '25 anos',
+    description: 'R$ 10.000 inicial • R$ 2.000/mês',
+    activeBorder: 'border-gold-400/80 bg-gradient-to-br from-gold-400/20 via-dark-900 to-dark-950 text-gold-300 shadow-gold-glow',
+    badgeActive: 'bg-gold-400/20 text-gold-300 border-gold-400/50',
+    iconActive: 'bg-gold-400/20 text-gold-400',
+  },
+];
+
 export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps> = ({
   isPrivate = false,
 }) => {
@@ -32,6 +92,73 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
   const [monthlyDeposit, setMonthlyDeposit] = useState<number>(800);
   const [years, setYears] = useState<number>(10);
   const [annualRate, setAnnualRate] = useState<number>(13.75); // Selic atual
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  const animFrameRef = useRef<number | null>(null);
+
+  // Limpeza do frame de animação ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, []);
+
+  const cancelAnimation = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    setActivePreset(null);
+  };
+
+  const handleApplyPreset = (preset: PresetPlan) => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+    setActivePreset(preset.id);
+
+    const startInitial = initialAmount;
+    const startMonthly = monthlyDeposit;
+    const startYears = years;
+
+    const targetInitial = preset.initialAmount;
+    const targetMonthly = preset.monthlyDeposit;
+    const targetYears = preset.years;
+
+    const duration = 400; // ms de transição suave
+    const startTime = performance.now();
+
+    // Easing quadrático suave para aceleração e desaceleração natural
+    const easeInOutQuad = (x: number): number =>
+      x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeInOutQuad(progress);
+
+      const currentInit = Math.round(startInitial + (targetInitial - startInitial) * eased);
+      const currentMonth = Math.round(startMonthly + (targetMonthly - startMonthly) * eased);
+      const currentYr = Math.round(startYears + (targetYears - startYears) * eased);
+
+      setInitialAmount(currentInit);
+      setMonthlyDeposit(currentMonth);
+      setYears(currentYr);
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(step);
+      } else {
+        setInitialAmount(targetInitial);
+        setMonthlyDeposit(targetMonthly);
+        setYears(targetYears);
+        animFrameRef.current = null;
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(step);
+  };
 
   // Cálculo da evolução mês a mês e ano a ano
   const { chartData, finalTotal, totalInvested, totalInterest, monthlyPassiveIncome } = useMemo(() => {
@@ -116,6 +243,85 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
         </div>
       </div>
 
+      {/* Quick Presets / Atalhos Rápidos */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap size={14} className="text-gold-400 animate-pulse" />
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              Atalhos Rápidos (Presets)
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 hidden sm:inline">
+            Clique em um perfil para simulação instantânea com animação suave
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {PRESETS.map((preset) => {
+            const Icon = preset.icon;
+            const isSelected = activePreset === preset.id || (
+              initialAmount === preset.initialAmount &&
+              monthlyDeposit === preset.monthlyDeposit &&
+              years === preset.years
+            );
+
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleApplyPreset(preset)}
+                className={`group relative p-3 sm:p-3.5 rounded-2xl border text-left transition-all duration-300 active:scale-[0.98] cursor-pointer flex flex-col justify-between overflow-hidden ${
+                  isSelected
+                    ? preset.activeBorder
+                    : 'bg-dark-950/80 hover:bg-dark-850/90 border-dark-800 hover:border-slate-700 text-slate-300 hover:shadow-md'
+                }`}
+              >
+                {/* Subtle background glow effect if selected */}
+                {isSelected && (
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-gold-400/10 blur-xl pointer-events-none" />
+                )}
+
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 shrink-0 ${
+                        isSelected ? preset.iconActive : 'bg-dark-800 text-slate-400 group-hover:text-gold-400'
+                      }`}
+                    >
+                      <Icon size={15} />
+                    </div>
+                    <span className={`text-xs font-extrabold tracking-tight ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                      {preset.name}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shrink-0 ${
+                      isSelected
+                        ? preset.badgeActive
+                        : 'bg-dark-850 text-slate-400 border-dark-750'
+                    }`}
+                  >
+                    {preset.tag}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                  <span>{preset.description}</span>
+                  <ArrowUpRight
+                    size={13}
+                    className={`transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0 ${
+                      isSelected ? 'text-gold-400' : 'text-slate-500 group-hover:text-slate-300'
+                    }`}
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Sliders Controls Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-2xl bg-dark-950 border border-dark-800">
         {/* Initial Amount */}
@@ -130,10 +336,13 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
             type="range"
             min={0}
             max={100000}
-            step={1000}
+            step={100}
             value={initialAmount}
-            onChange={(e) => setInitialAmount(Number(e.target.value))}
-            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer"
+            onChange={(e) => {
+              cancelAnimation();
+              setInitialAmount(Number(e.target.value));
+            }}
+            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer transition-all"
           />
           <div className="flex justify-between text-[10px] text-slate-500">
             <span>R$ 0</span>
@@ -155,8 +364,11 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
             max={20000}
             step={100}
             value={monthlyDeposit}
-            onChange={(e) => setMonthlyDeposit(Number(e.target.value))}
-            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer"
+            onChange={(e) => {
+              cancelAnimation();
+              setMonthlyDeposit(Number(e.target.value));
+            }}
+            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer transition-all"
           />
           <div className="flex justify-between text-[10px] text-slate-500">
             <span>R$ 100</span>
@@ -176,8 +388,11 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
             max={35}
             step={1}
             value={years}
-            onChange={(e) => setYears(Number(e.target.value))}
-            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer"
+            onChange={(e) => {
+              cancelAnimation();
+              setYears(Number(e.target.value));
+            }}
+            className="w-full accent-gold-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer transition-all"
           />
           <div className="flex justify-between text-[10px] text-slate-500">
             <span>1 ano</span>
@@ -197,8 +412,11 @@ export const CompoundInterestSimulator: React.FC<CompoundInterestSimulatorProps>
             max={20}
             step={0.25}
             value={annualRate}
-            onChange={(e) => setAnnualRate(Number(e.target.value))}
-            className="w-full accent-emerald-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer"
+            onChange={(e) => {
+              cancelAnimation();
+              setAnnualRate(Number(e.target.value));
+            }}
+            className="w-full accent-emerald-400 h-1.5 bg-dark-800 rounded-lg cursor-pointer transition-all"
           />
           <div className="flex justify-between text-[10px] text-slate-500">
             <span>6% (Poupança)</span>
