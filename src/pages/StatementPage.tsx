@@ -623,6 +623,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({
         isOpen={isImporterOpen}
         onClose={() => setIsImporterOpen(false)}
         accounts={accounts}
+        categories={DEFAULT_CATEGORIES}
         onImportComplete={async (imported) => {
           if (onImportTransactions) {
             await onImportTransactions(imported);

@@ -19,7 +19,7 @@ export interface BankStatementImporterModalProps {
   isOpen: boolean;
   onClose: () => void;
   accounts: FinancialAccount[];
-  categories: FinancialCategory[];
+  categories?: FinancialCategory[];
   onImportComplete: (importedTransactions: Omit<FinancialTransaction, 'id'>[]) => Promise<void>;
 }
 
