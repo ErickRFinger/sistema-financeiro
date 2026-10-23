@@ -24,6 +24,7 @@ import { OverdueLockScreen } from './components/OverdueLockScreen';
 import { 
   FinancialAccount, 
   FinancialTransaction, 
+  FinancialInvestment,
   TransactionType,
   CreditCard,
   CreditCardExpense,
@@ -37,7 +38,8 @@ import {
   getTransactions, 
   createTransaction, 
   updateTransactionStatus, 
-  deleteTransaction 
+  deleteTransaction,
+  createInvestment 
 } from './lib/supabase';
 import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from './lib/formatters';
@@ -619,6 +621,78 @@ export function App() {
     }
   };
 
+  // Investment & Bank Assets Handler (Porquinhos, Caixinhas, Cofrinhos)
+  const handleCreateInvestment = async (invData: {
+    name: string;
+    category: string;
+    amount: number;
+    bank?: string;
+    account_id?: string;
+  }) => {
+    if (!currentUser) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const userKey = `aura_user_${currentUser.id}`;
+
+    const newInv: FinancialInvestment = {
+      id: `inv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: invData.name,
+      category: invData.category || 'Renda Fixa & Reserva',
+      account_id: invData.account_id || accounts[0]?.id || 'acc_btg',
+      initial_amount: invData.amount,
+      current_amount: invData.amount,
+      last_updated: today,
+      created_at: new Date().toISOString(),
+    };
+
+    // Save investment for multi-tenant isolation
+    const savedInvestments = localStorage.getItem(`${userKey}_investments`);
+    const currentList: FinancialInvestment[] = savedInvestments ? JSON.parse(savedInvestments) : [];
+    const updatedList = [newInv, ...currentList];
+    localStorage.setItem(`${userKey}_investments`, JSON.stringify(updatedList));
+
+    if (isAdmin) {
+      await createInvestment({
+        name: invData.name,
+        category: invData.category || 'Renda Fixa & Reserva',
+        account_id: newInv.account_id,
+        initial_amount: invData.amount,
+        current_amount: invData.amount,
+        last_updated: today,
+      });
+    }
+
+    // Match or create account so consolidated balance reflects this porquinho/reserva!
+    const bankQuery = (invData.bank || '').toLowerCase();
+    let targetAcc = accounts.find(a => 
+      a.name.toLowerCase().includes(bankQuery) ||
+      (bankQuery && bankQuery.includes(a.name.toLowerCase()))
+    );
+
+    if (targetAcc) {
+      const updatedAccs = accounts.map(a => a.id === targetAcc.id ? { ...a, balance: a.balance + invData.amount } : a);
+      setAccounts(updatedAccs);
+      localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
+    } else {
+      const updatedAccs = accounts.map((a, idx) => idx === 0 ? { ...a, balance: a.balance + invData.amount } : a);
+      setAccounts(updatedAccs);
+      localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
+    }
+
+    // Record an aporte transaction in the statement
+    await handleCreateTransaction({
+      title: `Aporte / Reserva: ${invData.name}`,
+      amount: invData.amount,
+      type: 'income',
+      account_id: targetAcc?.id || accounts[0]?.id || 'acc_btg',
+      category: 'Vendas & Serviços Prestados',
+      transaction_date: today,
+      status: 'paid',
+      payment_method: 'PIX',
+      notes: `Identificado automaticamente por IA através do print bancário (${invData.bank || 'Banco'}).`,
+    });
+  };
+
   // System Invoices Handlers
   const handlePaySystemInvoice = (invoice: SystemSubscriptionInvoice) => {
     setPayingInvoice(invoice);
@@ -1084,7 +1158,7 @@ export function App() {
         onSignOut={handleSignOut}
       />
 
-      {/* Conversational AI Financial Assistant (Full Control) */}
+      {/* Conversational AI Financial Assistant (Full Control & Bank Prints) */}
       <AIAssistantChat
         accounts={accounts}
         transactions={transactions}
@@ -1092,6 +1166,7 @@ export function App() {
         onDeleteTransaction={handleDeleteTransaction}
         onUpdateTransactionStatus={handleToggleStatus}
         onResetAllData={handleClearData}
+        onCreateInvestment={handleCreateInvestment}
         onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
         onOpenMercadoPago={() => {

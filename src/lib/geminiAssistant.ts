@@ -6,10 +6,19 @@ export interface AssistantMessage {
   sender: 'user' | 'assistant';
   text: string;
   timestamp: string;
+  imageUrl?: string;
   actionTaken?: {
-    type: 'transaction_created' | 'transaction_deleted' | 'transaction_updated' | 'data_reset' | 'undo_executed' | 'screen_opened';
+    type: 'transaction_created' | 'transaction_deleted' | 'transaction_updated' | 'data_reset' | 'undo_executed' | 'screen_opened' | 'investment_created' | 'bank_print_processed';
     transaction?: any;
     previousState?: any;
+    investment?: any;
+    bankPrintData?: {
+      title: string;
+      amount: number;
+      bankName: string;
+      type: string;
+      yieldInfo?: string;
+    };
   };
 }
 
@@ -24,6 +33,8 @@ export interface AssistantActionPayload {
     | 'query_balance' 
     | 'query_expenses' 
     | 'cfo_advice' 
+    | 'create_investment'
+    | 'bank_print_processed'
     | 'general_chat';
   transactionData?: {
     type: TransactionType;
@@ -43,6 +54,20 @@ export interface AssistantActionPayload {
     new_account_id?: string;
   };
   targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard' | 'cards' | 'shopping_lists' | 'subscription_invoices';
+  investmentData?: {
+    name: string;
+    category: string;
+    amount: number;
+    bank: string;
+    account_id?: string;
+  };
+  bankPrintData?: {
+    title: string;
+    amount: number;
+    bankName: string;
+    type: string;
+    yieldInfo?: string;
+  };
   replyText: string;
 }
 
@@ -215,7 +240,50 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 3. EXCLUIR / CANCELAR LANÇAMENTO
+  // 3. PORQUINHO / CAIXINHA / RESERVA BANCÁRIA
+  // ==========================================
+  if (
+    lower.includes('porco') || 
+    lower.includes('porquinho') || 
+    lower.includes('cofrinho') || 
+    lower.includes('caixinha') ||
+    lower.includes('guardado')
+  ) {
+    const amountMatch = input.match(/(?:r\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:[,\.]\d{2})?|\d+)/i);
+    if (amountMatch) {
+      const rawNum = amountMatch[1];
+      let val = 0;
+      if (rawNum.includes(',') && rawNum.includes('.')) {
+        val = parseFloat(rawNum.replace(/\./g, '').replace(',', '.'));
+      } else if (rawNum.includes(',')) {
+        val = parseFloat(rawNum.replace(',', '.'));
+      } else {
+        val = parseFloat(rawNum);
+      }
+      if (val > 0) {
+        let bankName = 'Nubank';
+        if (lower.includes('inter')) bankName = 'Banco Inter';
+        else if (lower.includes('picpay')) bankName = 'PicPay';
+        else if (lower.includes('btg')) bankName = 'BTG Pactual';
+        else if (lower.includes('itau') || lower.includes('itaú')) bankName = 'Itaú';
+        else if (lower.includes('mercado')) bankName = 'Mercado Pago';
+
+        return {
+          intent: 'create_investment',
+          replyText: `🐷 Identifiquei seu Porquinho/Caixinha de ${formatCurrency(val)} no ${bankName}! Lançando no seu patrimônio consolidado e na carteira de investimentos...`,
+          investmentData: {
+            name: `Porquinho / Caixinha - ${bankName}`,
+            category: 'Renda Fixa & Reserva',
+            amount: val,
+            bank: bankName,
+          },
+        };
+      }
+    }
+  }
+
+  // ==========================================
+  // 4. EXCLUIR / CANCELAR LANÇAMENTO
   // ==========================================
   if (
     lower.includes('exclui') || 
