@@ -36,6 +36,7 @@ import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { PWAInstallBanner } from '../components/PWAInstallBanner';
 import { CategoryBudgetWidget } from '../components/CategoryBudgetWidget';
 import { FinancialHealthScore } from '../components/FinancialHealthScore';
+import { MonthlyComparisonWidget } from '../components/MonthlyComparisonWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -575,6 +576,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         income={monthIncome}
         expenses={monthExpense}
         transactionsCount={currentMonthTransactions.length}
+        isPrivate={isPrivate}
+      />
+
+      {/* Monthly Comparison vs Previous Month */}
+      <MonthlyComparisonWidget
+        transactions={transactions}
         isPrivate={isPrivate}
       />
 

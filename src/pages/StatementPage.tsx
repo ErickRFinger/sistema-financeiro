@@ -35,6 +35,44 @@ interface StatementPageProps {
   onDeleteTransaction: (tx: FinancialTransaction) => Promise<void>;
 }
 
+const formatDateToISO = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const getPresetDates = () => {
+  const now = new Date();
+  const todayStr = formatDateToISO(now);
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(now.getDate() - 7);
+  const sevenDaysAgoStr = formatDateToISO(sevenDaysAgo);
+
+  const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  return {
+    today: { start: todayStr, end: todayStr },
+    '7days': { start: sevenDaysAgoStr, end: todayStr },
+    this_month: { start: formatDateToISO(firstDayThisMonth), end: formatDateToISO(lastDayThisMonth) },
+    last_month: { start: formatDateToISO(firstDayPrevMonth), end: formatDateToISO(lastDayPrevMonth) },
+    all: { start: '', end: '' },
+  };
+};
+
+const QUICK_DATE_PRESETS = [
+  { id: 'today', label: 'Hoje' },
+  { id: '7days', label: 'Últimos 7 dias' },
+  { id: 'this_month', label: 'Este Mês' },
+  { id: 'last_month', label: 'Mês Anterior' },
+  { id: 'all', label: 'Todo o Período' },
+] as const;
+
 export const StatementPage: React.FC<StatementPageProps> = ({
   transactions,
   accounts,
@@ -45,14 +83,25 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 }) => {
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
-  const [periodPreset, setPeriodPreset] = useState<'this_month' | 'last_month' | '7days' | 'today' | 'this_year' | 'all' | 'custom'>('this_month');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<string>(() => getPresetDates().this_month.start);
+  const [endDate, setEndDate] = useState<string>(() => getPresetDates().this_month.end);
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | TransactionStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>('all');
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+
+  const handlePresetClick = (presetId: (typeof QUICK_DATE_PRESETS)[number]['id']) => {
+    const presets = getPresetDates();
+    const selected = presets[presetId];
+    setStartDate(selected.start);
+    setEndDate(selected.end);
+  };
+
+  const isPresetActive = (presetId: (typeof QUICK_DATE_PRESETS)[number]['id']) => {
+    const presets = getPresetDates();
+    const target = presets[presetId];
+    return startDate === target.start && endDate === target.end;
+  };
 
   const accountMap = useMemo(() => {
     return new Map(accounts.map(a => [a.id, a]));
@@ -60,9 +109,6 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
   // Date boundary calculation
   const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-
     return transactions.filter(t => {
       // 1. Search term match
       if (searchTerm) {
@@ -85,47 +131,16 @@ export const StatementPage: React.FC<StatementPageProps> = ({
       // 5. Account filter
       if (accountFilter !== 'all' && t.account_id !== accountFilter) return false;
 
-      // 6. Period filter
-      const txDate = t.transaction_date;
-
-      if (periodPreset === 'today') {
-        return txDate === todayStr;
-      }
-
-      if (periodPreset === '7days') {
-        const d = new Date();
-        d.setDate(d.getDate() - 7);
-        const weekAgo = d.toISOString().split('T')[0];
-        return txDate >= weekAgo && txDate <= todayStr;
-      }
-
-      if (periodPreset === 'this_month') {
-        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        return txDate.startsWith(monthPrefix);
-      }
-
-      if (periodPreset === 'last_month') {
-        const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-        const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-        const monthPrefix = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-        return txDate.startsWith(monthPrefix);
-      }
-
-      if (periodPreset === 'this_year') {
-        return txDate.startsWith(`${now.getFullYear()}-`);
-      }
-
-      if (periodPreset === 'custom') {
-        if (startDate && txDate < startDate) return false;
-        if (endDate && txDate > endDate) return false;
-      }
+      // 6. Period filter via startDate and endDate
+      const txDate = t.transaction_date ? t.transaction_date.split('T')[0] : '';
+      if (startDate && txDate < startDate) return false;
+      if (endDate && txDate > endDate) return false;
 
       return true;
     });
   }, [
     transactions, 
     searchTerm, 
-    periodPreset, 
     startDate, 
     endDate, 
     typeFilter, 
@@ -151,12 +166,12 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
   // Export PDF
   const handleExportPDF = () => {
-    let periodLabel = 'Todos os Lançamentos';
-    if (periodPreset === 'this_month') periodLabel = 'Mês Atual';
-    if (periodPreset === 'last_month') periodLabel = 'Mês Anterior';
-    if (periodPreset === '7days') periodLabel = 'Últimos 7 Dias';
-    if (periodPreset === 'today') periodLabel = 'Hoje';
-    if (periodPreset === 'custom') periodLabel = `${startDate || 'Início'} até ${endDate || 'Hoje'}`;
+    let periodLabel = 'Todo o Período';
+    if (isPresetActive('this_month')) periodLabel = 'Este Mês';
+    else if (isPresetActive('last_month')) periodLabel = 'Mês Anterior';
+    else if (isPresetActive('7days')) periodLabel = 'Últimos 7 Dias';
+    else if (isPresetActive('today')) periodLabel = 'Hoje';
+    else if (startDate || endDate) periodLabel = `${formatDate(startDate) || 'Início'} até ${formatDate(endDate) || 'Hoje'}`;
 
     generateFinancialStatementPDF({
       transactions: filteredTransactions,
@@ -169,10 +184,17 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
   // Export Excel
   const handleExportExcel = () => {
+    let periodSlug = 'todo_o_periodo';
+    if (isPresetActive('this_month')) periodSlug = 'este_mes';
+    else if (isPresetActive('last_month')) periodSlug = 'mes_anterior';
+    else if (isPresetActive('7days')) periodSlug = '7dias';
+    else if (isPresetActive('today')) periodSlug = 'hoje';
+    else if (startDate || endDate) periodSlug = `${startDate || 'inicio'}_${endDate || 'fim'}`;
+
     exportFinancialStatementToExcel({
       transactions: filteredTransactions,
       accounts,
-      fileName: `Extrato_${periodPreset}_${new Date().toISOString().split('T')[0]}`
+      fileName: `Extrato_${periodSlug}_${new Date().toISOString().split('T')[0]}`
     });
   };
 
@@ -193,7 +215,7 @@ export const StatementPage: React.FC<StatementPageProps> = ({
         </div>
 
         {/* Export Buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportPDF}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-dark-950 border border-dark-800 hover:border-gold-400/50 text-slate-200 hover:text-gold-400 font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95"
@@ -265,71 +287,81 @@ export const StatementPage: React.FC<StatementPageProps> = ({
 
       {/* Filter Controls Bar */}
       <div className="p-4 sm:p-5 rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card space-y-4">
-        {/* Search input + Period pills */}
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          {/* Search bar */}
-          <div className="relative flex-1">
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Buscar por descrição, fornecedor, CNPJ ou categoria..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-gold-400 transition-all"
-            />
-          </div>
-
-          {/* Quick Period Presets */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {[
-              { id: 'today', label: 'Hoje' },
-              { id: '7days', label: '7 Dias' },
-              { id: 'this_month', label: 'Este Mês' },
-              { id: 'last_month', label: 'Mês Passado' },
-              { id: 'this_year', label: 'Ano' },
-              { id: 'all', label: 'Todos' },
-              { id: 'custom', label: 'Personalizado' },
-            ].map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => setPeriodPreset(preset.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                  periodPreset === preset.id
-                    ? 'bg-gold-400 text-dark-950 shadow-gold-glow'
-                    : 'bg-dark-950 text-slate-400 border border-dark-800 hover:text-white'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
+        {/* Search bar */}
+        <div className="relative">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Buscar por descrição, fornecedor, CNPJ ou categoria..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-dark-950 border border-dark-800 rounded-2xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-gold-400 transition-all"
+          />
         </div>
 
-        {/* Custom date range inputs (visible if 'custom' is selected) */}
-        {periodPreset === 'custom' && (
-          <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl bg-dark-950 border border-dark-800">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+        {/* Date Filter: Quick Presets Horizontal Bar + Manual Date Inputs */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-dark-950 border border-dark-800 space-y-3">
+          {/* Quick Filter Horizontal Pills Bar (logo acima dos inputs) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
               <Calendar size={14} className="text-gold-400" />
-              <span>De:</span>
+              <span>Período Rápido:</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              {QUICK_DATE_PRESETS.map((preset) => {
+                const active = isPresetActive(preset.id);
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handlePresetClick(preset.id)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
+                      active
+                        ? 'border border-gold-400 bg-gold-400/20 text-gold-300 shadow-gold-glow'
+                        : 'border border-dark-800 bg-dark-900/90 text-slate-400 hover:text-white hover:border-dark-700 hover:bg-dark-850'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Manual Date Inputs (logo abaixo) */}
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-dark-850/80 text-xs">
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="font-semibold text-slate-300">Data Inicial:</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-2.5 py-1.5 bg-dark-900 border border-dark-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-gold-400"
+                className="px-3 py-1.5 bg-dark-900 border border-dark-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-gold-400 transition-all"
               />
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span>Até:</span>
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="font-semibold text-slate-300">Data Final:</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-2.5 py-1.5 bg-dark-900 border border-dark-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-gold-400"
+                className="px-3 py-1.5 bg-dark-900 border border-dark-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-gold-400 transition-all"
               />
             </div>
+
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => handlePresetClick('all')}
+                className="text-[11px] text-slate-500 hover:text-gold-400 transition-colors ml-auto sm:ml-0"
+              >
+                Limpar datas
+              </button>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Dropdown Filters (Type, Status, Category, Account) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-dark-850">

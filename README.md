@@ -19,6 +19,7 @@ O **Aura Finance PRO** soluciona o controle financeiro de ponta a ponta para pro
 - **Investimentos & Caixinhas Digitais:**
   - Leitura de prints de telas de bancos digitais (NuBank Caixinhas/Porquinho, PicPay Cofrinho, Inter Poupança).
   - Projeção e simulador de metas de rentabilidade com base na Taxa Selic a 13,75% a.a.
+  - **Simulador de Juros Compostos com Presets Animados:** Cenários rápidos ("Iniciante", "Construtor de Renda", "Liberdade Financeira") com transição fluida dos sliders e curva de patrimônio em tempo real via `requestAnimationFrame`.
 - **Central Oficial de Tutoriais & Vídeo com Voz Neural:**
   - 10 módulos de tutoriais detalhados, FAQ, comandos prontos para a IA e guia de instalação PWA.
   - Player em Canvas com locução de voz neural de estúdio e versão HTML standalone (`public/demo-video.html`).
@@ -187,3 +188,14 @@ VITE_GEMINI_API_KEY=
 * **v1.6.0 (23/10/2026):**
   * **Score de Saúde Financeira (`FinancialHealthScore`):** Diagnóstico executivo (0 a 1000 pontos) com régua de 4 níveis (Excelente, Bom, Atenção, Crítico) baseada em taxa de poupança e regularidade de lançamentos, com recomendação personalizada e suporte ao Modo Privacidade.
   * **Configuração Tri-Agent (Antigravity + Cline + Gemini):** Integração do Antigravity IDE com otimização de RAM, Tailwind CSS IntelliSense, Prettier auto-format e execução ágil via tarefas estruturadas.
+* **v1.7.0 (23/10/2026):**
+  * **Atalhos Rápidos de Simulação (Presets) no Simulador de Juros Compostos:** Inclusão de 3 cards interativos no topo dos sliders (`Iniciante`, `Construtor de Renda`, `Liberdade Financeira`) para carregamento instantâneo de perfis patrimoniais consagrados.
+  * **Animação Suave com Interpolação Matemática:** Mecanismo de transição com easing quadrático via `requestAnimationFrame` que anima simultaneamente os sliders, os números formatados, os indicadores de KPI e o gráfico Recharts sem travamentos.
+  * **Ajuste Fino de Resolução:** Atualização do `step` do slider de aporte inicial para permitir valores menores a partir de R$ 100 de forma precisa.
+* **v1.8.0 (23/10/2026):**
+  * **Filtro de Período Rápido em Pílulas Black & Gold no Extrato (`StatementPage`):** Barra horizontal de botões arredondados posicionada logo acima dos campos de data inicial e final (`Hoje`, `Últimos 7 dias`, `Este Mês`, `Mês Anterior`, `Todo o Período`).
+  * **Sincronização Bidirecional e Destaque Visual:** Pílula ativa destacada em borda dourada (`border-gold-400`), fundo `bg-gold-400/20` e brilho `shadow-gold-glow`, mantendo compatibilidade total com os inputs manuais de data e exportação em PDF e Excel.
+* **v1.9.0 (23/10/2026):**
+  * **Widget de Comparativo Mensal ("Mês Atual vs Mês Anterior") no Dashboard (`MonthlyComparisonWidget`):** Comparação executiva em tempo real entre receitas e despesas do mês corrente contra o mês anterior, com badges dinâmicos de variação percentual (verde com `TrendingDown` para economia e vermelho com `TrendingUp` para aumento de despesas), e suporte nativo ao Modo Privacidade.
+
+
