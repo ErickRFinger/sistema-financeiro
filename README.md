@@ -206,6 +206,12 @@ VITE_GEMINI_API_KEY=
 * **v2.1.0 (23/10/2026):**
   * **Radar de Assinaturas & Recorrências (`SubscriptionHubWidget`):** Controle visual de serviços recorrentes (Netflix, Spotify, ChatGPT, SmartFit, Internet, etc.) com cálculo dinâmico de custo mensal e impacto anual acumulado, dias restantes para o próximo débito e cadastro de novas assinaturas persistido no LocalStorage.
   * **Atalhos de Teclado Globais no Modal de Transação (`TransactionModal`):** Suporte nativo a `Cmd + Enter` / `Ctrl + Enter` para confirmar lançamento, `Cmd + Shift + Enter` para o modo contínuo "Salvar e Novo", e `Escape` para fechar, com legenda de rodapé.
+* **v2.2.0 (23/10/2026):**
+  * **Central de Notificações & Alertas Rápidos na Navbar (`Navbar.tsx`):** Botão com ícone de sino (`Bell` da `lucide-react`) posicionado ao lado do botão de Privacidade (olho), com badge animado (`animate-pulse`) exibindo o contador de avisos pendentes.
+  * **Dropdown Flutuante Executivo Black Obsidian & Gold:** Menu flutuante suspenso com backdrop blur, borda dourada (`border-gold-400/30`) e sombra profunda contendo:
+    * *Alerta de Contas a Vencer:* Detecção de contas com vencimento hoje ou nos próximos 3 dias, com clique direto para visualização filtrada no Extrato.
+    * *Alerta de Fatura do Sistema:* Lembrete da mensalidade de R$ 9,90 com vencimento no dia 10, com acesso direto ao checkout PIX do Mercado Pago.
+  * **Comportamento Click-Outside & Auto-Dismiss:** Listener inteligente via `useRef` para fechar o dropdown ao clicar fora ou no botão novamente sem vazamento de memória.
 
 
 
