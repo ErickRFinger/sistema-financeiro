@@ -19,13 +19,15 @@ import { formatCurrency, formatDate } from '../lib/formatters';
 import { getInvestments, deleteInvestment } from '../lib/supabase';
 import { InvestmentModal } from '../components/InvestmentModal';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
+import { CompoundInterestSimulator } from '../components/CompoundInterestSimulator';
 
 interface InvestmentsPageProps {
   accounts: FinancialAccount[];
   currentUser?: any;
+  isPrivate?: boolean;
 }
 
-export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, currentUser }) => {
+export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, currentUser, isPrivate = false }) => {
   const [investments, setInvestments] = useState<FinancialInvestment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -300,6 +302,9 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, curr
           </div>
         </div>
       </div>
+
+      {/* Compound Interest & Financial Independence Simulator */}
+      <CompoundInterestSimulator isPrivate={isPrivate} />
 
       {/* Investments List */}
       <div className="rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card p-5 sm:p-6">

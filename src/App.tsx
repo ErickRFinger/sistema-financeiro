@@ -1102,6 +1102,7 @@ export function App() {
             <InvestmentsPage
               accounts={accounts}
               currentUser={currentUser}
+              isPrivate={isPrivate}
             />
           )}
 
