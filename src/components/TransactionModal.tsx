@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   ArrowDownCircle, 
@@ -113,7 +113,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   };
 
-  const executeSave = async (createAnother: boolean = false) => {
+  const executeSave = useCallback(async (createAnother: boolean = false) => {
     if (isSubmitting) return;
     setErrorMsg('');
 
@@ -196,7 +196,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [
+    isSubmitting,
+    amountRaw,
+    title,
+    selectedFile,
+    installments,
+    type,
+    transactionDate,
+    accountId,
+    category,
+    status,
+    paymentMethod,
+    onSubmit,
+    onClose,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
