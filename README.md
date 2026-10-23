@@ -308,6 +308,25 @@ VITE_GEMINI_API_KEY=
     * Comandos como *"auditar duplicidades"* ou *"tem algum lançamento duplicado?"* varrem o extrato em busca de despesas idênticas com o mesmo valor e descrição no intervalo de 96h, sugerindo exclusão com 1 clique.
   * **Simulador & Planejador da Regra 50/30/20:**
     * Ao perguntar *"regra 50 30 20"* ou *"plano de economia"*, a IA calcula com base no faturamento real do cliente e entrega a divisão ideal em Reais (R$) para Gastos Essenciais (50%), Estilo de Vida (30%) e Investimentos (20%), comparando com o que o cliente realmente gastou até o momento.
+* **v3.2.0 (23/10/2026) — Suíte Suprema de Automações & Inteligência Preditiva:**
+  * **Termômetro de Autonomia & Burn Rate do Caixa (Runway Predictor):**
+    * Comandos como *"quanto tempo dura meu saldo?"*, *"runway"*, *"burn rate"* ou *"previsão de quebra"*.
+    * A IA calcula o consumo diário médio de capital e projeta com precisão matemática em dias e meses quanto tempo a empresa/cliente sobrevive sem novas entradas, classificando o status em Excelente (🟢), Atenção (🟡) ou Crítico (🔴) com plano de ação imediato.
+  * **Auditoria de Custos Recorrentes & Assinaturas Ocultas ("Vampiros Financeiros"):**
+    * Reconhecimento automático de despesas fixas (Netflix, Spotify, ChatGPT, OpenAI, Aluguel, Internet, Academia, Softwares, etc.) via *"quais minhas assinaturas?"* ou *"detectar gastos fixos"*.
+    * Calcula o dreno mensal consolidado e anualizado (`R$ x 12`), recomendando cortes estratégicos para economizar milhares de reais por ano.
+  * **Plano de Quitação Acelerada de Dívidas (Método Bola de Neve):**
+    * Comandos como *"como quitar minhas contas?"* ou *"método bola de neve"*.
+    * Varre as pendências financeiras, organiza da menor para a maior conta (otimização de vitórias rápidas) e compara o total pendente com o saldo bancário consolidado, indicando se é possível quitar tudo à vista.
+  * **Simulador de Juros Compostos & Independência Financeira em Tempo Real:**
+    * Ao pedir *"simular investimento de 500 por mês"* ou *"quanto rende com juros compostos?"*, a IA projeta matematicamente os aportes a 1 ano (12m), 5 anos (60m) e 10 anos (120m) à taxa Selic/CDI (~10,75% a.a.), detalhando o valor tirado do bolso versus os lucros passivos gerados exclusivamente por juros.
+  * **Gerador Instantâneo de Relatório Executivo para WhatsApp:**
+    * Comandos como *"gerar resumo pro whatsapp"* ou *"fechamento do caixa"*.
+    * Produz uma mensagem executiva perfeitamente formatada com emojis, saldos bancários, faturamento, despesas, superávit/déficit e saúde do fluxo pronta para copiar e colar para sócios ou gerência em 1 toque.
+  * **Consultas Temporais de Precisão Diária ("Quanto Gastei Hoje?"):**
+    * Filtra de forma atômica o dia atual, listando transações realizadas, despesas do dia e receitas geradas em tempo real.
+  * **Paridade Total no Widget Flutuante (`AIAssistantChat.tsx`):**
+    * O assistente flutuante presente em todas as telas agora conta com botões interativos de Action Chips, leitor de voz neural Web Speech (TTS) e cartões visuais para transferências bancárias, compras parceladas e baixas em lote.
 
 
 

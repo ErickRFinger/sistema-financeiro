@@ -19,7 +19,11 @@ import {
   Image as ImageIcon,
   Coins,
   Loader2,
-  Maximize2
+  Maximize2,
+  Volume2,
+  VolumeX,
+  ArrowLeftRight,
+  TrendingDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -72,6 +76,27 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [undoStack, setUndoStack] = useState<any[]>([]);
   const [selectedImage, setSelectedImage] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+
+  const speakMessage = (id: string, text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (speakingMsgId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const clean = text
+      .replace(/[*_#`~•]/g, ' ')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1.05;
+    utterance.onend = () => setSpeakingMsgId(null);
+    utterance.onerror = () => setSpeakingMsgId(null);
+    setSpeakingMsgId(id);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const [messages, setMessages] = useState<AssistantMessage[]>([
     {
@@ -830,11 +855,71 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
                         <span>Ação desfeita com sucesso!</span>
                       </div>
                     )}
+
+                    {/* Action pill: Transfer Executed */}
+                    {msg.actionTaken && msg.actionTaken.type === 'transfer_executed' && msg.actionTaken.transferData && (
+                      <div className="mt-2 pt-2 border-t border-purple-500/30 flex items-center justify-between text-[11px] text-purple-300 font-bold">
+                        <div className="flex items-center gap-1.5">
+                          <ArrowLeftRight size={13} className="text-purple-400" />
+                          <span>{msg.actionTaken.transferData.sourceAccountName} ➔ {msg.actionTaken.transferData.targetAccountName}</span>
+                        </div>
+                        <span className="font-mono text-purple-400">{formatCurrency(msg.actionTaken.transferData.amount)}</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Multiple Transactions Created */}
+                    {msg.actionTaken && msg.actionTaken.type === 'multiple_transactions_created' && (
+                      <div className="mt-2 pt-2 border-t border-emerald-500/30 flex items-center gap-1.5 text-[11px] text-emerald-300 font-bold">
+                        <TrendingDown size={13} className="text-emerald-400" />
+                        <span>{msg.actionTaken.count} lançamentos criados com sucesso!</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Bulk Paid */}
+                    {msg.actionTaken && msg.actionTaken.type === 'bulk_paid' && (
+                      <div className="mt-2 pt-2 border-t border-emerald-500/30 flex items-center gap-1.5 text-[11px] text-emerald-300 font-bold">
+                        <CheckCircle2 size={13} className="text-emerald-400" />
+                        <span>{msg.actionTaken.count} pendências baixadas como PAGAS!</span>
+                      </div>
+                    )}
+
+                    {/* Interactive Action Chips */}
+                    {msg.suggestedChips && msg.suggestedChips.length > 0 && !isUser && (
+                      <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-dark-800/80">
+                        {msg.suggestedChips.map((chip, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleSendMessage(chip)}
+                            className="px-2 py-1 rounded-lg bg-gold-400/10 hover:bg-gold-400/20 border border-gold-400/30 text-[11px] font-bold text-gold-400 transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow-xs"
+                          >
+                            <Sparkles size={10} className="text-gold-400" />
+                            <span>{chip}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <span className="text-[10px] text-slate-500 mt-1 px-1">
-                    {msg.timestamp}
-                  </span>
+                  <div className="flex items-center gap-2 mt-1 px-1">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {msg.timestamp}
+                    </span>
+                    {!isUser && (
+                      <button
+                        type="button"
+                        onClick={() => speakMessage(msg.id, msg.text)}
+                        className={`p-1 rounded-md transition-colors cursor-pointer ${
+                          speakingMsgId === msg.id 
+                            ? 'text-gold-400 bg-gold-400/20 animate-pulse' 
+                            : 'text-slate-500 hover:text-gold-400 hover:bg-dark-900'
+                        }`}
+                        title={speakingMsgId === msg.id ? 'Parar leitura de voz' : 'Ouvir resposta com voz neural'}
+                      >
+                        {speakingMsgId === msg.id ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

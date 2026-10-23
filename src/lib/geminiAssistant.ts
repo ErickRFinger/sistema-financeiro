@@ -895,6 +895,192 @@ function processWithLocalNLP(
   }
 
   // ==========================================
+  // 7.8 RUNWAY & BURN RATE DO CAIXA (NOVO)
+  // Ex: "quanto tempo dura meu saldo?", "runway", "burn rate", "previsao de quebra", "autonomia do caixa"
+  // ==========================================
+  if (/runway|burn\s*rate|tempo\s+dura\s+(meu\s+)?(saldo|dinheiro|caixa)|previs[aã]o\s+(de\s+)?quebra|sobreviv[eê]ncia\s+do\s+caixa|autonomia\s+(do\s+)?caixa|quantos\s+dias\s+(dura|aguenta)/i.test(lower)) {
+    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const dailyBurn = totalExpenses > 0 ? totalExpenses / 30 : 0;
+    const runwayDays = dailyBurn > 0 ? Math.round(totalBalance / dailyBurn) : (totalBalance > 0 ? 999 : 0);
+    const runwayMonths = (runwayDays / 30).toFixed(1);
+
+    if (runwayDays >= 90) {
+      return {
+        intent: 'cfo_advice',
+        replyText: `🛡️ **Autonomia & Runway de Caixa (Score: Excelente 🟢):**\n\n• **Saldo Consolidado:** ${formatCurrency(totalBalance)}\n• **Taxa Média de Queima (Burn Rate):** ~${formatCurrency(dailyBurn)}/dia (${formatCurrency(totalExpenses)}/mês)\n• **Autonomia Estimada:** **${runwayDays} dias** (~${runwayMonths} meses) sem novas receitas!\n\n💡 *Parecer do CFO:* Sua operação conta com blindagem financeira sólida. Você possui fôlego de mais de um trimestre para investir em expansão ou aportar em renda fixa (CDI/Selic).`,
+        suggestedChips: ['🎯 Regra 50/30/20', '🪙 Investimentos', '📊 Saúde do Caixa'],
+      };
+    } else if (runwayDays >= 30) {
+      return {
+        intent: 'cfo_advice',
+        replyText: `⚡ **Autonomia & Runway de Caixa (Score: Atenção Moderada 🟡):**\n\n• **Saldo Consolidado:** ${formatCurrency(totalBalance)}\n• **Taxa Média de Queima:** ~${formatCurrency(dailyBurn)}/dia\n• **Autonomia Estimada:** **${runwayDays} dias** (~${runwayMonths} meses).\n\n💡 *Parecer do CFO:* Seu caixa sustenta cerca de 1 a 2 meses no ritmo atual. Recomendo focar em acelerar cobranças e antecipar recebíveis para ampliar a margem de segurança.`,
+        suggestedChips: ['🔍 Qual meu maior gasto?', '🎯 Regra 50/30/20', '📑 Ver Extrato'],
+      };
+    } else {
+      return {
+        intent: 'cfo_advice',
+        replyText: `🚨 **Alerta de Liquidez & Runway Curto (Score: Crítico 🔴):**\n\n• **Saldo Consolidado:** ${formatCurrency(totalBalance)}\n• **Taxa Média de Queima:** ~${formatCurrency(dailyBurn)}/dia\n• **Autonomia Restante:** apenas **${runwayDays} dias**!\n\n⚠️ *Plano Emergencial:* Contenha gastos variáveis hoje mesmo e ative cobranças ativas com urgência para evitar necessidade de crédito bancário.`,
+        suggestedChips: ['📉 Cortar Custos', '📑 Extrato Completo', '📊 CFO Virtual'],
+      };
+    }
+  }
+
+  // ==========================================
+  // 7.9 DETECÇÃO DE ASSINATURAS & VAMPIROS FINANCEIROS (NOVO)
+  // Ex: "detectar assinaturas", "quais minhas assinaturas", "gastos fixos", "vampiros financeiros"
+  // ==========================================
+  if (/assinatura(s)?|gastos\s+fixos|custos\s+fixos|vampiro(s)?\s+financeiro(s)?|recorr[eê]ncia(s)?|servi[cç]os\s+recorrentes/i.test(lower)) {
+    const subRegex = /netflix|spotify|openai|chatgpt|youtube|icloud|apple|amazon|prime|gym|academia|smart\s*fit|aluguel|internet|vivo|claro|tim|software|canva|adobe|github|vercel|hospedagem|seguro|saude|saúde|celular|condominio|condomínio|plano/i;
+    const recurringTxs = transactions.filter(t => t.type === 'expense' && (subRegex.test(t.title) || t.category === 'Aluguel & Contas Fixas'));
+
+    const uniqueMap = new Map<string, number>();
+    recurringTxs.forEach(t => {
+      const cleanTitle = t.title.trim();
+      if (!uniqueMap.has(cleanTitle) || uniqueMap.get(cleanTitle)! < t.amount) {
+        uniqueMap.set(cleanTitle, t.amount);
+      }
+    });
+
+    if (uniqueMap.size > 0) {
+      const subList: string[] = [];
+      let totalMonthlySubs = 0;
+      uniqueMap.forEach((amt, name) => {
+        totalMonthlySubs += amt;
+        subList.push(`• **${name}:** ${formatCurrency(amt)}/mês (${formatCurrency(amt * 12)}/ano)`);
+      });
+
+      const totalAnnual = totalMonthlySubs * 12;
+      return {
+        intent: 'cfo_advice',
+        replyText: `🦇 **Auditoria de Custos Recorrentes & Assinaturas (${uniqueMap.size} identificadas):**\n\n${subList.slice(0, 5).join('\n')}\n\n• **Custo Mensal Consolidado:** **${formatCurrency(totalMonthlySubs)}/mês**\n• **Drenagem Anual do Caixa:** **${formatCurrency(totalAnnual)}/ano**\n\n💡 *Dica do CFO:* Cancelar ou renegociar planos não essenciais pode colocar mais de ${formatCurrency(totalAnnual * 0.3)} livres no seu bolso todo ano!`,
+        suggestedChips: ['🎯 Regra 50/30/20', '📑 Ver Extrato', '📊 CFO Virtual'],
+      };
+    } else {
+      return {
+        intent: 'cfo_advice',
+        replyText: `✅ **Controle de Assinaturas Impecável:** Não localizei débitos automáticos recorrentes ou assinaturas ocultas no seu extrato recente. Seus custos fixos estão enxutos!`,
+        suggestedChips: ['➕ Novo Lançamento', '📊 Saúde do Caixa', '📑 Ver Extrato'],
+      };
+    }
+  }
+
+  // ==========================================
+  // 7.10 PLANO DE QUITAÇÃO DE CONTAS / MÉTODO BOLA DE NEVE (NOVO)
+  // Ex: "como quitar minhas contas?", "quitar dividas", "metodo bola de neve", "ordem de quitacao"
+  // ==========================================
+  if (/como\s+quitar|quitar\s+d[ií]vidas|quitar\s+contas|m[eé]todo\s+bola\s+de\s+neve|ordem\s+de\s+quita[cç][aã]o|plano\s+de\s+quita[cç][aã]o|acelerar\s+quita[cç][aã]o/i.test(lower)) {
+    const pendings = transactions.filter(t => t.status === 'pending' && t.type === 'expense');
+    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+
+    if (pendings.length > 0) {
+      const sorted = [...pendings].sort((a, b) => a.amount - b.amount);
+      const totalPending = sorted.reduce((sum, t) => sum + t.amount, 0);
+
+      const itemsList = sorted.slice(0, 5).map((t, idx) => 
+        `${idx + 1}º **${t.title}**: ${formatCurrency(t.amount)} *(Venc: ${t.transaction_date})*`
+      ).join('\n');
+
+      const canPayAll = totalBalance >= totalPending;
+
+      return {
+        intent: 'cfo_advice',
+        replyText: `🏔️ **Plano Executivo de Quitação (Método Bola de Neve):**\n\nVocê possui **${pendings.length} conta(s) pendente(s)** totalizando **${formatCurrency(totalPending)}**.\n\n**Ordem Recomendada de Pagamento (Menor para Maior):**\n${itemsList}\n\n${canPayAll 
+          ? `🎉 **Excelente notícia:** Seu saldo consolidado (${formatCurrency(totalBalance)}) cobre 100% de todas as pendências hoje mesmo e ainda sobram **${formatCurrency(totalBalance - totalPending)}** de reserva!` 
+          : `💡 *Estratégia:* Liquide primeiro o item mais barato (${sorted[0].title} de ${formatCurrency(sorted[0].amount)}) para liberar fluxo e eliminar 1 compromisso imediatamente.`}\n\nPara liquidar tudo agora, basta dizer: *"dar baixa em tudo"*.`,
+        suggestedChips: ['✅ Dar baixa em tudo', '📑 Ver Extrato', '📊 Saúde do Caixa'],
+      };
+    } else {
+      return {
+        intent: 'cfo_advice',
+        replyText: `🎉 **Parabéns!** Você não possui nenhuma despesa ou conta pendente no sistema. Todas as suas obrigações financeiras estão 100% quitadas e em dia!`,
+        suggestedChips: ['➕ Novo Lançamento', '📊 Como tá meu caixa?', '🪙 Investimentos'],
+      };
+    }
+  }
+
+  // ==========================================
+  // 7.11 SIMULADOR DE JUROS COMPOSTOS & APORTES (NOVO)
+  // Ex: "simular investimento", "se eu investir 500 por mês", "juros compostos", "quanto rende 1000"
+  // ==========================================
+  if (/simular\s+investimento|se\s+eu\s+investir|juros\s+compostos|quanto\s+rende|proje[cç][aã]o\s+de\s+investimento/i.test(lower)) {
+    const matchNum = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+)/);
+    const aporte = matchNum ? parseFloat(matchNum[1].replace(/\./g, '').replace(',', '.')) : 500;
+    const monthlyRate = 0.0085; // ~10.75% a.a. CDI / Tesouro Selic
+
+    const calcCompound = (months: number, p: number) => {
+      const fv = p * (((1 + monthlyRate) ** months - 1) / monthlyRate);
+      const invested = p * months;
+      const profit = fv - invested;
+      return { fv, invested, profit };
+    };
+
+    const res1y = calcCompound(12, aporte);
+    const res5y = calcCompound(60, aporte);
+    const res10y = calcCompound(120, aporte);
+
+    return {
+      intent: 'cfo_advice',
+      replyText: `📈 **Simulação de Independência Financeira (Juros Compostos CDI / Selic ~10,75% a.a.):**\n\nAportando mensalmente **${formatCurrency(aporte)}**:\n\n• **Em 1 ano (12 meses):**\n  - Total Investido: ${formatCurrency(res1y.invested)}\n  - Montante Final: **${formatCurrency(res1y.fv)}** *(Lucro de juros: +${formatCurrency(res1y.profit)})*\n\n• **Em 5 anos (60 meses):**\n  - Total Investido: ${formatCurrency(res5y.invested)}\n  - Montante Final: **${formatCurrency(res5y.fv)}** *(Lucro de juros: +${formatCurrency(res5y.profit)})*\n\n• **Em 10 anos (120 meses):**\n  - Total Investido: ${formatCurrency(res10y.invested)}\n  - Montante Final: **${formatCurrency(res10y.fv)}** *(Lucro puro: +${formatCurrency(res10y.profit)} gerados automaticamente!)*\n\n💡 *Visão do CFO:* A partir do 5º ano, o poder dos juros compostos cria um salário passivo real. Mantenha a consistência!`,
+      suggestedChips: ['🎯 Regra 50/30/20', '🏦 Consultar Saldo', '📊 Como tá meu caixa?'],
+    };
+  }
+
+  // ==========================================
+  // 7.12 GERADOR DE RELATÓRIO EXECUTIVO PARA WHATSAPP (NOVO)
+  // Ex: "gerar resumo pro whatsapp", "relatório whatsapp", "fechamento do caixa", "resumo executivo"
+  // ==========================================
+  if (/gerar\s+(resumo|relat[oó]rio)\s+(pro|para|no)\s+whatsapp|relat[oó]rio\s+whatsapp|resumo\s+whatsapp|fechamento\s+(do\s+dia|do\s+caixa|executivo)|copiar\s+resumo/i.test(lower)) {
+    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const pendingCount = transactions.filter(t => t.status === 'pending').length;
+    const dateFormatted = new Date().toLocaleDateString('pt-BR');
+
+    const whatsappText = `📊 *FECHAMENTO EXECUTIVO - ${dateFormatted}*\n` +
+      `🏢 *Sistema:* Aura Finance PRO\n\n` +
+      `🏦 *Saldo Consolidado:* ${formatCurrency(totalBalance)}\n` +
+      `📈 *Entradas / Faturamento:* +${formatCurrency(totalIncome)}\n` +
+      `📉 *Despesas / Saídas:* -${formatCurrency(totalExpenses)}\n` +
+      `⚖️ *Resultado Líquido:* ${formatCurrency(netResult)} ${netResult >= 0 ? '(Superávit 🟢)' : '(Déficit 🔴)'}\n\n` +
+      `⏳ *Contas Pendentes:* ${pendingCount} registro(s)\n` +
+      `🛡️ *Saúde do Fluxo:* ${netResult >= 0 ? 'Excelente / Positiva 🟢' : 'Atenção aos custos variáveis 🔴'}\n\n` +
+      `_Gerado automaticamente pelo Copiloto de IA Aura Finance PRO_`;
+
+    return {
+      intent: 'cfo_advice',
+      replyText: `📱 **Relatório Executivo Pronto para WhatsApp:**\n*(Selecione e copie o texto abaixo para compartilhar com sócios ou clientes)*\n\n\`\`\`text\n${whatsappText}\n\`\`\`\n\n💡 Dica: Você também pode clicar no alto-falante 🔊 para ouvir o fechamento em voz alta!`,
+      suggestedChips: ['📑 Ver no Extrato', '📊 CFO Virtual', '✅ Baixar contas pendentes'],
+    };
+  }
+
+  // ==========================================
+  // 7.13 CONSULTA TEMPORAL HOJE / GASTOS DE HOJE (NOVO)
+  // Ex: "quanto gastei hoje?", "gastos de hoje", "entradas de hoje", "o que gastei hoje"
+  // ==========================================
+  if (/quanto\s+gastei\s+hoje|gastos\s+de\s+hoje|sa[ií]das\s+de\s+hoje|entradas\s+de\s+hoje|faturei\s+hoje|movimento\s+de\s+hoje/i.test(lower)) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayTxs = transactions.filter(t => t.transaction_date === todayStr);
+    const todayExpenses = todayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const todayIncome = todayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+
+    if (todayTxs.length > 0) {
+      const txLines = todayTxs.slice(0, 5).map(t => 
+        `• **${t.title}:** ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)} (${t.category})`
+      ).join('\n');
+
+      return {
+        intent: 'query_expenses',
+        replyText: `📅 **Movimentações Registradas Hoje (${new Date().toLocaleDateString('pt-BR')}):**\n\n${txLines}\n\n• **Total de Saídas Hoje:** ${formatCurrency(todayExpenses)}\n• **Total de Entradas Hoje:** ${formatCurrency(todayIncome)}\n• **Saldo do Dia:** ${formatCurrency(todayIncome - todayExpenses)}`,
+        suggestedChips: ['➕ Novo Lançamento', '📊 Como tá meu caixa?', '📑 Ver no Extrato'],
+      };
+    } else {
+      return {
+        intent: 'query_expenses',
+        replyText: `📅 **Hoje (${new Date().toLocaleDateString('pt-BR')}) ainda não há movimentações registradas!**\n\nSeu caixa do dia está zerado. Deseja realizar algum lançamento agora?`,
+        suggestedChips: ['➕ Lançar Despesa', '💰 Lançar Receita', '📊 Saúde do Caixa'],
+      };
+    }
+  }
+
+  // ==========================================
   // 8. CONSULTA DE SALDO E PATRIMÔNIO (apenas se NÃO for comando de zerar)
   // ==========================================
   const hasZeroWord = /zera|limpa|apaga|reset|coloca|muda|ajusta|definir/i.test(lower);
