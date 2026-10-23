@@ -41,7 +41,11 @@ import {
   createTransaction, 
   updateTransactionStatus, 
   deleteTransaction,
-  createInvestment 
+  createInvestment,
+  updateAccountBalance,
+  resetAllAccountBalances,
+  resetAllTransactions,
+  resetAllInvestments 
 } from './lib/supabase';
 import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from './lib/formatters';
@@ -833,15 +837,105 @@ export function App() {
     await loadData(currentUser);
   };
 
-  const handleClearData = async () => {
-    if (confirm('Deseja limpar seus dados e reiniciar zerado?')) {
+  // Reset all bank accounts balance to R$ 0,00
+  const handleResetBankBalances = async () => {
+    setLoading(true);
+    try {
+      if (isAdmin) {
+        await resetAllAccountBalances();
+      }
+      const zeroedAccounts = accounts.map(a => ({ ...a, balance: 0.00 }));
+      setAccounts(zeroedAccounts);
+      if (currentUser?.id) {
+        localStorage.setItem(`aura_user_${currentUser.id}_accounts`, JSON.stringify(zeroedAccounts));
+      }
+      localStorage.setItem('aura_accounts_cache', JSON.stringify(zeroedAccounts));
+    } catch (err) {
+      console.error('Erro ao zerar saldos bancários:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update specific account balance
+  const handleUpdateAccountBalance = async (accountId: string, newBalance: number) => {
+    try {
+      if (isAdmin) {
+        await updateAccountBalance(accountId, newBalance);
+      }
+      const updatedAccounts = accounts.map(a => a.id === accountId ? { ...a, balance: newBalance } : a);
+      setAccounts(updatedAccounts);
+      if (currentUser?.id) {
+        localStorage.setItem(`aura_user_${currentUser.id}_accounts`, JSON.stringify(updatedAccounts));
+      }
+      localStorage.setItem('aura_accounts_cache', JSON.stringify(updatedAccounts));
+    } catch (err) {
+      console.error('Erro ao atualizar saldo da conta:', err);
+    }
+  };
+
+  // Reset transactions (Extrato)
+  const handleResetTransactions = async () => {
+    setLoading(true);
+    try {
+      if (isAdmin) {
+        await resetAllTransactions();
+      }
+      setTransactions([]);
       if (currentUser?.id) {
         localStorage.removeItem(`aura_user_${currentUser.id}_transactions`);
-        localStorage.removeItem(`aura_user_${currentUser.id}_accounts`);
-        localStorage.removeItem(`aura_user_${currentUser.id}_cards`);
-        localStorage.removeItem(`aura_user_${currentUser.id}_card_expenses`);
-        localStorage.removeItem(`aura_user_${currentUser.id}_shopping_lists`);
-        await loadData(currentUser);
+      }
+    } catch (err) {
+      console.error('Erro ao zerar extrato:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset investments
+  const handleResetInvestments = async () => {
+    try {
+      if (isAdmin) {
+        await resetAllInvestments();
+      }
+      if (currentUser?.id) {
+        localStorage.removeItem(`aura_user_${currentUser.id}_investments`);
+      }
+    } catch (err) {
+      console.error('Erro ao zerar investimentos:', err);
+    }
+  };
+
+  const handleClearData = async (skipConfirm = false) => {
+    if (skipConfirm || confirm('Deseja limpar seus dados e reiniciar zerado?')) {
+      setLoading(true);
+      try {
+        if (isAdmin) {
+          await Promise.all([
+            resetAllAccountBalances(),
+            resetAllTransactions(),
+            resetAllInvestments(),
+          ]);
+        }
+        const zeroedAccounts = accounts.map(a => ({ ...a, balance: 0.00 }));
+        setAccounts(zeroedAccounts);
+        setTransactions([]);
+        setCardExpenses([]);
+
+        if (currentUser?.id) {
+          const userKey = `aura_user_${currentUser.id}`;
+          localStorage.removeItem(`${userKey}_transactions`);
+          localStorage.removeItem(`${userKey}_investments`);
+          localStorage.removeItem(`${userKey}_cards`);
+          localStorage.removeItem(`${userKey}_card_expenses`);
+          localStorage.removeItem(`${userKey}_shopping_lists`);
+          localStorage.setItem(`${userKey}_accounts`, JSON.stringify(zeroedAccounts));
+        }
+        localStorage.setItem('aura_accounts_cache', JSON.stringify(zeroedAccounts));
+      } catch (err) {
+        console.error('Erro ao limpar dados:', err);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -1217,6 +1311,10 @@ export function App() {
         onCreateTransaction={handleCreateTransaction}
         onDeleteTransaction={handleDeleteTransaction}
         onUpdateTransactionStatus={handleToggleStatus}
+        onResetBankBalances={handleResetBankBalances}
+        onUpdateAccountBalance={handleUpdateAccountBalance}
+        onResetTransactions={handleResetTransactions}
+        onResetInvestments={handleResetInvestments}
         onResetAllData={handleClearData}
         onCreateInvestment={handleCreateInvestment}
         onOpenScanner={() => setIsScannerModalOpen(true)}

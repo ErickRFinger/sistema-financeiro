@@ -147,6 +147,69 @@ export async function updateAccountBalance(accountId: string, newBalance: number
 }
 
 /**
+ * Reset all bank accounts balance to zero
+ */
+export async function resetAllAccountBalances(): Promise<boolean> {
+  try {
+    const apiRes = await callFinancialApi({ action: 'reset_all_account_balances' });
+    if (apiRes) return true;
+
+    const { error } = await supabase
+      .from('financial_accounts')
+      .update({ balance: 0.00 })
+      .neq('id', 'placeholder_id');
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Erro ao zerar saldos das contas:', err);
+    return false;
+  }
+}
+
+/**
+ * Reset all transactions in database
+ */
+export async function resetAllTransactions(): Promise<boolean> {
+  try {
+    const apiRes = await callFinancialApi({ action: 'reset_all_transactions' });
+    if (apiRes) return true;
+
+    const { error } = await supabase
+      .from('financial_transactions')
+      .delete()
+      .neq('id', 'placeholder_id');
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Erro ao zerar transações:', err);
+    return false;
+  }
+}
+
+/**
+ * Reset all investments in database
+ */
+export async function resetAllInvestments(): Promise<boolean> {
+  try {
+    const apiRes = await callFinancialApi({ action: 'reset_all_investments' });
+    if (apiRes) return true;
+
+    const { error } = await supabase
+      .from('financial_investments')
+      .delete()
+      .neq('id', 'placeholder_id');
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Erro ao zerar investimentos:', err);
+    return false;
+  }
+}
+
+/**
  * Fetch financial transactions with optional filter
  */
 export async function getTransactions(): Promise<FinancialTransaction[]> {

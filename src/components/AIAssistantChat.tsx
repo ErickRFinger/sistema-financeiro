@@ -35,7 +35,11 @@ interface AIAssistantChatProps {
   onCreateTransaction: (data: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
   onDeleteTransaction?: (tx: FinancialTransaction) => Promise<void>;
   onUpdateTransactionStatus?: (tx: FinancialTransaction, newStatus: 'paid' | 'pending') => Promise<void>;
-  onResetAllData?: () => Promise<void>;
+  onResetBankBalances?: () => Promise<void>;
+  onUpdateAccountBalance?: (accountId: string, newBalance: number) => Promise<void>;
+  onResetTransactions?: () => Promise<void>;
+  onResetInvestments?: () => Promise<void>;
+  onResetAllData?: (skipConfirm?: boolean) => Promise<void>;
   onCreateInvestment?: (inv: { name: string; category: string; amount: number; bank?: string; account_id?: string }) => Promise<void>;
   onOpenScanner?: () => void;
   onOpenCFO: () => void;
@@ -49,6 +53,10 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
   onCreateTransaction,
   onDeleteTransaction,
   onUpdateTransactionStatus,
+  onResetBankBalances,
+  onUpdateAccountBalance,
+  onResetTransactions,
+  onResetInvestments,
   onResetAllData,
   onCreateInvestment,
   onOpenScanner,
@@ -185,19 +193,68 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
       let actionTaken: any = undefined;
 
       // ==========================================
-      // 1. ZERAR TUDO
+      // 1. ZERAR TUDO (DADOS COMPLETOS)
       // ==========================================
       if (result.intent === 'reset_all_data' && onResetAllData) {
         setUndoStack((prev) => [
           { type: 'reset_data', prevAccounts: [...accounts], prevTransactions: [...transactions] },
           ...prev
         ]);
-        await onResetAllData();
+        await onResetAllData(true);
         actionTaken = { type: 'data_reset' };
       }
 
       // ==========================================
-      // 2. VOLTAR / DESFAZER
+      // 2. ZERAR SALDO DOS BANCOS
+      // ==========================================
+      else if (result.intent === 'reset_bank_balances' && onResetBankBalances) {
+        setUndoStack((prev) => [
+          { type: 'reset_bank_balances', prevAccounts: [...accounts] },
+          ...prev
+        ]);
+        await onResetBankBalances();
+        actionTaken = { type: 'bank_balances_reset' };
+      }
+
+      // ==========================================
+      // 3. ZERAR OU DEFINIR SALDO DE CONTA ESPECÍFICA
+      // ==========================================
+      else if (result.intent === 'set_account_balance' && result.targetAccountId && onUpdateAccountBalance) {
+        const prevAcc = accounts.find(a => a.id === result.targetAccountId);
+        setUndoStack((prev) => [
+          { type: 'set_account_balance', accountId: result.targetAccountId, prevBalance: prevAcc ? prevAcc.balance : 0 },
+          ...prev
+        ]);
+        await onUpdateAccountBalance(result.targetAccountId, result.newBalance ?? 0);
+        actionTaken = {
+          type: 'account_balance_updated',
+          accountName: result.targetAccountName,
+          newBalance: result.newBalance ?? 0,
+        };
+      }
+
+      // ==========================================
+      // 4. ZERAR EXTRATO / LANÇAMENTOS
+      // ==========================================
+      else if (result.intent === 'reset_transactions' && onResetTransactions) {
+        setUndoStack((prev) => [
+          { type: 'reset_transactions', prevTransactions: [...transactions] },
+          ...prev
+        ]);
+        await onResetTransactions();
+        actionTaken = { type: 'transactions_reset' };
+      }
+
+      // ==========================================
+      // 5. ZERAR INVESTIMENTOS
+      // ==========================================
+      else if (result.intent === 'reset_investments' && onResetInvestments) {
+        await onResetInvestments();
+        actionTaken = { type: 'investments_reset' };
+      }
+
+      // ==========================================
+      // 6. VOLTAR / DESFAZER
       // ==========================================
       else if (result.intent === 'undo_action') {
         if (undoStack.length > 0) {
@@ -211,6 +268,12 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
             await onCreateTransaction(lastAction.tx);
           } else if (lastAction.type === 'status_updated' && onUpdateTransactionStatus) {
             await onUpdateTransactionStatus(lastAction.tx, lastAction.prevStatus);
+          } else if (lastAction.type === 'reset_bank_balances' && onUpdateAccountBalance) {
+            for (const acc of lastAction.prevAccounts) {
+              await onUpdateAccountBalance(acc.id, acc.balance);
+            }
+          } else if (lastAction.type === 'set_account_balance' && onUpdateAccountBalance) {
+            await onUpdateAccountBalance(lastAction.accountId, lastAction.prevBalance);
           }
           actionTaken = { type: 'undo_executed' };
         } else {
@@ -624,6 +687,38 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
                       <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-rose-400 font-bold">
                         <Trash2 size={13} />
                         <span>Lançamento removido e saldo ajustado!</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Bank Balances Reset */}
+                    {msg.actionTaken && msg.actionTaken.type === 'bank_balances_reset' && (
+                      <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-amber-400 font-bold">
+                        <CheckCircle2 size={13} />
+                        <span>Saldos de todos os bancos zerados para R$ 0,00!</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Account Balance Updated */}
+                    {msg.actionTaken && msg.actionTaken.type === 'account_balance_updated' && (
+                      <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-amber-400 font-bold">
+                        <CheckCircle2 size={13} />
+                        <span>Saldo de {msg.actionTaken.accountName || 'Conta'} atualizado para {formatCurrency(msg.actionTaken.newBalance || 0)}!</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Transactions Reset */}
+                    {msg.actionTaken && msg.actionTaken.type === 'transactions_reset' && (
+                      <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-rose-400 font-bold">
+                        <Trash2 size={13} />
+                        <span>Todos os lançamentos do extrato foram apagados!</span>
+                      </div>
+                    )}
+
+                    {/* Action pill: Investments Reset */}
+                    {msg.actionTaken && msg.actionTaken.type === 'investments_reset' && (
+                      <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-amber-400 font-bold">
+                        <Trash2 size={13} />
+                        <span>Investimentos e caixinhas da carteira foram zerados!</span>
                       </div>
                     )}
 

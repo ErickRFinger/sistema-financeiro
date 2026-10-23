@@ -240,6 +240,14 @@ VITE_GEMINI_API_KEY=
   * **Ações Imediatas sem Fricção:** Disparo com 1 toque no teclado para `+ Nova Despesa`, `+ Nova Receita`, `📥 Importar Extrato (OFX/CSV)`, `📸 Escanear Fatura com IA`, `🤖 Abrir CFO Virtual` e `👁️ Alternar Modo Privacidade`.
   * **Busca Dinâmica de Transações:** Digite o nome de qualquer estabelecimento ou valor (ex: *Uber, iFood, Mercado, Aluguel*) para filtrar despesas e receitas em tempo real, navegando com as setas `↑` `↓` e abrindo o detalhe com `Enter`.
   * **Credenciais de Teste Executivo (Gabriely Tosin):** Usuária `gabrielytosin06@gmail.com` cadastrada e ativada no Supabase Auth com plano `lifetime` (Acesso PRO Vitalício Permanente, isenta de paywall e expiração de trial).
+* **v2.7.0 (23/10/2026):**
+  * **IA com Controle Autônomo Total & Comandos de Zeramento Flexíveis:** Aprimoramento completo do motor de processamento em linguagem natural (`geminiAssistant.ts` e `AIAssistantChat.tsx`) para compreender e executar qualquer ordem de zeramento ou ajuste de saldos sem ambiguidade.
+  * **Zerar Saldo dos Bancos:** Reconhecimento imediato de comandos como *"zerar o saldo dos bancos"*, *"zerar saldo"*, *"zera os bancos"*, *"zerar contas"*, disparando atualização sincronizada no Supabase e no estado local com feedback visual.
+  * **Zerar ou Definir Banco Específico:** Capacidade de zerar ou alterar o saldo de uma conta bancária individualmente (*"zerar banco inter"*, *"zera o btg"*, *"coloca 500 no inter"*, *"ajustar saldo do sicredi para 1500"*).
+  * **Zerar Extrato & Despesas:** Comandos como *"zerar extrato"*, *"limpar lançamentos"*, *"apagar todas as despesas"* limpam o histórico de movimentações mantendo as contas bancárias preservadas.
+  * **Execução Autônoma sem Bloqueio de UI:** Bypassa diálogos síncronos de confirmação do navegador quando comandado diretamente pelo chat da IA, permitindo operações instantâneas com histórico de `Desfazer` (*Undo*).
+  * **Endpoints Serverless Resilientes:** Adição de rotas em `api/financial.js` (`reset_all_account_balances`, `reset_all_transactions`, `reset_all_investments`) com Service Role para execução segura em produção.
+
 
 
 

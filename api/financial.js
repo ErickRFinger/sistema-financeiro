@@ -49,6 +49,16 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      case 'reset_all_account_balances': {
+        const { error } = await supabase
+          .from('financial_accounts')
+          .update({ balance: 0.00 })
+          .neq('id', 'placeholder_id');
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
       case 'create_account': {
         const { account } = req.body;
         const { data, error } = await supabase
@@ -171,6 +181,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
+      case 'reset_all_transactions': {
+        const { error } = await supabase
+          .from('financial_transactions')
+          .delete()
+          .neq('id', 'placeholder_id');
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
+      case 'reset_all_investments': {
+        const { error } = await supabase
+          .from('financial_investments')
+          .delete()
+          .neq('id', 'placeholder_id');
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
       // ==========================================
       // 3. INVESTIMENTOS (INVESTMENTS)
       // ==========================================
@@ -202,6 +232,16 @@ export default async function handler(req, res) {
           .from('financial_investments')
           .delete()
           .eq('id', id);
+
+        if (error) throw error;
+        return res.status(200).json({ success: true });
+      }
+
+      case 'reset_all_investments': {
+        const { error } = await supabase
+          .from('financial_investments')
+          .delete()
+          .neq('id', 'placeholder_id');
 
         if (error) throw error;
         return res.status(200).json({ success: true });

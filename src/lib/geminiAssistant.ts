@@ -8,10 +8,24 @@ export interface AssistantMessage {
   timestamp: string;
   imageUrl?: string;
   actionTaken?: {
-    type: 'transaction_created' | 'transaction_deleted' | 'transaction_updated' | 'data_reset' | 'undo_executed' | 'screen_opened' | 'investment_created' | 'bank_print_processed';
+    type: 
+      | 'transaction_created' 
+      | 'transaction_deleted' 
+      | 'transaction_updated' 
+      | 'bank_balances_reset'
+      | 'account_balance_updated'
+      | 'transactions_reset'
+      | 'investments_reset'
+      | 'data_reset' 
+      | 'undo_executed' 
+      | 'screen_opened' 
+      | 'investment_created' 
+      | 'bank_print_processed';
     transaction?: any;
     previousState?: any;
     investment?: any;
+    accountName?: string;
+    newBalance?: number;
     bankPrintData?: {
       title: string;
       amount: number;
@@ -27,6 +41,10 @@ export interface AssistantActionPayload {
     | 'create_transaction' 
     | 'delete_transaction' 
     | 'update_transaction' 
+    | 'reset_bank_balances'
+    | 'set_account_balance'
+    | 'reset_transactions'
+    | 'reset_investments'
     | 'reset_all_data' 
     | 'undo_action' 
     | 'open_screen' 
@@ -53,6 +71,9 @@ export interface AssistantActionPayload {
     new_category?: string;
     new_account_id?: string;
   };
+  targetAccountId?: string;
+  targetAccountName?: string;
+  newBalance?: number;
   targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard' | 'cards' | 'shopping_lists' | 'subscription_invoices';
   investmentData?: {
     name: string;
@@ -110,7 +131,7 @@ async function processWithGeminiAPI(
   const todayStr = new Date().toISOString().split('T')[0];
 
   const systemPrompt = `Você é o Copiloto Autônomo e Assistente Executivo Financeiro do sistema Aura Finance PRO.
-Você tem poder de controle TOTAL sobre o sistema. Se o usuário mandar lançar, alterar, cancelar, excluir, zerar tudo ou voltar, você executa a ação.
+Você tem poder de controle TOTAL sobre o sistema. Se o usuário mandar lançar, alterar, cancelar, excluir, zerar bancos, zerar saldo, zerar tudo ou voltar, você executa a ação.
 
 CONTAS BANCÁRIAS DISPONÍVEIS:
 [${accountsContext}]
@@ -121,18 +142,25 @@ CONTAS BANCÁRIAS DISPONÍVEIS:
 DATA DE HOJE: ${todayStr}
 
 Comandos que você deve reconhecer:
-1. CRIAR: "ganhei 1800 coloca no caixa", "gastei 85 no almoço", "comprei parafusos 120" -> intent: "create_transaction"
-2. ZERAR TUDO: "zera tudo", "zerar tudo", "limpa todos os lançamentos", "apaga tudo" -> intent: "reset_all_data"
-3. VOLTAR / DESFAZER: "volta", "desfaz", "cancela a última ação", "desfazer" -> intent: "undo_action"
-4. EXCLUIR / CANCELAR: "exclui o último lançamento", "cancela o almoço", "apaga a conta de luz" -> intent: "delete_transaction"
-5. ALTERAR: "altera o almoço para 95 reais", "muda o valor para 200", "marca como pago", "marca como pendente" -> intent: "update_transaction"
-6. ABRIR TELAS: "abre o leitor de nota fiscal", "abre o extrato", "cobrar com mercado pago", "abre o cfo" -> intent: "open_screen"
-7. SALDO: "qual meu saldo?", "quanto tenho?" -> intent: "query_balance"
+1. CRIAR: "ganhei 1800 coloca no caixa", "gastei 85 no almoço", "comprei parafusos 120", "pix de 50" -> intent: "create_transaction"
+2. ZERAR TUDO: "zera tudo", "zerar tudo", "limpa tudo", "apaga tudo", "reiniciar sistema" -> intent: "reset_all_data"
+3. ZERAR SALDO DOS BANCOS: "zerar saldo dos bancos", "zerar os bancos", "zerar saldo", "zerar contas", "limpar bancos" -> intent: "reset_bank_balances"
+4. ZERAR OU DEFINIR CONTA ESPECÍFICA: "zerar banco inter", "zera o btg", "coloca 500 no inter", "mudar saldo do sicredi para 1500" -> intent: "set_account_balance", targetAccountId: "...", newBalance: ...
+5. ZERAR EXTRATO / LANÇAMENTOS: "zerar extrato", "limpar lançamentos", "apagar todas as despesas", "zerar transações" -> intent: "reset_transactions"
+6. ZERAR INVESTIMENTOS: "zerar investimentos", "limpar carteira", "apagar porquinhos" -> intent: "reset_investments"
+7. VOLTAR / DESFAZER: "volta", "desfaz", "cancela a última ação", "desfazer" -> intent: "undo_action"
+8. EXCLUIR / CANCELAR: "exclui o último lançamento", "cancela o almoço", "apaga a conta de luz" -> intent: "delete_transaction"
+9. ALTERAR: "altera o almoço para 95 reais", "muda o valor para 200", "marca como pago", "marca como pendente" -> intent: "update_transaction"
+10. ABRIR TELAS: "abre o leitor de nota fiscal", "abre o extrato", "cobrar com mercado pago", "abre o cfo" -> intent: "open_screen"
+11. SALDO: "qual meu saldo?", "quanto tenho?" -> intent: "query_balance"
 
 Responda APENAS em JSON estrito (sem markdown):
 {
-  "intent": "create_transaction" | "delete_transaction" | "update_transaction" | "reset_all_data" | "undo_action" | "open_screen" | "query_balance" | "general_chat",
+  "intent": "create_transaction" | "delete_transaction" | "update_transaction" | "reset_bank_balances" | "set_account_balance" | "reset_transactions" | "reset_investments" | "reset_all_data" | "undo_action" | "open_screen" | "query_balance" | "general_chat",
   "replyText": "Resposta clara em português confirmando o que você executou.",
+  "targetAccountId": "id_da_conta" (opcional para set_account_balance),
+  "targetAccountName": "nome_da_conta" (opcional para set_account_balance),
+  "newBalance": 0 (opcional para set_account_balance ou reset_bank_balances),
   "targetScreen": "scanner" | "cfo" | "mercadopago" | "statement" | "accounts" | "investments" | "dashboard" (opcional),
   "transactionData": {
     "type": "income" ou "expense",
@@ -203,20 +231,138 @@ function processWithLocalNLP(
   // ==========================================
   // 1. ZERAR TUDO (RESET ALL DATA)
   // ==========================================
-  if (
-    lower.includes('zera tudo') || 
-    lower.includes('zerar tudo') || 
-    lower.includes('limpa tudo') || 
-    lower.includes('limpar tudo') || 
-    lower.includes('resetar tudo') || 
-    lower.includes('apaga tudo') ||
-    lower.includes('apagar tudo') ||
-    lower.includes('zera meus dados') ||
-    lower.includes('reiniciar dados')
-  ) {
+  const isResetAll = 
+    /zera(r)?\s+(tudo|meus dados|o sistema|geral)/i.test(lower) ||
+    /limpa(r)?\s+(tudo|meus dados|o sistema|geral)/i.test(lower) ||
+    /apaga(r)?\s+(tudo|meus dados|o sistema|geral)/i.test(lower) ||
+    /reset(ar)?\s+(tudo|meus dados|o sistema|geral)/i.test(lower) ||
+    /reinicia(r)?\s+(dados|sistema|tudo)/i.test(lower);
+
+  if (isResetAll) {
     return {
       intent: 'reset_all_data',
-      replyText: '⚠️ Entendido! Zerei todos os lançamentos e reiniciei suas contas bancárias com saldo R$ 0,00.',
+      replyText: '⚠️ Entendido! Zerei todos os lançamentos e reiniciei todas as suas contas bancárias com saldo R$ 0,00.',
+    };
+  }
+
+  // ==========================================
+  // 2. ZERAR / DEFINIR SALDO DE CONTA OU BANCO ESPECÍFICO
+  // Ex: "zerar inter", "zera o saldo do btg", "coloca 500 no sicredi", "saldo do inter para 0"
+  // ==========================================
+  for (const acc of accounts) {
+    const accNameLower = acc.name.toLowerCase();
+    const simpleName = accNameLower.replace(/^banco\s+/i, '');
+    const words = simpleName.split(/\s+/).filter(w => w.length > 2);
+    const isThisAccount = lower.includes(accNameLower) || lower.includes(simpleName) || words.some(w => lower.includes(w));
+
+    if (isThisAccount) {
+      const isZeroCommand = 
+        /zera(r)?/i.test(lower) || 
+        /limpa(r)?/i.test(lower) || 
+        /(saldo|deixar|colocar|mudar|ajustar).*?(0|zero)/i.test(lower);
+
+      if (isZeroCommand) {
+        return {
+          intent: 'set_account_balance',
+          targetAccountId: acc.id,
+          targetAccountName: acc.name,
+          newBalance: 0,
+          replyText: `🏦 Perfeito! O saldo da conta ${acc.name} foi zerado para R$ 0,00 com sucesso.`,
+        };
+      }
+
+      // Check if user specified a specific new balance for this account
+      const setBalanceMatch = lower.match(/(?:saldo|coloca|colocar|muda|mudar|ajusta|ajustar|definir|deixar).*?(?:para|em|de)?\s*(?:r\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:[,\.]\d{2})?|\d+)/i);
+      if (setBalanceMatch && !lower.includes('gastei') && !lower.includes('comprei') && !lower.includes('recebi') && !lower.includes('ganhei')) {
+        const rawNum = setBalanceMatch[1];
+        let val = 0;
+        if (rawNum.includes(',') && rawNum.includes('.')) {
+          val = parseFloat(rawNum.replace(/\./g, '').replace(',', '.'));
+        } else if (rawNum.includes(',')) {
+          val = parseFloat(rawNum.replace(',', '.'));
+        } else {
+          val = parseFloat(rawNum);
+        }
+
+        return {
+          intent: 'set_account_balance',
+          targetAccountId: acc.id,
+          targetAccountName: acc.name,
+          newBalance: val,
+          replyText: `🏦 Saldo da conta ${acc.name} redefinido para ${formatCurrency(val)} com sucesso.`,
+        };
+      }
+    }
+  }
+
+  // ==========================================
+  // 3. ZERAR SALDO DE TODOS OS BANCOS / CONTAS
+  // Ex: "zerar o saldo dos bancos", "zera saldo dos bancos", "zerar os bancos", "zerar saldo", "zerar contas"
+  // ==========================================
+  const isResetBankBalances = 
+    /zera(r)?\s+(o\s+)?saldo(s)?/i.test(lower) ||
+    /zera(r)?\s+(os\s+)?banco(s)?/i.test(lower) ||
+    /zera(r)?\s+(as\s+)?conta(s)?/i.test(lower) ||
+    /limpa(r)?\s+(os\s+)?banco(s)?/i.test(lower) ||
+    /limpa(r)?\s+(as\s+)?conta(s)?/i.test(lower) ||
+    /limpa(r)?\s+(o\s+)?saldo(s)?/i.test(lower) ||
+    /reset(ar)?\s+(o\s+)?saldo(s)?/i.test(lower) ||
+    /redefinir\s+(o\s+)?saldo(s)?/i.test(lower) ||
+    lower === 'zerar saldo' ||
+    lower === 'zera saldo' ||
+    lower === 'zerar bancos' ||
+    lower === 'zera bancos' ||
+    lower === 'zerar contas' ||
+    lower === 'zera contas' ||
+    lower === 'zerar o saldo' ||
+    lower === 'zera o saldo';
+
+  if (isResetBankBalances) {
+    return {
+      intent: 'reset_bank_balances',
+      newBalance: 0,
+      replyText: '🏦 Entendido! Zerei o saldo de todas as suas contas bancárias para R$ 0,00.',
+    };
+  }
+
+  // ==========================================
+  // 4. ZERAR EXTRATO / LANÇAMENTOS / DESPESAS
+  // Ex: "zerar extrato", "limpar lançamentos", "apagar todas as despesas", "zerar transações"
+  // ==========================================
+  const isResetTransactions = 
+    /zera(r)?\s+(o\s+)?extrato/i.test(lower) ||
+    /limpa(r)?\s+(o\s+)?extrato/i.test(lower) ||
+    /zera(r)?\s+(os\s+)?lançamento(s)?/i.test(lower) ||
+    /limpa(r)?\s+(os\s+)?lançamento(s)?/i.test(lower) ||
+    /apaga(r)?\s+(os\s+)?lançamento(s)?/i.test(lower) ||
+    /zera(r)?\s+(as\s+)?despesa(s)?/i.test(lower) ||
+    /apaga(r)?\s+toda(s)?\s+(as\s+)?despesa(s)?/i.test(lower) ||
+    /apaga(r)?\s+toda(s)?\s+(as\s+)?transaç(ão|ões)/i.test(lower) ||
+    /limpa(r)?\s+(as\s+)?transaç(ão|ões)/i.test(lower) ||
+    /zera(r)?\s+(as\s+)?transaç(ão|ões)/i.test(lower);
+
+  if (isResetTransactions) {
+    return {
+      intent: 'reset_transactions',
+      replyText: '🗑️ Entendido! Limpei todos os lançamentos do seu extrato financeiro.',
+    };
+  }
+
+  // ==========================================
+  // 5. ZERAR INVESTIMENTOS / CARTEIRA
+  // Ex: "zerar investimentos", "limpar carteira", "apagar investimentos"
+  // ==========================================
+  const isResetInvestments = 
+    /zera(r)?\s+(os\s+)?investimento(s)?/i.test(lower) ||
+    /limpa(r)?\s+(a\s+)?carteira/i.test(lower) ||
+    /apaga(r)?\s+(os\s+)?investimento(s)?/i.test(lower) ||
+    /zera(r)?\s+(as\s+)?caixinha(s)?/i.test(lower) ||
+    /zera(r)?\s+(os\s+)?porquinho(s)?/i.test(lower);
+
+  if (isResetInvestments) {
+    return {
+      intent: 'reset_investments',
+      replyText: '🪙 Entendido! Limpei todos os investimentos e porquinhos da sua carteira.',
     };
   }
 
@@ -452,9 +598,10 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 6. CONSULTA DE SALDO E PATRIMÔNIO
+  // 6. CONSULTA DE SALDO E PATRIMÔNIO (apenas se NÃO for comando de zerar)
   // ==========================================
-  if (lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('patrimonio') || lower.includes('dinheiro tenho')) {
+  const hasZeroWord = /zera|limpa|apaga|reset|coloca|muda|ajusta|definir/i.test(lower);
+  if (!hasZeroWord && (lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('patrimonio') || lower.includes('dinheiro tenho'))) {
     const total = accounts.reduce((acc, a) => acc + a.balance, 0);
     const breakdown = accounts.map(a => `${a.name}: ${formatCurrency(a.balance)}`).join(', ');
     return {
