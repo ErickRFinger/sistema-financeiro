@@ -268,6 +268,21 @@ VITE_GEMINI_API_KEY=
     * *Feedback Tátil Háptico Visual:* Efeito `active:scale-90 hover:bg-dark-800 transition-all duration-150` proporcionando sensação física imediata de clique tanto em desktop quanto mobile.
     * *Acessibilidade e Tooltips:* Inclusão de `title="Fechar janela (Esc)"` e `aria-label="Fechar modal"` em todos os botões de encerramento.
     * *Animação Fluida:* Transição cinematográfica `animate-in fade-in zoom-in-95 duration-150` aplicada em todos os containers de modais, garantindo abertura elegante e zero engasgos.
+* **v2.8.3 (23/10/2026):**
+  * **Micro-interações Táteis & Animações Premium no Leitor de Faturas (`CardInvoiceScannerModal.tsx`):**
+    * *Animação Fluida de Entrada:* Transição cinematográfica `animate-in fade-in slide-in-from-bottom-4 duration-200` com suporte nativo acelerado por GPU no `index.css`.
+    * *Estética Black Obsidian & Gold Glow:* Fundo em `#0D1017`, detalhes em `#FACC15` e sombra de profundidade luxuosa `shadow-2xl shadow-gold-500/10`.
+    * *Feedback Tátil Háptico (`active:scale-95`):* Efeito responsivo de clique em 100% dos botões de ação (fechar, alternador de abas Upload/Texto, processamento, seleção em massa, exclusão e confirmação).
+    * *Comemoração com Confetes:* Disparo de `confetti({ particleCount: 40, spread: 60 })` com origem suave (`y: 0.6`) ao clicar em *"Marcar como Pagas"* e confirmar a importação dos lançamentos da fatura.
+    * *Acessibilidade & Tooltips Executivas:* Atributos `title` e `aria-label` descritivos em todos os botões, caixas de texto, selects e checkboxes.
+* **v2.9.0 (23/10/2026):**
+  * **Barra Flutuante de Conciliação & Ações em Massa no Extrato (`StatementPage.tsx`):**
+    * *Seleção Múltipla:* Checkboxes executivos em cada linha da tabela e seleção geral no cabeçalho com cálculo dinâmico de valores em tempo real.
+    * *Barra Flutuante (Bottom Floating Bar):* Container fixo na base da tela com efeito `backdrop-blur-xl`, borda dourada suave e ações em lote: *Marcar como Pagas* (com estouro comemorativo de confetes), *Exclusão em Lote* com modal de confirmação e *Cancelar Seleção*.
+  * **Sistema Global de Notificações Toast Black & Gold (`Toast.tsx` & `App.tsx`):**
+    * *Arquitetura Reativa:* `ToastProvider` global com hook `useToast()` e método exportado `showToast(msg, type)` para feedback instantâneo de operações.
+    * *Auto-Dismiss com Barra Regressiva:* Desaparecimento automático em 3 segundos com barra animada via GPU e suporte a fechar manual.
+    * *Identidade Visual Consistente:* Estilos dedicados para `success`, `error`, `warning` e `info` totalmente harmonizados com a paleta Black Obsidian & Gold Glow.
 
 
 

@@ -52,6 +52,7 @@ import {
 } from './lib/supabase';
 import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from './lib/formatters';
+import { ToastProvider } from './components/Toast';
 
 // Generate recurring monthly invoices due on day 10 for SaaS subscription
 function generateDefaultInvoicesForUser(userId: string, createdAtStr: string): SystemSubscriptionInvoice[] {
@@ -1076,7 +1077,8 @@ export function App() {
 
   // 5. Authenticated & Active Dashboard View
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
+    <ToastProvider>
+      <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
       {/* 7-Day Free Trial Notice Banner (non-admin, not lifetime) */}
       {!isAdmin && !isPaidSubscription && (
         <div className="bg-gradient-to-r from-amber-500/15 via-gold-400/20 to-amber-500/15 border-b border-gold-400/30 px-4 py-2 text-center text-xs text-gold-300 font-semibold flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
@@ -1404,7 +1406,8 @@ export function App() {
         onSelectTransaction={(tx: FinancialTransaction) => setSelectedTransaction(tx)}
         isPrivate={isPrivate}
       />
-    </div>
+      </div>
+    </ToastProvider>
   );
 }
 

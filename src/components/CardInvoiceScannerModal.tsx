@@ -278,7 +278,7 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
     onImportExpenses(targetCardId, expensesToImport);
 
     confetti({
-      particleCount: 50,
+      particleCount: 40,
       spread: 60,
       origin: { y: 0.6 }
     });
@@ -286,24 +286,38 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
     onClose();
   };
 
+  const handleMarkAllAsPaid = () => {
+    setParsedItems(parsedItems.map(i => ({ ...i, selected: true })));
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      origin: { y: 0.6 }
+    });
+  };
+
   return (
     <div 
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-3xl rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-7 my-6 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[calc(100vh-3rem)] overflow-hidden">
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scanner-modal-title"
+        className="relative w-full max-w-3xl rounded-3xl bg-[#0D1017] border border-[#FACC15]/30 shadow-2xl shadow-gold-500/10 p-5 sm:p-7 my-6 animate-in fade-in slide-in-from-bottom-4 duration-200 flex flex-col max-h-[calc(100vh-3rem)] overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-5 border-b border-dark-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gold-400/10 border border-gold-400/30 flex items-center justify-center text-gold-400">
+            <div className="w-10 h-10 rounded-xl bg-[#FACC15]/10 border border-[#FACC15]/30 flex items-center justify-center text-[#FACC15]">
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 id="scanner-modal-title" className="text-base font-bold text-white flex items-center gap-2">
                 <span>Leitor Inteligente de Fatura de Cartão</span>
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-gold-400/20 text-gold-400 border border-gold-400/30">IA OCR</span>
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-[#FACC15]/20 text-[#FACC15] border border-[#FACC15]/30">IA OCR</span>
               </h2>
               <p className="text-xs text-slate-400">
                 Extraia e lance automaticamente todos os gastos da fatura (PDF ou Imagem)
@@ -311,10 +325,11 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             title="Fechar janela (Esc)"
-            aria-label="Fechar modal"
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
+            aria-label="Fechar leitor de fatura"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-95 transition-all duration-150"
           >
             <X size={18} />
           </button>
@@ -323,15 +338,18 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
         {/* Content */}
         <div className="p-5 overflow-y-auto space-y-5 flex-1">
           {/* Card Selector */}
-          <div className="flex items-center justify-between p-3.5 bg-dark-950 rounded-xl border border-dark-800 flex-wrap gap-3">
+          <div className="flex items-center justify-between p-3.5 bg-dark-950/80 rounded-xl border border-dark-800 flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
-              <CardIcon size={18} className="text-gold-400" />
+              <CardIcon size={18} className="text-[#FACC15]" />
               <span className="text-xs font-semibold text-slate-300">Importar para o Cartão:</span>
             </div>
             <select
+              id="card-selector"
+              title="Selecione o cartão de crédito de destino"
+              aria-label="Cartão de crédito para importação"
               value={targetCardId}
               onChange={(e) => setTargetCardId(e.target.value)}
-              className="bg-dark-900 border border-dark-750 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none focus:border-gold-400"
+              className="bg-[#0D1017] border border-dark-750 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none focus:border-[#FACC15] focus:ring-1 focus:ring-[#FACC15]/40 transition-all"
             >
               {cards.map(c => (
                 <option key={c.id} value={c.id}>
@@ -344,12 +362,14 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
           {parsedItems.length === 0 ? (
             <div className="space-y-4">
               {/* Tab Selector */}
-              <div className="flex rounded-xl bg-dark-950 p-1 border border-dark-800">
+              <div className="flex rounded-xl bg-dark-950/90 p-1 border border-dark-800">
                 <button
                   type="button"
                   onClick={() => setActiveTab('upload')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                    activeTab === 'upload' ? 'bg-gold-400 text-dark-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                  title="Subir arquivo de fatura em PDF ou imagem"
+                  aria-label="Subir arquivo de fatura"
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all duration-150 ${
+                    activeTab === 'upload' ? 'bg-[#FACC15] text-[#0D1017] shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Upload size={14} />
@@ -358,8 +378,10 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                 <button
                   type="button"
                   onClick={() => setActiveTab('paste')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                    activeTab === 'paste' ? 'bg-gold-400 text-dark-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                  title="Colar texto bruto da fatura"
+                  aria-label="Colar texto da fatura"
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all duration-150 ${
+                    activeTab === 'paste' ? 'bg-[#FACC15] text-[#0D1017] shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <ClipboardPaste size={14} />
@@ -368,23 +390,25 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
               </div>
 
               {activeTab === 'upload' ? (
-                <div className="border-2 border-dashed border-dark-750 hover:border-gold-400/50 rounded-2xl p-8 text-center transition-all bg-dark-950/40 relative">
+                <div className="border-2 border-dashed border-dark-750 hover:border-[#FACC15]/60 rounded-2xl p-8 text-center transition-all bg-dark-950/40 relative">
                   <input
                     type="file"
                     accept="image/*,.pdf,text/*"
                     onChange={handleFileChange}
                     disabled={isProcessing}
+                    title="Selecione ou arraste a foto ou PDF da fatura"
+                    aria-label="Selecionar arquivo de fatura"
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   {isProcessing ? (
                     <div className="flex flex-col items-center justify-center py-6">
-                      <Loader2 size={36} className="text-gold-400 animate-spin mb-3" />
+                      <Loader2 size={36} className="text-[#FACC15] animate-spin mb-3" />
                       <p className="text-sm font-bold text-white mb-1">Processando Fatura...</p>
-                      <p className="text-xs text-gold-400/80 font-mono">{processingStatus}</p>
+                      <p className="text-xs text-[#FACC15]/90 font-mono">{processingStatus}</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-14 h-14 rounded-2xl bg-gold-400/10 border border-gold-400/20 text-gold-400 flex items-center justify-center mb-3">
+                      <div className="w-14 h-14 rounded-2xl bg-[#FACC15]/10 border border-[#FACC15]/20 text-[#FACC15] flex items-center justify-center mb-3">
                         <Upload size={28} />
                       </div>
                       <h4 className="text-sm font-bold text-white mb-1">
@@ -402,12 +426,17 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                     rows={7}
                     value={pasteText}
                     onChange={(e) => setPasteText(e.target.value)}
+                    title="Cole as linhas da fatura"
+                    aria-label="Área para colar texto da fatura"
                     placeholder={`Exemplo de linhas que você pode colar:\n15/10 UBER * TRIP 24,90\n18 OUT SUPERMERCADO TAUSTE 342,10\n05/10 AMAZON BRASIL 189,90\n20/10 POSTO IPIRANGA 150,00`}
-                    className="w-full bg-dark-950 border border-dark-800 rounded-xl p-3.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-gold-400 transition-colors resize-none"
+                    className="w-full bg-dark-950 border border-dark-800 rounded-xl p-3.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-[#FACC15] focus:ring-1 focus:ring-[#FACC15]/40 transition-colors resize-none"
                   />
                   <button
+                    type="button"
                     onClick={handleProcessPastedText}
-                    className="w-full py-2.5 rounded-xl bg-gold-400 hover:bg-gold-300 text-dark-950 font-black text-xs transition-all shadow-gold-glow flex items-center justify-center gap-2"
+                    title="Processar o texto digitado e reconhecer os lançamentos"
+                    aria-label="Processar texto da fatura"
+                    className="w-full py-2.5 rounded-xl bg-[#FACC15] hover:bg-gold-300 text-[#0D1017] font-black text-xs transition-all duration-150 shadow-gold-glow shadow-gold-500/10 active:scale-95 flex items-center justify-center gap-2"
                   >
                     <Sparkles size={15} />
                     <span>Processar Texto da Fatura</span>
@@ -418,25 +447,38 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
           ) : (
             <div className="space-y-4">
               {/* Summary Bar */}
-              <div className="flex items-center justify-between p-3.5 bg-dark-950 border border-dark-800 rounded-xl flex-wrap gap-3">
+              <div className="flex items-center justify-between p-3.5 bg-dark-950/80 border border-dark-800 rounded-xl flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={handleToggleSelectAll}
-                    className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white"
+                    title={selectedItems.length === parsedItems.length ? "Desmarcar todas as despesas" : "Selecionar todas as despesas"}
+                    aria-label="Selecionar ou desmarcar todas as despesas"
+                    className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white active:scale-95 transition-all duration-150"
                   >
                     {selectedItems.length === parsedItems.length ? (
-                      <CheckSquare size={16} className="text-gold-400" />
+                      <CheckSquare size={16} className="text-[#FACC15]" />
                     ) : (
                       <Square size={16} className="text-slate-500" />
                     )}
                     <span>Selecionar Todos ({selectedItems.length}/{parsedItems.length})</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleMarkAllAsPaid}
+                    title="Marcar todas as despesas da fatura como pagas e selecionadas"
+                    aria-label="Marcar como Pagas"
+                    className="px-2.5 py-1 rounded-lg bg-[#FACC15]/10 hover:bg-[#FACC15]/20 text-[#FACC15] border border-[#FACC15]/30 text-[11px] font-bold active:scale-95 transition-all duration-150 flex items-center gap-1.5"
+                  >
+                    <CheckSquare size={13} />
+                    <span>Marcar como Pagas</span>
+                  </button>
                 </div>
 
                 <div className="text-right">
                   <span className="text-xs text-slate-400 mr-2">Total Selecionado:</span>
-                  <span className="text-sm font-extrabold text-gold-400">
+                  <span className="text-sm font-extrabold text-[#FACC15]">
                     {formatCurrency(totalAmountSelected)}
                   </span>
                 </div>
@@ -459,16 +501,18 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                     {parsedItems.map((item) => (
                       <tr 
                         key={item.id} 
-                        className={`hover:bg-dark-800/40 transition-colors ${item.selected ? 'bg-dark-900' : 'opacity-50'}`}
+                        className={`hover:bg-dark-800/40 transition-colors ${item.selected ? 'bg-[#0D1017]' : 'opacity-50'}`}
                       >
                         <td className="p-3">
                           <button
                             type="button"
                             onClick={() => handleToggleItem(item.id)}
-                            className="text-slate-400 hover:text-gold-400"
+                            title={item.selected ? `Desmarcar ${item.description}` : `Marcar ${item.description}`}
+                            aria-label={`Selecionar ${item.description}`}
+                            className="text-slate-400 hover:text-[#FACC15] active:scale-95 transition-all duration-150 p-1 rounded"
                           >
                             {item.selected ? (
-                              <CheckSquare size={16} className="text-gold-400" />
+                              <CheckSquare size={16} className="text-[#FACC15]" />
                             ) : (
                               <Square size={16} className="text-slate-600" />
                             )}
@@ -479,7 +523,9 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                             type="date"
                             value={item.date}
                             onChange={(e) => handleItemChange(item.id, 'date', e.target.value)}
-                            className="bg-transparent border-0 text-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-gold-400 rounded px-1"
+                            title="Data da despesa"
+                            aria-label={`Data de ${item.description}`}
+                            className="bg-transparent border-0 text-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#FACC15] rounded px-1 transition-all"
                           />
                         </td>
                         <td className="p-3">
@@ -487,35 +533,42 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                             type="text"
                             value={item.description}
                             onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                            className="w-full bg-transparent border-0 text-slate-200 font-medium text-xs focus:outline-none focus:ring-1 focus:ring-gold-400 rounded px-1"
+                            title="Descrição da compra"
+                            aria-label="Descrição da compra"
+                            className="w-full bg-transparent border-0 text-slate-200 font-medium text-xs focus:outline-none focus:ring-1 focus:ring-[#FACC15] rounded px-1 transition-all"
                           />
                         </td>
                         <td className="p-3">
                           <select
                             value={item.category}
                             onChange={(e) => handleItemChange(item.id, 'category', e.target.value)}
-                            className="bg-dark-950 border border-dark-800 rounded px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-gold-400"
+                            title="Categoria da despesa"
+                            aria-label={`Categoria de ${item.description}`}
+                            className="bg-dark-950 border border-dark-800 rounded px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-[#FACC15] focus:ring-1 focus:ring-[#FACC15]/30 transition-all"
                           >
                             {DEFAULT_CATEGORIES.map(c => (
                               <option key={c.name} value={c.name}>{c.name}</option>
                             ))}
                           </select>
                         </td>
-                        <td className="p-3 text-right font-bold text-amber-400 whitespace-nowrap">
+                        <td className="p-3 text-right font-bold text-[#FACC15] whitespace-nowrap">
                           <input
                             type="number"
                             step="0.01"
                             value={item.amount}
                             onChange={(e) => handleItemChange(item.id, 'amount', parseFloat(e.target.value) || 0)}
-                            className="w-24 bg-transparent border-0 text-right font-bold text-amber-400 text-xs focus:outline-none focus:ring-1 focus:ring-gold-400 rounded px-1"
+                            title="Valor da despesa"
+                            aria-label={`Valor de ${item.description}`}
+                            className="w-24 bg-transparent border-0 text-right font-bold text-[#FACC15] text-xs focus:outline-none focus:ring-1 focus:ring-[#FACC15] rounded px-1 transition-all"
                           />
                         </td>
                         <td className="p-3 text-center">
                           <button
                             type="button"
                             onClick={() => handleDeleteItem(item.id)}
-                            className="text-slate-500 hover:text-rose-400 transition-colors"
-                            title="Remover linha"
+                            title={`Remover ${item.description}`}
+                            aria-label={`Remover linha ${item.description}`}
+                            className="text-slate-500 hover:text-rose-400 active:scale-95 transition-all duration-150 p-1.5 rounded-lg hover:bg-rose-500/10"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -535,7 +588,9 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
                     setFileSelected(null);
                     setPasteText('');
                   }}
-                  className="text-xs text-slate-400 hover:text-white underline"
+                  title="Limpar itens e escolher outro arquivo ou texto de fatura"
+                  aria-label="Limpar fatura e reiniciar leitura"
+                  className="text-xs text-slate-400 hover:text-[#FACC15] active:scale-95 transition-all duration-150 underline"
                 >
                   ← Ler Outro Arquivo / Limpar
                 </button>
@@ -545,24 +600,30 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-dark-800 bg-dark-950/70 flex items-center justify-between gap-3">
+        <div className="p-4 border-t border-dark-800 bg-dark-950/80 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-semibold hover:bg-dark-800 transition-colors"
+            title="Cancelar e fechar janela de fatura"
+            aria-label="Cancelar"
+            className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-semibold hover:bg-dark-800 active:scale-95 transition-all duration-150"
           >
             Cancelar
           </button>
 
           {parsedItems.length > 0 && (
-            <button
-              type="button"
-              onClick={handleConfirmImport}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold-400 hover:bg-gold-300 text-dark-950 font-black text-xs transition-all shadow-gold-glow active:scale-95"
-            >
-              <Check size={16} />
-              <span>Importar {selectedItems.length} Gastos no Cartão ({formatCurrency(totalAmountSelected)})</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                title="Marcar como Pagas e importar despesas para a fatura do cartão"
+                aria-label="Marcar como Pagas"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FACC15] hover:bg-gold-300 text-[#0D1017] font-black text-xs transition-all duration-150 shadow-gold-glow shadow-gold-500/10 active:scale-95"
+              >
+                <Check size={16} />
+                <span>Marcar como Pagas ({selectedItems.length}) • {formatCurrency(totalAmountSelected)}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

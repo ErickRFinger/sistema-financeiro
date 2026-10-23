@@ -54,3 +54,51 @@
 .gold-gradient-bg {
   @apply bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-bold;
 }
+
+/* Fluid entrance animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInFromBottom4 {
+  from { 
+    transform: translateY(16px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes slideInFromBottom8 {
+  from { 
+    transform: translateY(32px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom4;
+}
+
+.slide-in-from-bottom-8 {
+  animation-name: slideInFromBottom8;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}

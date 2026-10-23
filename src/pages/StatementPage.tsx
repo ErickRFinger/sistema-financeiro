@@ -14,7 +14,9 @@ import {
   ExternalLink,
   PlusCircle,
   FileSpreadsheet,
-  Upload
+  Upload,
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   FinancialTransaction, 
@@ -27,6 +29,8 @@ import { formatCurrency, formatDate } from '../lib/formatters';
 import { generateFinancialStatementPDF } from '../lib/pdfExport';
 import { exportFinancialStatementToExcel } from '../lib/excelExport';
 import { BankStatementImporterModal } from '../components/BankStatementImporterModal';
+import { showToast } from '../components/Toast';
+import confetti from 'canvas-confetti';
 
 interface StatementPageProps {
   transactions: FinancialTransaction[];
@@ -37,6 +41,12 @@ interface StatementPageProps {
   onDeleteTransaction: (tx: FinancialTransaction) => Promise<void>;
   onImportTransactions?: (imported: Omit<FinancialTransaction, 'id' | 'created_at'>[]) => Promise<void>;
 }
+
+// New state for bulk selection
+interface SelectionState {
+  selectedTxIds: string[];
+}
+const initialSelectionState: SelectionState = { selectedTxIds: [] };
 
 const formatDateToISO = (date: Date): string => {
   const y = date.getFullYear();
@@ -94,6 +104,10 @@ export const StatementPage: React.FC<StatementPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | TransactionStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [accountFilter, setAccountFilter] = useState<string>('all');
+
+  // Bulk Action Selection State
+  const [selectedTxIds, setSelectedTxIds] = useState<string[]>([]);
+  const [bulkActionConfirmOpen, setBulkActionConfirmOpen] = useState(false);
 
   const handlePresetClick = (presetId: (typeof QUICK_DATE_PRESETS)[number]['id']) => {
     const presets = getPresetDates();
@@ -168,6 +182,52 @@ export const StatementPage: React.FC<StatementPageProps> = ({
   }, [filteredTransactions]);
 
   const netFilteredBalance = totalFilteredIncome - totalFilteredExpense;
+
+  // Bulk Action Calculations and Handlers
+  const totalSelected = useMemo(() => {
+    return filteredTransactions.reduce((acc, tx) => {
+      return selectedTxIds.includes(tx.id) ? acc + tx.amount : acc;
+    }, 0);
+  }, [selectedTxIds, filteredTransactions]);
+
+  const handleBulkMarkPaid = async () => {
+    const count = selectedTxIds.length;
+    for (const id of selectedTxIds) {
+      const tx = filteredTransactions.find((t) => t.id === id);
+      if (tx && tx.status !== 'paid') {
+        await onToggleStatus(tx, 'paid');
+      }
+    }
+    setSelectedTxIds([]);
+    confetti({
+      particleCount: 45,
+      spread: 60,
+      origin: { y: 0.85 }
+    });
+    showToast(`${count} transação${count !== 1 ? 's' : ''} marcada${count !== 1 ? 's' : ''} como paga${count !== 1 ? 's' : ''}!`, 'success');
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkActionConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    const count = selectedTxIds.length;
+    for (const id of selectedTxIds) {
+      const tx = filteredTransactions.find((t) => t.id === id);
+      if (tx) {
+        await onDeleteTransaction(tx);
+      }
+    }
+    setSelectedTxIds([]);
+    setBulkActionConfirmOpen(false);
+    showToast(`${count} transação${count !== 1 ? 'ões' : ''} excluída${count !== 1 ? 's' : ''} com sucesso!`, 'info');
+  };
+
+  const handleBulkCancelSelection = () => {
+    setSelectedTxIds([]);
+    showToast('Seleção cancelada.', 'success');
+  };
 
   // Export PDF
   const handleExportPDF = () => {
@@ -456,6 +516,16 @@ export const StatementPage: React.FC<StatementPageProps> = ({
               <table className="w-full text-left text-xs">
                 <thead className="bg-dark-950 text-slate-400 uppercase font-bold border-b border-dark-800 tracking-wider">
                   <tr>
+                    <th className="py-3.5 px-4 w-12">
+                      <label className="flex items-center justify-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-slate-600 bg-dark-950 text-gold-400 focus:ring-gold-400/30 focus:ring-2 cursor-pointer"
+                          checked={selectedTxIds.length === filteredTransactions.length && filteredTransactions.length > 0}
+                          onChange={() => setSelectedTxIds((prev) => prev.length === filteredTransactions.length ? [] : filteredTransactions.map(tx => tx.id))}
+                        />
+                      </label>
+                    </th>
                     <th className="py-3.5 px-4">Data</th>
                     <th className="py-3.5 px-4">Descrição / Fornecedor</th>
                     <th className="py-3.5 px-4">Categoria</th>
@@ -475,6 +545,23 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                         onClick={() => onSelectTransaction(tx)}
                         className="hover:bg-dark-850/60 transition-colors cursor-pointer group"
                       >
+                        <td className="py-3.5 px-4 w-12">
+                          <label className="flex items-center justify-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-slate-600 bg-dark-950 text-gold-400 focus:ring-gold-400/30 focus:ring-2 cursor-pointer"
+                              checked={selectedTxIds.includes(tx.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setSelectedTxIds((prev) =>
+                                  prev.includes(tx.id)
+                                    ? prev.filter((id) => id !== tx.id)
+                                    : [...prev, tx.id]
+                                );
+                              }}
+                            />
+                          </label>
+                        </td>
                         <td className="py-3.5 px-4 text-slate-300 font-mono">
                           {formatDate(tx.transaction_date)}
                         </td>
@@ -564,8 +651,26 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                     onClick={() => onSelectTransaction(tx)}
                     className="p-3.5 hover:bg-dark-950/70 rounded-2xl transition-colors cursor-pointer"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                    <div className="flex items-start gap-3">
+                      <label
+                        className="flex items-center justify-center mt-0.5 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-slate-600 bg-dark-950 text-gold-400 focus:ring-gold-400/30 focus:ring-2 cursor-pointer"
+                          checked={selectedTxIds.includes(tx.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSelectedTxIds((prev) =>
+                              prev.includes(tx.id)
+                                ? prev.filter((id) => id !== tx.id)
+                                : [...prev, tx.id]
+                            );
+                          }}
+                        />
+                      </label>
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-white truncate">
                           {tx.title}
                         </p>
@@ -617,6 +722,80 @@ export const StatementPage: React.FC<StatementPageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Bulk Action Floating Bar */}
+      {selectedTxIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 px-4 sm:px-0">
+          <div className="bg-dark-900/95 backdrop-blur-xl border border-gold-400/40 rounded-2xl shadow-2xl px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 min-w-[300px] max-w-[600px] animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center gap-4 text-sm font-semibold text-slate-100">
+              <span className="flex items-center gap-2 text-gold-400">
+                <CheckCircle2 size={18} />
+                <span>{selectedTxIds.length} selecionada{selectedTxIds.length !== 1 ? 's' : ''}</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-gold-400/20 text-gold-400 border border-gold-400/30 font-mono text-xs">
+                Total: {formatCurrency(totalSelected)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkMarkPaid}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50 font-bold text-xs transition-all shadow-sm active:scale-95"
+                title="Marcar como Pagas"
+              >
+                <CheckCircle2 size={14} />
+                <span>Marcar como Pagas</span>
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50 font-bold text-xs transition-all shadow-sm active:scale-95"
+                title="Excluir Selecionadas"
+              >
+                <Trash2 size={14} />
+                <span>Excluir</span>
+              </button>
+              <button
+                onClick={handleBulkCancelSelection}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-dark-950 border border-dark-800 text-slate-400 hover:bg-dark-850 hover:border-dark-700 hover:text-slate-200 font-bold text-xs transition-all shadow-sm active:scale-95"
+                title="Cancelar Seleção"
+              >
+                <X size={14} />
+                <span>Cancelar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkActionConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-dark-900 border border-gold-400/40 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
+                <AlertTriangle size={22} className="text-rose-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-100">Confirmar Exclusão</h3>
+            </div>
+            <p className="text-slate-300 mb-6">
+              Tem certeza que deseja excluir <strong className="text-gold-400">{selectedTxIds.length} transação{selectedTxIds.length !== 1 ? 'ões' : ''}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setBulkActionConfirmOpen(false)}
+                className="px-4 py-2 rounded-xl bg-dark-950 border border-dark-800 text-slate-400 hover:bg-dark-850 hover:border-dark-700 hover:text-slate-200 font-bold text-sm transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                className="px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50 font-bold text-sm transition-all"
+              >
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Importação de Extrato Bancário OFX / CSV */}
       <BankStatementImporterModal
