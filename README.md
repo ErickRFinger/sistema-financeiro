@@ -261,10 +261,13 @@ VITE_GEMINI_API_KEY=
     * *Command Palette (`Cmd + K`):* Atalho de salto direto `"Copiloto IA (Chat Autônomo)"`.
     * *Mini-Chat Flutuante:* Botão de expansão em tela cheia (`Maximize2`) para transitar do widget para o Cockpit completo.
   * **Interação por Voz:** Botão de microfone integrado com a API nativa Web Speech Recognition com feedback e animação de fala em tempo real.
-
-
-
-
+* **v2.8.1 (23/10/2026):**
+  * **Blindagem de UX dos Modais & Rolagem Segura:** Fechamento por clique fora no backdrop escuro (`backdrop dismiss`), captura universal da tecla `Escape` (`Esc`) em todos os modais secundários e adição de `overflow-y-auto` para evitar cortes em telas de smartphones ou com teclados virtuais abertos.
+* **v2.8.2 (23/10/2026):**
+  * **Micro-interações Táteis & Acessibilidade nos Modais:** Padronização executiva em 100% dos botões de fechamento e cartões de modais do ecossistema Aura Finance PRO:
+    * *Feedback Tátil Háptico Visual:* Efeito `active:scale-90 hover:bg-dark-800 transition-all duration-150` proporcionando sensação física imediata de clique tanto em desktop quanto mobile.
+    * *Acessibilidade e Tooltips:* Inclusão de `title="Fechar janela (Esc)"` e `aria-label="Fechar modal"` em todos os botões de encerramento.
+    * *Animação Fluida:* Transição cinematográfica `animate-in fade-in zoom-in-95 duration-150` aplicada em todos os containers de modais, garantindo abertura elegante e zero engasgos.
 
 
 

@@ -40,6 +40,18 @@ export const PWAInstallBanner: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showIOSModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowIOSModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showIOSModal]);
+
   const handleInstallClick = async () => {
     if (isIOS) {
       setShowIOSModal(true);
@@ -99,11 +111,18 @@ export const PWAInstallBanner: React.FC = () => {
 
       {/* iOS Safari Instruction Modal */}
       {showIOSModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-dark-900 border border-gold-400/30 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative animate-in fade-in zoom-in-95">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowIOSModal(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-6 my-6 text-center animate-in fade-in zoom-in-95 duration-150">
             <button
               onClick={() => setShowIOSModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              title="Fechar janela (Esc)"
+              aria-label="Fechar modal"
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
             >
               <X size={18} />
             </button>
@@ -129,7 +148,7 @@ export const PWAInstallBanner: React.FC = () => {
             </div>
             <button
               onClick={() => setShowIOSModal(false)}
-              className="w-full py-2.5 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 transition-colors"
+              className="w-full py-2.5 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 active:scale-95 transition-all shadow-gold-glow"
             >
               Entendido!
             </button>

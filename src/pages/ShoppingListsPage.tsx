@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, 
   Plus, 
@@ -17,7 +17,8 @@ import {
   Home,
   Wrench,
   Pill,
-  Briefcase
+  Briefcase,
+  X
 } from 'lucide-react';
 import { ShoppingList, ShoppingListItem, FinancialAccount, CreditCard, TransactionType } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -83,6 +84,19 @@ export const ShoppingListsPage: React.FC<ShoppingListsPageProps> = ({
   const [launchAccountId, setLaunchAccountId] = useState(accounts[0]?.id || '');
   const [launchCardId, setLaunchCardId] = useState(cards[0]?.id || '');
   const [launchAmount, setLaunchAmount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isNewListModalOpen && !isLaunchModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsNewListModalOpen(false);
+        setIsLaunchModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isNewListModalOpen, isLaunchModalOpen]);
 
   const activeList = lists.find(l => l.id === selectedListId) || lists[0];
 
@@ -498,10 +512,29 @@ export const ShoppingListsPage: React.FC<ShoppingListsPageProps> = ({
 
       {/* New List Modal */}
       {isNewListModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-1">Nova Lista de Compras</h3>
-            <p className="text-xs text-slate-400 mb-4">Crie uma lista para supermercado, casa ou projetos</p>
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsNewListModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-6 my-6 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-dark-800 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-white">Nova Lista de Compras</h3>
+                <p className="text-xs text-slate-400">Crie uma lista para mercado, casa ou projetos</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewListModalOpen(false)}
+                title="Fechar janela (Esc)"
+                aria-label="Fechar modal"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handleCreateList} className="space-y-4">
               <div>
@@ -540,13 +573,13 @@ export const ShoppingListsPage: React.FC<ShoppingListsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsNewListModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 shadow-gold-glow"
+                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 active:scale-95 shadow-gold-glow transition-all"
                 >
                   Criar Lista
                 </button>
@@ -558,12 +591,31 @@ export const ShoppingListsPage: React.FC<ShoppingListsPageProps> = ({
 
       {/* Launch Expense Modal */}
       {isLaunchModalOpen && activeList && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-1">Finalizar Compra e Lançar no Fluxo</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Registrar o gasto da lista "{activeList.title}" no seu controle financeiro
-            </p>
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsLaunchModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-md rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-6 my-6 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-dark-800 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-white">Finalizar Compra e Lançar no Fluxo</h3>
+                <p className="text-xs text-slate-400">
+                  Registrar o gasto da lista "{activeList.title}" no seu controle financeiro
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLaunchModalOpen(false)}
+                title="Fechar janela (Esc)"
+                aria-label="Fechar modal"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handleConfirmLaunch} className="space-y-4">
               <div>
@@ -643,13 +695,13 @@ export const ShoppingListsPage: React.FC<ShoppingListsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsLaunchModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 shadow-gold-glow"
+                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 active:scale-95 shadow-gold-glow transition-all"
                 >
                   Confirmar Lançamento ({formatCurrency(launchAmount)})
                 </button>

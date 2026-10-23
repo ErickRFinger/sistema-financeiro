@@ -267,7 +267,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
+            title="Fechar janela (Esc)"
+            aria-label="Fechar modal"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
           >
             <X size={20} />
           </button>

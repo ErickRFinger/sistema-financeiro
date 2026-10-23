@@ -85,6 +85,18 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
     setErrorMsg('');
   }, [initialMode, currentUser, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Polling para checar status do PIX a cada 3 segundos
   useEffect(() => {
     if (!pixResult?.payment_id || isApproved) {
@@ -259,8 +271,13 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-lg rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-6 my-6">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+    >
+      <div className="relative w-full max-w-lg rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-6 my-6 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-dark-800 pb-4">
           <div className="flex items-center gap-3">
@@ -287,7 +304,9 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
 
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
+            title="Fechar janela (Esc)"
+            aria-label="Fechar modal"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
           >
             <X size={20} />
           </button>

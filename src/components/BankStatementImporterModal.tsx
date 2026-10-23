@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   X,
   Upload,
@@ -79,6 +79,19 @@ export const BankStatementImporterModal: React.FC<BankStatementImporterModalProp
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Listener de teclado Escape para fechar o modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -297,8 +310,13 @@ export const BankStatementImporterModal: React.FC<BankStatementImporterModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-dark-900 border border-slate-800 shadow-2xl overflow-hidden text-white">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+    >
+      <div className="relative w-full max-w-4xl rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-7 my-6 animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100vh-3rem)] flex flex-col overflow-hidden text-white">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-5 border-b border-dark-800">
           <div className="flex items-center gap-3">
@@ -320,7 +338,9 @@ export const BankStatementImporterModal: React.FC<BankStatementImporterModalProp
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition-colors"
+            title="Fechar janela (Esc)"
+            aria-label="Fechar modal"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
           >
             <X size={18} />
           </button>
@@ -500,7 +520,7 @@ export const BankStatementImporterModal: React.FC<BankStatementImporterModalProp
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-dark-800 flex items-center justify-between bg-dark-950">
+        <div className="p-4 sm:p-5 border-t border-dark-800 flex items-center justify-between">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-slate-300 font-bold text-xs transition-colors"

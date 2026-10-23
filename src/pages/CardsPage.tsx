@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CreditCard as CardIcon, 
   PlusCircle, 
@@ -14,7 +14,8 @@ import {
   Layers, 
   Search,
   Check,
-  Landmark
+  Landmark,
+  X
 } from 'lucide-react';
 import { CreditCard, CreditCardExpense, FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -107,6 +108,18 @@ export const CardsPage: React.FC<CardsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isPayInvoiceModalOpen, setIsPayInvoiceModalOpen] = useState(false);
   const [payAccountId, setPayAccountId] = useState<string>(accounts[0]?.id || '');
+
+  useEffect(() => {
+    if (!isPayInvoiceModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsPayInvoiceModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPayInvoiceModalOpen]);
 
   // Select first card if current is empty or deleted
   const activeCard = cards.find(c => c.id === selectedCardId) || cards[0];
@@ -491,12 +504,31 @@ export const CardsPage: React.FC<CardsPageProps> = ({
 
       {/* Pay Invoice Modal */}
       {isPayInvoiceModalOpen && activeCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-1">Pagar Fatura do Cartão</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Valor da fatura: <strong className="text-rose-400">{formatCurrency(currentInvoiceTotal)}</strong>
-            </p>
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsPayInvoiceModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-6 my-6 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-dark-800 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-white">Pagar Fatura do Cartão</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Valor: <strong className="text-rose-400">{formatCurrency(currentInvoiceTotal)}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPayInvoiceModalOpen(false)}
+                title="Fechar janela (Esc)"
+                aria-label="Fechar modal"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handlePayInvoiceSubmit} className="space-y-4">
               <div>
@@ -520,13 +552,13 @@ export const CardsPage: React.FC<CardsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPayInvoiceModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white"
+                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 shadow-gold-glow"
+                  className="px-4 py-2 rounded-xl bg-gold-400 text-dark-950 font-black text-xs hover:bg-gold-300 active:scale-95 shadow-gold-glow transition-all"
                 >
                   Confirmar Pagamento
                 </button>

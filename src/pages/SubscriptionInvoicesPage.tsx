@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Receipt, 
   Calendar, 
@@ -12,7 +12,8 @@ import {
   Lock,
   ArrowRight,
   Download,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 import { generateReceiptPdf } from '../lib/generateReceiptPdf';
@@ -36,6 +37,18 @@ export const SubscriptionInvoicesPage: React.FC<SubscriptionInvoicesPageProps> =
   onPayInvoice,
 }) => {
   const [selectedReceipt, setSelectedReceipt] = useState<SystemSubscriptionInvoice | null>(null);
+
+  useEffect(() => {
+    if (!selectedReceipt) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedReceipt(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedReceipt]);
 
   return (
     <div className="space-y-6">
@@ -213,8 +226,22 @@ export const SubscriptionInvoicesPage: React.FC<SubscriptionInvoicesPageProps> =
 
       {/* Receipt Modal */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-dark-900 border border-dark-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedReceipt(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-sm rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-6 my-6 animate-in fade-in zoom-in-95 duration-150 space-y-4">
+            <button
+              onClick={() => setSelectedReceipt(null)}
+              title="Fechar janela (Esc)"
+              aria-label="Fechar modal"
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
+            >
+              <X size={18} />
+            </button>
+
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
               <CheckCircle2 size={24} />
             </div>
@@ -260,7 +287,7 @@ export const SubscriptionInvoicesPage: React.FC<SubscriptionInvoicesPageProps> =
                     paymentMethod: 'PIX Mercado Pago',
                   });
                 }}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-black text-xs hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-gold-glow"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-black text-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-gold-glow"
               >
                 <Download size={14} />
                 <span>Baixar Recibo Oficial em PDF</span>
@@ -268,7 +295,7 @@ export const SubscriptionInvoicesPage: React.FC<SubscriptionInvoicesPageProps> =
 
               <button
                 onClick={() => setSelectedReceipt(null)}
-                className="w-full py-2.5 rounded-xl bg-dark-800 text-slate-200 font-bold text-xs hover:bg-dark-750 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-dark-800 text-slate-200 font-bold text-xs hover:bg-dark-750 active:scale-95 transition-all"
               >
                 Fechar
               </button>

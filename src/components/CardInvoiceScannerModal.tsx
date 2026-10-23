@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Upload, 
@@ -49,6 +49,19 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
   const [processingStatus, setProcessingStatus] = useState('');
   const [parsedItems, setParsedItems] = useState<ParsedCardItem[]>([]);
   const [fileSelected, setFileSelected] = useState<File | null>(null);
+
+  // Listener de teclado Escape para fechar o modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -274,10 +287,15 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-dark-900 border border-dark-800 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+    >
+      <div className="relative w-full max-w-3xl rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-7 my-6 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[calc(100vh-3rem)] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-dark-800 bg-dark-950/70">
+        <div className="flex items-center justify-between pb-5 border-b border-dark-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gold-400/10 border border-gold-400/30 flex items-center justify-center text-gold-400">
               <Sparkles size={20} className="animate-pulse" />
@@ -294,7 +312,9 @@ export const CardInvoiceScannerModal: React.FC<CardInvoiceScannerModalProps> = (
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-dark-800 transition-colors"
+            title="Fechar janela (Esc)"
+            aria-label="Fechar modal"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 active:scale-90 transition-all duration-150"
           >
             <X size={18} />
           </button>

@@ -96,3 +96,33 @@ useEffect(() => {
 ## 🧪 Validação Obrigatória
 - Executar `npm run build` ao finalizar.
 - O build DEVE terminar com **0 erros TypeScript** e código de saída 0.
+
+---
+
+## ✅ Status da Execução: 100% Concluído & Auditado (v2.8.2)
+- **12 Modais de Componentes + 5 Modais Embutidos Atualizados:**
+  1. `BankStatementImporterModal.tsx`
+  2. `InvestmentModal.tsx`
+  3. `AccountModal.tsx`
+  4. `CardModal.tsx`
+  5. `CardExpenseModal.tsx`
+  6. `CardInvoiceScannerModal.tsx`
+  7. `AuthModal.tsx`
+  8. `MercadoPagoModal.tsx`
+  9. `CFOModal.tsx`
+  10. `InvoiceScannerModal.tsx`
+  11. `TransactionDetailsModal.tsx`
+  12. `TransactionModal.tsx`
+  13. `CardsPage.tsx` (`isPayInvoiceModalOpen`)
+  14. `ShoppingListsPage.tsx` (`isNewListModalOpen`)
+  15. `ShoppingListsPage.tsx` (`isLaunchModalOpen`)
+  16. `SubscriptionInvoicesPage.tsx` (`selectedReceipt`)
+  17. `CategoryBudgetWidget.tsx` (`isModalOpen`)
+  18. `PWAInstallBanner.tsx` (`showIOSModal`)
+- **Micro-interações aplicadas em todos:**
+  - `title="Fechar janela (Esc)"`
+  - `aria-label="Fechar modal"`
+  - `active:scale-90 hover:bg-dark-800 transition-all duration-150`
+  - `animate-in fade-in zoom-in-95 duration-150`
+  - Backdrop dismiss & listener de teclado `Escape`
+- **Build verificado:** `npm run build` executado com **0 erros TypeScript** e gerando todos os chunks em 1.30s.
