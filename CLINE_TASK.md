@@ -1,93 +1,98 @@
-# 📋 TAREFA PARA O CLINE: Command Palette Executivo & Spotlight Global (⌘K / Ctrl+K)
+# 📋 TAREFA PARA O CLINE: Padronização Executiva & Blindagem de Todos os Modais (UI & UX)
 
 ## 🎯 Objetivo
-Criar o componente executivo de alta produtividade `src/components/CommandPalette.tsx` (estilo Linear, Raycast e Mac Spotlight). 
-Permite que o usuário navegue instantaneamente pelo sistema, dispare ações financeiras rápidas e pesquise transações em tempo real usando apenas o teclado (`Cmd+K` ou `Ctrl+K`).
+Corrigir os modais que estão "meio fora" e despadronizados no sistema, garantindo experiência executiva de alto padrão em qualquer dispositivo (Desktop, Tablet e Celular).
 
 ---
 
-## 📁 Arquivos a criar / modificar
-1. **Criar:** `src/components/CommandPalette.tsx`
-2. **Modificar:** `src/components/Navbar.tsx` (adicionar botão elegante de busca rápida com badge `⌘K` na barra).
-3. **Modificar:** `src/App.tsx` (adicionar o listener global `Cmd+K` / `Ctrl+K` e renderizar o `<CommandPalette />`).
+## 🛑 Problemas Identificados para Correção Imediata
+1. **Clique Fora do Modal (Backdrop Dismiss):** Usuários clicam no fundo escuro borrado esperando fechar o modal, mas nada acontece.
+2. **Atalho Teclado `Escape`:** Pressionar `Esc` não fecha os modais secundários.
+3. **Corte de Conteúdo em Telas Menores / Celulares:** Falta de `overflow-y-auto` no container externo faz com que em telas menores ou com teclado virtual aberto, os botões de ação ("Salvar", "Cancelar", "Fechar") fiquem cortados fora da tela.
+4. **Acabamento Visual Despadronizado:** Alguns modais ainda usam `border-dark-800` cinza apagado ou cantos `rounded-2xl` antigos, sem o brilho dourado sutil do padrão Aura Finance PRO.
 
 ---
 
-## 🛠️ Especificação de `src/components/CommandPalette.tsx`
+## 📐 Padrão Obrigatório a ser Aplicado em CADA Modal
 
-### 1. Props e Interface:
-```typescript
-import { FinancialTransaction, TransactionType } from '../types/financial';
-
-export interface CommandPaletteProps {
-  isOpen: boolean;
-  onClose: () => void;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onOpenNewTransaction: (type?: TransactionType) => void;
-  onOpenScanner: () => void;
-  onOpenCFO?: () => void;
-  onTogglePrivacy?: () => void;
-  onOpenImporter?: () => void;
-  transactions: FinancialTransaction[];
-  onSelectTransaction: (tx: FinancialTransaction) => void;
-  isPrivate?: boolean;
-}
+### 1. Listener de Teclado `Escape`:
+```tsx
+useEffect(() => {
+  if (!isOpen) return;
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [isOpen, onClose]);
 ```
 
-### 2. Comportamento e Funcionalidades:
-- **Abertura / Fechamento:**
-  - Controlado por `isOpen` e `onClose`.
-  - Fecha ao pressionar `Escape` ou clicar no backdrop escuro (`backdrop-blur-md bg-black/75`).
-  - Input com `autoFocus` imediato ao abrir.
-- **Navegação por Teclado:**
-  - Seta para Baixo (`ArrowDown`) e Seta para Cima (`ArrowUp`) para alternar a seleção do item ativo (`selectedIndex`).
-  - `Enter` executa a ação do item atualmente selecionado e fecha a palette.
-- **Seções Filtradas por Busca:**
-  Quando o input estiver vazio ou o usuário digitar algo:
-  1. **🚀 Navegação Rápida:**
-     - Ir para Dashboard
-     - Ir para Extrato & Lançamentos
-     - Ir para Cartões de Crédito
-     - Ir para Contas Bancárias
-     - Ir para Investimentos & Quitação de Dívidas
-     - Ir para Listas de Compras
-     - Ir para Tutoriais & Guias
-  2. **⚡ Ações Imediatas:**
-     - + Nova Despesa (abre modal de despesa)
-     - + Nova Receita (abre modal de receita)
-     - 📥 Importar Extrato (OFX / CSV)
-     - 📸 Escanear Fatura com IA
-     - 🤖 Abrir CFO Virtual & Chat IA
-     - 👁️ Alternar Modo Privacidade
-  3. **🔍 Transações Encontradas:**
-     - Se o usuário digitar algo que combine com a descrição de transações (ex: "uber", "ifood", "salario", "mercado"), exibe as top 5 transações correspondentes.
-     - Ao clicar ou teclar `Enter` em uma transação, chama `onSelectTransaction(tx)`.
+### 2. Container Externo (Backdrop com Fechamento & Rolagem Segura):
+```tsx
+<div 
+  onClick={(e) => {
+    if (e.target === e.currentTarget) onClose();
+  }}
+  className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+>
+```
 
-### 3. Design Executivo (Padrão Black Obsidian & Gold):
-- Modal centralizado flutuante com largura máxima `max-w-2xl` e cantos arredondados `rounded-2xl`.
-- Fundo: `bg-[#0D1017]/95 border border-white/10 shadow-2xl backdrop-blur-xl`.
-- Barra de busca superior com ícone de lupa (`Search` de `lucide-react`), input limpo sem bordas feias, e botão `ESC` para fechar.
-- Item ativo com destaque: `bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-400`.
-- Rodapé do modal com dicas táteis de teclado:
-  - `↑↓ Navegar` | `↵ Executar` | `esc Fechar`
+### 3. Card do Modal (Borda Dourada, Sombra Profunda e Animação Fluida):
+```tsx
+<div className="relative w-full max-w-lg rounded-3xl bg-dark-900 border border-gold-400/30 shadow-2xl p-5 sm:p-7 my-6 animate-in fade-in zoom-in-95 duration-150">
+```
 
 ---
 
-## 🛠️ Especificação de Modificação no `Navbar.tsx`
-- Adicionar ao lado do botão do Modo Privacidade um botão elegante de busca rápida:
-  - Ex: Botão com ícone `Search`, texto sutil "Buscar ou comando..." (visível no desktop) e um badge mono `⌘K`.
-  - Ao clicar, chama `onOpenCommandPalette()`.
+## 📁 Lista de Arquivos para o Cline Refatorar
+
+### 1. `src/components/BankStatementImporterModal.tsx`
+- Adicionar listener de `Escape`.
+- Adicionar `overflow-y-auto` no backdrop exterior (`div.fixed.inset-0`).
+- Adicionar `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}` no backdrop exterior.
+- Adicionar `border-gold-400/30` na caixa do modal.
+
+### 2. `src/components/CardInvoiceScannerModal.tsx`
+- Adicionar listener de `Escape`.
+- Adicionar `overflow-y-auto` no backdrop exterior.
+- Adicionar `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}` no backdrop exterior.
+- Atualizar cantos para `rounded-3xl` e borda `border-gold-400/30`.
+
+### 3. `src/components/CardModal.tsx` e `src/components/CardExpenseModal.tsx`
+- Adicionar listener de `Escape` em ambos.
+- Adicionar `overflow-y-auto` no backdrop exterior.
+- Adicionar `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}` no backdrop exterior.
+- Atualizar cantos para `rounded-3xl` e borda `border-gold-400/30`.
+
+### 4. `src/components/AccountModal.tsx` e `src/components/InvestmentModal.tsx`
+- Adicionar listener de `Escape` em ambos.
+- Adicionar `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}` no backdrop exterior.
+- Garantir `animate-in fade-in zoom-in-95 duration-150`.
+
+### 5. `src/components/AuthModal.tsx` e `src/components/MercadoPagoModal.tsx`
+- Adicionar listener de `Escape` em ambos.
+- Adicionar `onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}` no backdrop exterior.
+- Garantir que nenhum input perca o foco indevidamente.
+
+### 6. Modais Embutidos em Páginas:
+- **`src/pages/CardsPage.tsx` (`isPayInvoiceModalOpen`):**
+  - Adicionar `onClick={(e) => { if (e.target === e.currentTarget) setIsPayInvoiceModalOpen(false); }}` no backdrop.
+  - Adicionar `overflow-y-auto` e atualizar card para `rounded-3xl border border-gold-400/30`.
+- **`src/pages/ShoppingListsPage.tsx` (`isNewListModalOpen` e `isLaunchModalOpen`):**
+  - Adicionar backdrop click dismiss e `overflow-y-auto` nos dois modais da página.
+  - Atualizar cards para `rounded-3xl border border-gold-400/30`.
+- **`src/pages/SubscriptionInvoicesPage.tsx` (`selectedReceipt`):**
+  - Adicionar backdrop click dismiss (`onClick={() => setSelectedReceipt(null)}`), listener `Escape` e `overflow-y-auto`.
+- **`src/components/CategoryBudgetWidget.tsx` (`isModalOpen`):**
+  - Adicionar listener `Escape` e backdrop click dismiss.
+- **`src/components/PWAInstallBanner.tsx` (`showIOSModal`):**
+  - Adicionar backdrop click dismiss (`onClick={() => setShowIOSModal(false)}`).
 
 ---
 
-## 🛠️ Especificação de Modificação no `App.tsx`
-- Adicionar estado `const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);`.
-- Adicionar listener global para `keydown` interceptando `(e.metaKey || e.ctrlKey) && e.key === 'k'`, prevenindo o default e abrindo a palette.
-- Renderizar `<CommandPalette ... />` passando as funções de controle e a lista de transações.
-
----
-
-## ✅ Critério de Conclusão Obrigatório
-- Não quebrar tipos do TypeScript.
-- Executar `npm run build` e certificar que compilou com **código 0**.
+## 🧪 Validação Obrigatória
+- Executar `npm run build` ao finalizar.
+- O build DEVE terminar com **0 erros TypeScript** e código de saída 0.

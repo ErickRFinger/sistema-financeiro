@@ -28,6 +28,7 @@ interface SidebarProps {
   accounts: FinancialAccount[];
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  onOpenScanner?: () => void;
   onOpenCFO?: () => void;
   onOpenMercadoPago?: () => void;
   onOpenAuth?: () => void;
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   accounts,
   mobileOpen,
   setMobileOpen,
+  onOpenScanner,
   onOpenCFO,
   onOpenMercadoPago,
   onOpenAuth,
@@ -60,14 +62,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'subscription_invoices', label: 'Faturas do Sistema', icon: Receipt, badge: 'R$ 9,90' },
     { id: 'cfo', label: 'CFO Virtual', icon: Zap, badge: 'IA', highlight: true, isAction: 'cfo' },
     { id: 'statement', label: 'Extrato de Gastos', icon: Receipt },
-    { id: 'scanner', label: 'Scanner de NF', icon: ScanLine, badge: 'IA', highlight: true },
+    { id: 'scanner', label: 'Scanner de NF', icon: ScanLine, badge: 'IA', highlight: true, isAction: 'scanner' },
     { id: 'accounts', label: 'Contas & Carteiras', icon: Landmark },
     { id: 'investments', label: 'Investimentos', icon: TrendingUp },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
   const handleNavClick = (item: any) => {
-    if (item.isAction === 'cfo' && onOpenCFO) {
+    if (item.isAction === 'scanner' && onOpenScanner) {
+      onOpenScanner();
+    } else if (item.isAction === 'cfo' && onOpenCFO) {
       onOpenCFO();
     } else if (item.isAction === 'mp' && onOpenMercadoPago) {
       onOpenMercadoPago();

@@ -1130,13 +1130,14 @@ export function App() {
           accounts={accounts}
           mobileOpen={mobileMenuOpen}
           setMobileOpen={setMobileMenuOpen}
+          onOpenScanner={() => setIsScannerModalOpen(true)}
           onOpenCFO={() => setIsCFOModalOpen(true)}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           currentUser={currentUser}
         />
 
         {/* Main Content Viewport */}
-        <main className="flex-1 px-4 sm:px-8 py-6 max-w-full overflow-x-hidden">
+        <main className="flex-1 px-4 sm:px-8 py-6 pb-24 md:pb-8 max-w-full overflow-x-hidden">
           {activeTab === 'dashboard' && (
             <DashboardPage
               accounts={accounts}
