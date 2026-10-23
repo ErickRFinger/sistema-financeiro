@@ -20,26 +20,6 @@ interface AdminSaasUser {
   id: string;
   name: string;
   email: string;
-  const mockUsers: AdminSaasUser[] = [
-    { id: 'u1', name: 'João Silva', email: 'joao@empresa.com', created_at: '2025-10-15', status: 'active', subscription_started_at: '2025-10-22' },
-    { id: 'u2', name: 'Maria Santos', email: 'maria@tech.com.br', created_at: '2025-10-18', status: 'trial', trial_ends_at: '2025-10-25' },
-    { id: 'u3', name: 'Carlos Mendes', email: 'carlos@servicos.com', created_at: '2025-10-20', status: 'trial', trial_ends_at: '2025-10-27' },
-    { id: 'u4', name: 'Ana Oliveira', email: 'ana@loja.com', created_at: '2025-10-10', status: 'inactive' },
-    { id: 'u5', name: 'Pedro Costa', email: 'pedro@consultoria.net', created_at: '2025-10-12', status: 'active', subscription_started_at: '2025-10-19' },
-  ];
-
-  const totalCustomers = mockUsers.length;
-  const trialCustomers = mockUsers.filter(u => u.status === 'trial').length;
-  const activeCustomers = mockUsers.filter(u => u.status === 'active').length;
-  const mrr = activeCustomers * 9.90;
-
-  const handleExtendTrial = (user: AdminSaasUser) => {
-    alert(`Teste estendido para ${user.name} (${user.email}) por mais 7 dias`);
-  };
-
-  const handleActivateSubscription = (user: AdminSaasUser) => {
-    alert(`Assinatura ativada manualmente para ${user.name} - R$ 9,90/mês`);
-  };
   created_at: string;
   last_sign_in_at?: string;
   plan: string;
