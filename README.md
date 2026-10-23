@@ -228,6 +228,12 @@ VITE_GEMINI_API_KEY=
 * **v2.4.1 (23/10/2026):**
   * **Atalho Global de Teclado 'P' para Modo Privacidade (`Navbar.tsx`):** Pressionar a tecla `P` no teclado agora alterna instantaneamente o Modo Privacidade entre visível e oculto (`••••••`), com proteção contextual que ignora disparos acidentais enquanto o usuário digita em `input`, `textarea`, `select` ou elementos editáveis, preservando também atalhos nativos do sistema (como `Cmd+P` de impressão).
   * **Badge Visual `[P]` no Botão da Navbar:** Exibição de uma pílula sutil em estilo mono `[P]` integrada ao botão de privacidade ao lado do ícone de olho, tornando a descoberta do atalho rápida e intuitiva.
+* **v2.5.0 (23/10/2026):**
+  * **Radar de Metas & Caixinhas com Anéis Circulares SVG (`FinancialGoalsWidget.tsx`):** Monitoramento visual de metas de vida (Reserva de Emergência, Viagem, Troca de Carro) posicionado no Dashboard com anéis circulares SVG animados (`ProgressRing`), porcentagem de atingimento no centro e cores dinâmicas customizáveis.
+  * **Aporte Rápido de Liquidez:** Botões de incremento imediato (`+R$ 100`, `+R$ 250`, `+R$ 500` e valor livre) para alimentar as caixinhas sem fricção.
+  * **Formulário de Novos Objetivos:** Cadastro completo de título, valor alvo, aporte inicial, categoria com ícones automáticos (*Escudo, Avião, Carro, Gráfico*) e color picker nativo.
+  * **Modo Privacidade:** Valores monetários das metas e saldos restantes protegidos dinamicamente com `••••••` ao ativar o atalho `P` ou botão de olho.
+
 
 
 

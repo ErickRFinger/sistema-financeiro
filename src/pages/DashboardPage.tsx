@@ -39,6 +39,7 @@ import { FinancialHealthScore } from '../components/FinancialHealthScore';
 import { MonthlyComparisonWidget } from '../components/MonthlyComparisonWidget';
 import { SafeToSpendWidget } from '../components/SafeToSpendWidget';
 import { SubscriptionHubWidget } from '../components/SubscriptionHubWidget';
+import { FinancialGoalsWidget } from '../components/FinancialGoalsWidget';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
 import { formatCurrency, formatDateFriendly } from '../lib/formatters';
 
@@ -576,6 +577,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Radar de Metas Financeiras com Anéis Circulares SVG */}
+      <FinancialGoalsWidget isPrivate={isPrivate} />
 
       {/* Financial Health, Comparison & Subscriptions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
