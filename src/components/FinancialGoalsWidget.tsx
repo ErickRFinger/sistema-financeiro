@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
-import { 
-  Target, 
-  Plus, 
-  X, 
-  Trash2, 
-  TrendingUp, 
-  Check, 
-  ShieldCheck, 
-  Plane, 
-  Car, 
-  Sparkles,
-  DollarSign
+import React, { useState, useMemo } from 'react';
+import {
+  Target,
+  Plus,
+  X,
+  Trash2,
+  TrendingUp,
+  ShieldCheck,
+  Plane,
+  Car
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 
