@@ -7,11 +7,13 @@ export interface AssistantMessage {
   text: string;
   timestamp: string;
   imageUrl?: string;
+  suggestedChips?: string[];
   actionTaken?: {
     type: 
       | 'transaction_created' 
       | 'multiple_transactions_created'
       | 'bulk_paid'
+      | 'transfer_executed'
       | 'transaction_deleted' 
       | 'transaction_updated' 
       | 'bank_balances_reset'
@@ -25,6 +27,11 @@ export interface AssistantMessage {
       | 'bank_print_processed';
     transaction?: any;
     count?: number;
+    transferData?: {
+      sourceAccountName: string;
+      targetAccountName: string;
+      amount: number;
+    };
     previousState?: any;
     investment?: any;
     accountName?: string;
@@ -44,6 +51,7 @@ export interface AssistantActionPayload {
     | 'create_transaction' 
     | 'create_multiple_transactions'
     | 'bulk_mark_paid'
+    | 'transfer_between_accounts'
     | 'delete_transaction' 
     | 'update_transaction' 
     | 'reset_bank_balances'
@@ -82,6 +90,14 @@ export interface AssistantActionPayload {
     status: 'paid' | 'pending';
   }>;
   bulkTargetTxs?: FinancialTransaction[];
+  transferData?: {
+    sourceAccountId: string;
+    sourceAccountName: string;
+    targetAccountId: string;
+    targetAccountName: string;
+    amount: number;
+  };
+  suggestedChips?: string[];
   targetTransaction?: FinancialTransaction;
   transactionUpdates?: {
     new_amount?: number;
@@ -693,7 +709,138 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 6. CONSULTA DE SALDO E PATRIMÔNIO (apenas se NÃO for comando de zerar)
+  // 6. TRANSFERÊNCIA ENTRE CONTAS BANCÁRIAS (NOVO & EXECUTIVO)
+  // Ex: "transfere 500 do btg pro inter", "passa 200 do inter pro sicredi", "transferir 1000 da caixa pro btg"
+  // ==========================================
+  const isTransfer = /transfere|transferir|transferência|passa(r)?\s+\d+|manda(r)?\s+\d+.*?(?:pra|pro|para)/i.test(lower);
+  if (isTransfer && accounts.length >= 2) {
+    const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?|\d+)/);
+    if (amountMatch) {
+      const rawNum = amountMatch[1].replace(/\./g, '').replace(',', '.');
+      const transferAmount = parseFloat(rawNum);
+
+      if (transferAmount > 0) {
+        // Encontrar conta de origem (após "do", "da", "de")
+        let sourceAcc = accounts[0];
+        let targetAcc = accounts[1] || accounts[0];
+
+        for (const acc of accounts) {
+          const accLower = acc.name.toLowerCase();
+          const simple = accLower.replace(/^banco\s+/i, '');
+          if (new RegExp(`(?:do|da|de)\\s+.*?${simple}`, 'i').test(lower) || (lower.includes('do ' + simple) || lower.includes('da ' + simple))) {
+            sourceAcc = acc;
+          }
+          if (new RegExp(`(?:para|pro|pra|ao)\\s+.*?${simple}`, 'i').test(lower) || (lower.includes('pro ' + simple) || lower.includes('pra ' + simple))) {
+            targetAcc = acc;
+          }
+        }
+
+        if (sourceAcc.id !== targetAcc.id) {
+          return {
+            intent: 'transfer_between_accounts',
+            transferData: {
+              sourceAccountId: sourceAcc.id,
+              sourceAccountName: sourceAcc.name,
+              targetAccountId: targetAcc.id,
+              targetAccountName: targetAcc.name,
+              amount: transferAmount,
+            },
+            replyText: `💸 **Transferência Executada com Sucesso!**\n\n• **Origem:** ${sourceAcc.name} (-${formatCurrency(transferAmount)})\n• **Destino:** ${targetAcc.name} (+${formatCurrency(transferAmount)})\n• **Status:** Saldo das duas contas recalculado automaticamente.`,
+            suggestedChips: ['📑 Ver no Extrato', '🏦 Ver Contas', '📊 Raio-X do Caixa'],
+          };
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // 7. CONSULTAS ANALÍTICAS & CFO VIRTUAL (QUANTO GASTEI / MAIOR GASTO / SAÚDE DO CAIXA)
+  // ==========================================
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const netResult = totalIncome - totalExpenses;
+
+  // 7.1 "Qual meu maior gasto?" ou "Onde gastei mais?"
+  if (/qual\s+(o\s+)?maior\s+(gasto|despesa|compra)|onde\s+gastei\s+mais/i.test(lower)) {
+    const expenses = transactions.filter(t => t.type === 'expense');
+    if (expenses.length === 0) {
+      return {
+        intent: 'general_chat',
+        replyText: 'Você ainda não possui despesas registradas para avaliar o maior gasto.',
+        suggestedChips: ['➕ Novo Lançamento', '📸 Ler Nota Fiscal'],
+      };
+    }
+    const highest = [...expenses].sort((a, b) => b.amount - a.amount)[0];
+    const pct = totalExpenses > 0 ? ((highest.amount / totalExpenses) * 100).toFixed(1) : '100';
+
+    return {
+      intent: 'cfo_advice',
+      replyText: `🔍 **Seu Maior Gasto Registrado:**\n\n• **Lançamento:** "${highest.title}"\n• **Valor:** ${formatCurrency(highest.amount)}\n• **Categoria:** ${highest.category}\n• **Conta:** ${accounts.find(a => a.id === highest.account_id)?.name || 'Principal'}\n• **Impacto:** Representa **${pct}%** de todas as suas despesas registradas.`,
+      suggestedChips: ['📑 Ver no Extrato', '📊 Análise Completa', '💡 Como Economizar?'],
+    };
+  }
+
+  // 7.2 "Quanto gastei com [categoria/pessoa/termo]?" (Ex: "com alimentação", "com almoço", "com a gabi")
+  const specificExpenseMatch = lower.match(/quanto\s+(eu\s+)?(gastei|paguei|saiu)\s+com\s+([a-zA-ZÀ-ÿ\s]+)/i);
+  if (specificExpenseMatch) {
+    const term = specificExpenseMatch[3].trim().toLowerCase();
+    const matched = transactions.filter(t => 
+      t.type === 'expense' && (
+        t.title.toLowerCase().includes(term) || 
+        t.category.toLowerCase().includes(term)
+      )
+    );
+    const sum = matched.reduce((acc, t) => acc + t.amount, 0);
+
+    if (matched.length > 0) {
+      const topItems = matched.slice(0, 4).map(m => `• ${m.title}: ${formatCurrency(m.amount)} (${m.status === 'paid' ? 'Pago' : 'Pendente'})`).join('\n');
+      return {
+        intent: 'query_expenses',
+        replyText: `🛒 **Gastos com "${term.toUpperCase()}":**\n\nTotal acumulado: **${formatCurrency(sum)}** em ${matched.length} lançamento(s):\n\n${topItems}`,
+        suggestedChips: ['📑 Ver no Extrato', '➕ Adicionar Gasto', '📊 CFO Virtual'],
+      };
+    } else {
+      return {
+        intent: 'query_expenses',
+        replyText: `Não encontrei despesas registradas com o termo "${term}". Seu histórico para esse item está zerado!`,
+        suggestedChips: ['➕ Lançar Despesa', '📑 Extrato Completo'],
+      };
+    }
+  }
+
+  // 7.3 "Quanto gastei esse mês?" ou "Qual o total de despesas?"
+  if (/quanto\s+(eu\s+)?(gastei|saiu)|total\s+(de\s+)?despesa(s)?|meus\s+gastos/i.test(lower) && !lower.includes('com ')) {
+    return {
+      intent: 'query_expenses',
+      replyText: `📊 **Raio-X Consolidado de Despesas:**\n\n• **Total de Despesas:** ${formatCurrency(totalExpenses)}\n• **Total de Receitas:** ${formatCurrency(totalIncome)}\n• **Resultado Líquido:** ${formatCurrency(netResult)} ${netResult >= 0 ? '(Superávit 🟢)' : '(Déficit 🔴)'}\n\n💡 *Parecer do CFO:* ${netResult >= 0 ? 'Excelente! Suas receitas superam seus custos. Considere destinar pelo menos 20% do superávit para sua reserva no CDI.' : 'Atenção aos custos variáveis para evitar consumir suas reservas bancárias.'}`,
+      suggestedChips: ['🔍 Qual meu maior gasto?', '📑 Ver no Extrato', '🪙 Investir Superávit'],
+    };
+  }
+
+  // 7.4 "Quanto faturei?" ou "Total de receitas?" ou "Quanto ganhei?"
+  if (/quanto\s+(eu\s+)?(faturei|ganhei|recebi|entrou)|total\s+(de\s+)?receita(s)?/i.test(lower)) {
+    return {
+      intent: 'query_expenses',
+      replyText: `💰 **Total de Entradas & Faturamento:**\n\nVocê faturou um total de **${formatCurrency(totalIncome)}** até o momento.\n\n• Despesas deduzidas: ${formatCurrency(totalExpenses)}\n• Caixa Líquido: **${formatCurrency(netResult)}**`,
+      suggestedChips: ['➕ Nova Receita', '📑 Ver Extrato', '📊 CFO Virtual'],
+    };
+  }
+
+  // 7.5 "Como tá meu caixa?" ou "Saúde financeira"
+  if (/como\s+tá\s+(meu\s+)?caixa|como\s+está\s+(o\s+)?caixa|saude\s+financeira|diagnostico/i.test(lower)) {
+    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const pendingCount = transactions.filter(t => t.status === 'pending').length;
+    const score = netResult >= 0 ? 92 : 65;
+
+    return {
+      intent: 'cfo_advice',
+      replyText: `⚡ **Diagnóstico de Saúde Financeira (${score}/100):**\n\n• **Saldo Consolidado nos Bancos:** ${formatCurrency(totalBalance)}\n• **Resultado Operacional:** ${formatCurrency(netResult)} ${netResult >= 0 ? '🟢' : '🔴'}\n• **Contas Pendentes:** ${pendingCount} a serem quitadas.\n\n*Recomendação:* ${pendingCount > 0 ? `Dê baixa nas ${pendingCount} contas pendentes para manter a conciliação bancária 100% auditada.` : 'Seu fluxo de caixa está perfeitamente conciliado e sem pendências!'}`,
+      suggestedChips: ['✅ Baixar contas pendentes', '📑 Extrato', '🪙 Investimentos'],
+    };
+  }
+
+  // ==========================================
+  // 8. CONSULTA DE SALDO E PATRIMÔNIO (apenas se NÃO for comando de zerar)
   // ==========================================
   const hasZeroWord = /zera|limpa|apaga|reset|coloca|muda|ajusta|definir/i.test(lower);
   if (!hasZeroWord && (lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('patrimonio') || lower.includes('dinheiro tenho'))) {
@@ -701,7 +848,8 @@ function processWithLocalNLP(
     const breakdown = accounts.map(a => `${a.name}: ${formatCurrency(a.balance)}`).join(', ');
     return {
       intent: 'query_balance',
-      replyText: `Seu patrimônio total é de ${formatCurrency(total)}. Detalhamento: ${breakdown}.`,
+      replyText: `🏦 **Seu Patrimônio Total é de ${formatCurrency(total)}**.\n\nDetalhamento por conta:\n${accounts.map(a => `• **${a.name}:** ${formatCurrency(a.balance)}`).join('\n')}`,
+      suggestedChips: ['📊 Como tá meu caixa?', '💸 Quanto gastei?', '💸 Fazer Transferência'],
     };
   }
 

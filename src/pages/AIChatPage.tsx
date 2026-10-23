@@ -19,7 +19,10 @@ import {
   Image as ImageIcon,
   ArrowRight,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Volume2,
+  VolumeX,
+  ArrowLeftRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FinancialAccount, FinancialTransaction } from '../types/financial';
@@ -57,14 +60,14 @@ const DEFAULT_WELCOME_MESSAGE: AssistantMessage = {
 };
 
 const QUICK_PROMPTS = [
+  { label: '💸 Transfere 500 do BTG pro Inter', prompt: 'transfere 500 do btg pro inter' },
+  { label: '✅ Baixar contas pendentes', prompt: 'baixar uns valores' },
+  { label: '🔍 Qual meu maior gasto?', prompt: 'qual meu maior gasto?' },
+  { label: '💰 Lançar R$ 150 pra Gabi', prompt: 'lança 150 pra gabi' },
+  { label: '🛒 Quanto gastei com alimentação?', prompt: 'quanto gastei com alimentação?' },
+  { label: '📈 Adicionar R$ 5.000 no Selic', prompt: 'adicionar 5000 no tesouro selic' },
+  { label: '📊 Saúde do meu fluxo de caixa', prompt: 'como tá meu caixa hoje?' },
   { label: '🏦 Zerar o saldo dos bancos', prompt: 'zerar o saldo dos bancos' },
-  { label: '💰 Lançar receita R$ 3.500 no BTG', prompt: 'recebi 3500 de serviço no btg' },
-  { label: '🍔 Gastei R$ 68 no almoço (Inter)', prompt: 'gastei 68 no almoço pelo inter' },
-  { label: '📈 Adicionar R$ 5.000 no Tesouro Selic', prompt: 'adicionar 5000 no tesouro selic' },
-  { label: '💳 Definir saldo do Inter para R$ 1.500', prompt: 'coloca 1500 no inter' },
-  { label: '📊 Diagnóstico de saúde financeira', prompt: 'qual a saúde do meu fluxo de caixa hoje?' },
-  { label: '🗑️ Limpar extrato de despesas', prompt: 'zerar extrato' },
-  { label: '👁️ Consultar saldo consolidado', prompt: 'qual meu saldo consolidado?' },
 ];
 
 export const AIChatPage: React.FC<AIChatPageProps> = ({
@@ -98,6 +101,27 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [undoStack, setUndoStack] = useState<any[]>([]);
   const [selectedImage, setSelectedImage] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+
+  const speakMessage = (id: string, text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (speakingMsgId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const clean = text
+      .replace(/[*_#`~•]/g, ' ')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 1.05;
+    utterance.onend = () => setSpeakingMsgId(null);
+    utterance.onerror = () => setSpeakingMsgId(null);
+    setSpeakingMsgId(id);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -458,6 +482,44 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
         confetti({ particleCount: 50, spread: 65, origin: { y: 0.8 } });
       }
 
+      // 13.1 TRANSFERÊNCIA ENTRE CONTAS
+      else if (result.intent === 'transfer_between_accounts' && result.transferData && onCreateTransaction) {
+        const { sourceAccountId, sourceAccountName, targetAccountId, targetAccountName, amount } = result.transferData;
+
+        // Despesa na origem
+        const expenseTx = {
+          title: `Transferência para ${targetAccountName}`,
+          amount,
+          type: 'expense' as const,
+          category: 'Outros',
+          account_id: sourceAccountId,
+          payment_method: 'PIX' as const,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'paid' as const,
+        };
+        await onCreateTransaction(expenseTx);
+
+        // Receita no destino
+        const incomeTx = {
+          title: `Transferência de ${sourceAccountName}`,
+          amount,
+          type: 'income' as const,
+          category: 'Outros',
+          account_id: targetAccountId,
+          payment_method: 'PIX' as const,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'paid' as const,
+        };
+        await onCreateTransaction(incomeTx);
+
+        setUndoStack((prev) => [{ type: 'transfer', txs: [expenseTx, incomeTx] }, ...prev]);
+        actionTaken = {
+          type: 'transfer_executed',
+          transferData: { sourceAccountName, targetAccountName, amount },
+        };
+        confetti({ particleCount: 55, spread: 65, origin: { y: 0.8 } });
+      }
+
       // 14. CRIAR TRANSAÇÃO ÚNICA (RECEITA / DESPESA)
       else if (result.intent === 'create_transaction' && result.transactionData) {
         const txData = result.transactionData;
@@ -484,6 +546,7 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
         text: result.replyText,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         actionTaken,
+        suggestedChips: result.suggestedChips,
       };
 
       setMessages((prev) => [...prev, asstMsg]);
@@ -678,13 +741,83 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
                         <span>Ação desfeita com sucesso! Estado anterior restaurado.</span>
                       </div>
                     )}
+
+                    {/* Transfer Executed */}
+                    {msg.actionTaken.type === 'transfer_executed' && msg.actionTaken.transferData && (
+                      <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between text-xs text-purple-300 font-bold">
+                        <div className="flex items-center gap-2">
+                          <ArrowLeftRight size={16} className="text-purple-400" />
+                          <span>{msg.actionTaken.transferData.sourceAccountName} ➔ {msg.actionTaken.transferData.targetAccountName}: {formatCurrency(msg.actionTaken.transferData.amount)}</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
+                          Transferido
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Multiple Transactions Created */}
+                    {msg.actionTaken.type === 'multiple_transactions_created' && (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300 font-bold">
+                        <div className="flex items-center gap-2">
+                          <TrendingDown size={16} className="text-emerald-400" />
+                          <span>{msg.actionTaken.count} lançamentos criados com sucesso!</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                          Em Lote
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Bulk Paid */}
+                    {msg.actionTaken.type === 'bulk_paid' && (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300 font-bold">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-400" />
+                          <span>{msg.actionTaken.count} contas pendentes baixadas como PAGAS!</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                          Baixa Concluída
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Interactive Action Chips */}
+                {msg.suggestedChips && msg.suggestedChips.length > 0 && !isUser && (
+                  <div className="flex flex-wrap gap-1.5 mt-3 pt-2.5 border-t border-white/10">
+                    {msg.suggestedChips.map((chip, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(chip)}
+                        className="px-2.5 py-1 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/25 text-[11px] font-bold text-yellow-300 transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow-sm"
+                      >
+                        <Sparkles size={11} className="text-yellow-400" />
+                        <span>{chip}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <span className="text-[10px] text-slate-500 mt-1 px-2 font-mono">
-                {msg.timestamp}
-              </span>
+              <div className="flex items-center gap-2 mt-1 px-2">
+                <span className="text-[10px] text-slate-500 font-mono">
+                  {msg.timestamp}
+                </span>
+                {!isUser && (
+                  <button
+                    onClick={() => speakMessage(msg.id, msg.text)}
+                    className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                      speakingMsgId === msg.id 
+                        ? 'text-yellow-400 bg-yellow-400/20 animate-pulse' 
+                        : 'text-slate-500 hover:text-yellow-400 hover:bg-white/5'
+                    }`}
+                    title={speakingMsgId === msg.id ? 'Parar leitura de voz' : 'Ouvir resposta com voz neural'}
+                  >
+                    {speakingMsgId === msg.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

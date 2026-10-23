@@ -379,6 +379,46 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
       }
 
       // ==========================================
+      // 6.3 TRANSFERÊNCIA ENTRE CONTAS
+      // ==========================================
+      else if (result.intent === 'transfer_between_accounts' && result.transferData && onCreateTransaction) {
+        const { sourceAccountId, sourceAccountName, targetAccountId, targetAccountName, amount } = result.transferData;
+
+        // Despesa na origem
+        const expenseTx = {
+          title: `Transferência para ${targetAccountName}`,
+          amount,
+          type: 'expense' as const,
+          category: 'Outros',
+          account_id: sourceAccountId,
+          payment_method: 'PIX' as const,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'paid' as const,
+        };
+        await onCreateTransaction(expenseTx);
+
+        // Receita no destino
+        const incomeTx = {
+          title: `Transferência de ${sourceAccountName}`,
+          amount,
+          type: 'income' as const,
+          category: 'Outros',
+          account_id: targetAccountId,
+          payment_method: 'PIX' as const,
+          transaction_date: new Date().toISOString().split('T')[0],
+          status: 'paid' as const,
+        };
+        await onCreateTransaction(incomeTx);
+
+        setUndoStack((prev) => [{ type: 'transfer', txs: [expenseTx, incomeTx] }, ...prev]);
+        actionTaken = {
+          type: 'transfer_executed',
+          transferData: { sourceAccountName, targetAccountName, amount },
+        };
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+      }
+
+      // ==========================================
       // 7. CRIAR LANÇAMENTO (RECEITA OU DESPESA)
       // ==========================================
       else if (result.transactionData && Number(result.transactionData.amount) > 0) {
@@ -416,6 +456,7 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
         text: result.replyText,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         actionTaken,
+        suggestedChips: result.suggestedChips,
       };
 
       setMessages((prev) => [...prev, botMsg]);

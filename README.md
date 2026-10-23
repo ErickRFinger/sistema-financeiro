@@ -289,6 +289,17 @@ VITE_GEMINI_API_KEY=
     * *Baixa em Lote Inteligente (`bulk_mark_paid`):* Comandos genéricos como *"baixar uns valores"* ou *"dar baixa em tudo"* localizam automaticamente as contas com status `pending` e as marcam como pagas em lote com celebração de confetes.
     * *Multi-Lançamentos em Único Comando (Batch Parsing):* A IA agora processa múltiplos lançamentos simultâneos separados por "e", vírgula ou linha (ex: *"lança 50 pra gabi e 100 de gasolina"*), criando todas as transações de uma só vez com cálculo do total consolidado.
     * *Captura Automática de Nomes:* Frases como *"lançamento pra gabi de 150"* extraem o destinatário *"Gabi"* como título do lançamento de forma limpa e automática.
+* **v3.0.0 (23/10/2026) — Edição Executiva "Carro-Chefe de Outro Mundo":**
+  * **Transferência Entre Contas com Conciliação Atômica (`transfer_between_accounts`):**
+    * A IA agora processa comandos como *"transfere 500 do BTG pro Inter"*, debitando da conta de origem, creditando no destino, gerando os lançamentos de débito/crédito e recalculando os saldos simultaneamente.
+  * **Consultas Analíticas em Tempo Real (CFO Virtual Inteligente):**
+    * *Consultas por Termo/Pessoa:* *"Quanto gastei com alimentação?"*, *"Quanto paguei pra Gabi?"* — Varre o banco em milissegundos e calcula o total acumulado com lista dos últimos itens.
+    * *Detector do Maior Gasto:* *"Qual meu maior gasto?"* — Localiza a despesa de maior valor, calcula o % de representatividade no orçamento e sugere plano de contenção.
+    * *Diagnóstico Dinâmico de Caixa:* *"Como tá meu fluxo de caixa?"* — Avalia receitas, despesas, contas a pagar e gera score de saúde financeira.
+  * **Locução por Voz Neural Nativa (Text-to-Speech pt-BR):**
+    * Botão de alto-falante (`Volume2`) integrado em cada resposta da IA, permitindo ao usuário escutar o parecer financeiro com voz neural em português do Brasil sem gastar tokens.
+  * **Action Chips Dinâmicos & Contextuais:**
+    * Botões de ação rápida abaixo das mensagens da IA (ex: *[📑 Ver no Extrato]*, *[📊 Abrir CFO]*, *[🔍 Qual meu maior gasto?]*) para navegação executiva com 1 toque no celular ou mouse.
 
 
 
