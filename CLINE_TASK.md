@@ -1,51 +1,56 @@
-# 📋 TAREFA PARA O CLINE: Simulador de Quitação de Dívidas (Método Bola de Neve vs Avalanche)
+# 📋 TAREFA PARA O CLINE: Importador Universal de Extratos Bancários (OFX & CSV)
 
 ## 🎯 Objetivo
-Criar o componente executivo `src/components/DebtSnowballSimulator.tsx` para permitir que o usuário cadastre suas dívidas pendentes (cartão de crédito, cheque especial, financiamento, empréstimos) e simule a estratégia matemática ideal para zerar todas as dívidas no menor tempo e com a maior economia de juros.
+Criar o componente modal executivo `src/components/BankStatementImporterModal.tsx` para permitir que o usuário importe extratos bancários de qualquer banco brasileiro (Nubank, Itaú, Bradesco, Santander, Inter, Caixa, Banco do Brasil) nos formatos **OFX** e **CSV**, com pré-visualização, categorização automática inteligente e importação em lote com 1 clique.
 
 ---
 
 ## 📁 Arquivos a criar / modificar
-1. Criar: `src/components/DebtSnowballSimulator.tsx`
-2. Modificar: `src/pages/InvestmentsPage.tsx` (adicionar uma aba/seção para alternar entre "Simulador de Juros Compostos" e "Quitação de Dívidas").
+1. Criar: `src/components/BankStatementImporterModal.tsx`
+2. Modificar: `src/pages/StatementPage.tsx` (adicionar botão executivo "📥 Importar Extrato (OFX/CSV)" ao lado dos botões de exportação de PDF e Excel).
 
 ---
 
-## 🛠️ Especificação de `DebtSnowballSimulator.tsx`
+## 🛠️ Especificação de `BankStatementImporterModal.tsx`
 
-### 1. Modelagem das Dívidas:
+### 1. Interface & Props:
 ```typescript
-interface DebtItem {
-  id: string;
-  name: string;
-  balance: number; // saldo devedor
-  interestRate: number; // taxa de juros mensal %
-  minPayment: number; // parcela mínima mensal
+interface BankStatementImporterModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  accounts: FinancialAccount[];
+  categories: FinancialCategory[];
+  onImportComplete: (importedTransactions: Omit<FinancialTransaction, 'id'>[]) => Promise<void>;
 }
 ```
-- Estado persistido em `localStorage` (`aura_user_debts`) com dívidas padrão para demonstração:
-  1. Cartão de Crédito Rotativo: R$ 2.500,00 | Juros: 12.5% a.m. | Mínimo: R$ 250,00
-  2. Empréstimo Pessoal: R$ 6.000,00 | Juros: 4.2% a.m. | Mínimo: R$ 380,00
-  3. Financiamento de Veículo: R$ 18.000,00 | Juros: 1.8% a.m. | Mínimo: R$ 650,00
 
-### 2. Estratégias Matemáticas:
-- **Slider Interativo:** "Aporte Extra Mensal para Abater Dívidas" (de R$ 0 a R$ 3.000/mês).
-- **Duas Estratégias com 1 Clique:**
-  - ⚡ **Método Avalanche (Maior Juro Primeiro):** Foca o valor extra na dívida com maior taxa de juros (gera a maior economia de dinheiro).
-  - ⛄ **Método Bola de Neve (Menor Saldo Primeiro):** Foca na dívida com menor saldo devedor (vitória psicológica mais rápida).
-- **Indicadores de Impacto:**
-  - Prazo Estimado para Quitação Total (ex: *"14 meses para zerar tudo"*).
-  - Economia Estimada em Juros Evitados (ex: *"Economia de R$ 4.820,00"*).
-  - Barra de progresso visual de quitação.
+### 2. Leitura & Parser de Arquivos (Sem bibliotecas externas pesadas):
+- **Suporte a arquivos `.ofx` e `.csv`**:
+  - **Parser OFX:** Extrai blocos `<STMTTRN>` capturando:
+    - `<TRNTYPE>` (DEBIT = expense, CREDIT = income)
+    - `<DTPOSTED>` (ex: `20261022` -> converte para `YYYY-MM-DD`)
+    - `<TRNAMT>` (valor monetário, converte sinal)
+    - `<MEMO>` ou `<NAME>` (descrição do gasto/depósito)
+  - **Parser CSV:** Lê cabeçalhos típicos (Data, Descrição/Histórico, Valor/Quantia). Trata vírgula e ponto decimal brasileiro (`1.250,50`).
+- **Auto-Categorização Inteligente:**
+  - Se a descrição contiver "SUPERMERCADO", "IFOOD", "PADARIA" -> seleciona categoria `Alimentação`.
+  - Se contiver "UBER", "POSTO", "COMBUSTIVEL" -> `Transporte`.
+  - Se contiver "FARMACIA", "DROGARIA", "MEDICO" -> `Saúde`.
+  - Se contiver "NETFLIX", "SPOTIFY", "AMAZON" -> `Assinaturas / Lazer`.
 
-### 3. Design Black Obsidian & Gold:
-- Padrão visual elegante com `bg-dark-900 border border-slate-800 rounded-3xl p-6 shadow-dark-card`.
-- Botões de troca de método (*Avalanche* vs *Bola de Neve*).
-- Formulário para adicionar nova dívida e botão para remover dívida quitada.
-- Suporte total ao `isPrivate` (`••••••`).
+### 3. Tela de Preview & Seleção em Lote:
+- Exibe o total de transações encontradas e o saldo líquido (Receitas vs Despesas do arquivo).
+- Seletor de Conta bancária de destino (`select` com as `accounts` cadastradas).
+- Tabela com checkboxes individuais e "Selecionar Todas / Desmarcar Todas".
+- Dropdown inline em cada linha permitindo trocar a categoria sugerida antes de salvar.
+- Botão final: **"Importar X Transações Selecionadas"** com feedback visual de sucesso.
+
+### 4. Design Black Obsidian & Gold:
+- Modal em `bg-dark-900 border border-slate-800 rounded-3xl p-6 shadow-dark-card` com backdrop blur.
+- Zona de Drag and Drop com borda pontilhada dourada (`border-dashed border-gold-400/30 hover:border-gold-400`).
 
 ---
 
 ## ✅ Critério de Conclusão Obrigatório
-- Não cometer erros de sintaxe nos imports (usar `import React from 'react';` em linha própria).
-- Executar `npm run build` no terminal e certificar que compilou com **código 0**.
+- Não quebrar tipos do TypeScript.
+- Executar `npm run build` e certificar que compilou com **código 0**.
