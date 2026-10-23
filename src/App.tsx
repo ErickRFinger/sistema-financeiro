@@ -11,6 +11,7 @@ import { AdminSaasPage } from './pages/AdminSaasPage';
 import { CardsPage } from './pages/CardsPage';
 import { ShoppingListsPage } from './pages/ShoppingListsPage';
 import { SubscriptionInvoicesPage } from './pages/SubscriptionInvoicesPage';
+import { TutorialPage } from './pages/TutorialPage';
 import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
@@ -991,6 +992,14 @@ export function App() {
               onNavigateToStatement={() => setActiveTab('statement')}
               onNavigateToCards={() => setActiveTab('cards')}
               onNavigateToShopping={() => setActiveTab('shopping_lists')}
+              onNavigateToTutorial={() => setActiveTab('tutorial')}
+            />
+          )}
+
+          {activeTab === 'tutorial' && (
+            <TutorialPage
+              setActiveTab={setActiveTab}
+              currentUser={currentUser}
             />
           )}
 

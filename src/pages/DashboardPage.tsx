@@ -12,7 +12,9 @@ import {
   PieChart as PieIcon,
   BarChart3,
   Zap,
-  CreditCard
+  CreditCard,
+  PlayCircle,
+  BookOpen
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -42,6 +44,7 @@ interface DashboardPageProps {
   onNavigateToStatement: () => void;
   onNavigateToCards?: () => void;
   onNavigateToShopping?: () => void;
+  onNavigateToTutorial?: () => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -53,6 +56,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onOpenMercadoPago,
   onSelectTransaction,
   onNavigateToStatement,
+  onNavigateToTutorial,
 }) => {
   // Current month bounds
   const now = new Date();
@@ -202,6 +206,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* PWA Download Banner */}
       <PWAInstallBanner />
+
+      {/* Tutorial & Video Guide Banner */}
+      {onNavigateToTutorial && (
+        <div 
+          onClick={onNavigateToTutorial}
+          className="group cursor-pointer rounded-2xl bg-gradient-to-r from-dark-900 via-dark-950 to-dark-900 border border-gold-400/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-gold-400 transition-all shadow-md hover:shadow-gold-glow"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0 group-hover:scale-105 transition-transform">
+              <PlayCircle size={24} className="fill-gold-400/20 text-gold-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-extrabold text-white group-hover:text-gold-300 transition-colors">
+                  Novo por aqui? Assista ao Vídeo Tutorial & Conheça Todas as Funções
+                </span>
+                <span className="hidden md:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-gold-400/20 text-gold-300 border border-gold-400/30 font-bold">
+                  7 Dias Grátis • R$ 9,90/mês
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                Aprenda a usar a IA, enviar prints bancários (Porquinhos NuBank/PicPay), ler faturas em PDF e baixar o app no celular.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs font-bold text-gold-400 group-hover:translate-x-1 transition-transform shrink-0 self-end sm:self-auto">
+            <span>Acessar Tutoriais</span>
+            <ChevronRight size={16} />
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

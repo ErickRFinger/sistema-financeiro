@@ -14,7 +14,9 @@ import {
   CreditCard,
   UserCheck,
   ShieldCheck,
-  ShoppingCart
+  ShoppingCart,
+  PlayCircle,
+  BookOpen
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -49,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'tutorial', label: 'Tutoriais & Vídeos', icon: PlayCircle, badge: 'Vídeo HD', highlight: true },
     ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS (Dono)', icon: ShieldCheck, highlight: true }] : []),
     { id: 'cards', label: 'Cartões & Faturas', icon: CreditCard, badge: 'Novo' },
     { id: 'shopping_lists', label: 'Lista de Compras', icon: ShoppingCart, badge: 'Mercado' },
