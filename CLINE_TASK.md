@@ -1,53 +1,45 @@
-# 📋 TAREFA PARA O CLINE: Importador Universal de Extratos Bancários (OFX & CSV)
+# 📋 TAREFA PARA O CLINE: Radar de Metas Financeiras com Anéis Circulares (Caixinhas de Sonhos)
 
 ## 🎯 Objetivo
-Criar o componente modal executivo `src/components/BankStatementImporterModal.tsx` para permitir que o usuário importe extratos bancários de qualquer banco brasileiro (Nubank, Itaú, Bradesco, Santander, Inter, Caixa, Banco do Brasil) nos formatos **OFX** e **CSV**, com pré-visualização, categorização automática inteligente e importação em lote com 1 clique.
+Criar o componente executivo `src/components/FinancialGoalsWidget.tsx` para permitir que o usuário crie e gerencie Metas Financeiras (ex: *Reserva de Emergência*, *Viagem de Fim de Ano*, *Troca de Carro*, *Aporte Anual*) com anéis de progresso circulares SVG elegantes em Black Obsidian & Gold, cálculo de porcentagem atingida, prazo estimado e botão de aporte rápido.
 
 ---
 
 ## 📁 Arquivos a criar / modificar
-1. Criar: `src/components/BankStatementImporterModal.tsx`
-2. Modificar: `src/pages/StatementPage.tsx` (adicionar botão executivo "📥 Importar Extrato (OFX/CSV)" ao lado dos botões de exportação de PDF e Excel).
+1. Criar: `src/components/FinancialGoalsWidget.tsx`
+2. Modificar: `src/pages/DashboardPage.tsx` (posicionar o widget de metas no Dashboard).
 
 ---
 
-## 🛠️ Especificação de `BankStatementImporterModal.tsx`
+## 🛠️ Especificação de `FinancialGoalsWidget.tsx`
 
-### 1. Interface & Props:
+### 1. Interface & Modelagem:
 ```typescript
-interface BankStatementImporterModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  accounts: FinancialAccount[];
-  categories: FinancialCategory[];
-  onImportComplete: (importedTransactions: Omit<FinancialTransaction, 'id'>[]) => Promise<void>;
+export interface FinancialGoal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadlineDate?: string;
+  category: 'emergency' | 'travel' | 'purchase' | 'investment';
+  color: string;
 }
 ```
+- Persistência em `localStorage` (`aura_user_financial_goals`) com 3 metas padrão de demonstração:
+  1. **Reserva de Emergência (6 Meses):** Alvo R$ 30.000 | Atual R$ 18.500 | Cor Ouro (`#FACC15`)
+  2. **Viagem de Férias:** Alvo R$ 8.000 | Atual R$ 5.200 | Cor Ciano (`#06B6D4`)
+  3. **Troca de Carro:** Alvo R$ 45.000 | Atual R$ 12.000 | Cor Esmeralda (`#10B981`)
 
-### 2. Leitura & Parser de Arquivos (Sem bibliotecas externas pesadas):
-- **Suporte a arquivos `.ofx` e `.csv`**:
-  - **Parser OFX:** Extrai blocos `<STMTTRN>` capturando:
-    - `<TRNTYPE>` (DEBIT = expense, CREDIT = income)
-    - `<DTPOSTED>` (ex: `20261022` -> converte para `YYYY-MM-DD`)
-    - `<TRNAMT>` (valor monetário, converte sinal)
-    - `<MEMO>` ou `<NAME>` (descrição do gasto/depósito)
-  - **Parser CSV:** Lê cabeçalhos típicos (Data, Descrição/Histórico, Valor/Quantia). Trata vírgula e ponto decimal brasileiro (`1.250,50`).
-- **Auto-Categorização Inteligente:**
-  - Se a descrição contiver "SUPERMERCADO", "IFOOD", "PADARIA" -> seleciona categoria `Alimentação`.
-  - Se contiver "UBER", "POSTO", "COMBUSTIVEL" -> `Transporte`.
-  - Se contiver "FARMACIA", "DROGARIA", "MEDICO" -> `Saúde`.
-  - Se contiver "NETFLIX", "SPOTIFY", "AMAZON" -> `Assinaturas / Lazer`.
-
-### 3. Tela de Preview & Seleção em Lote:
-- Exibe o total de transações encontradas e o saldo líquido (Receitas vs Despesas do arquivo).
-- Seletor de Conta bancária de destino (`select` com as `accounts` cadastradas).
-- Tabela com checkboxes individuais e "Selecionar Todas / Desmarcar Todas".
-- Dropdown inline em cada linha permitindo trocar a categoria sugerida antes de salvar.
-- Botão final: **"Importar X Transações Selecionadas"** com feedback visual de sucesso.
-
-### 4. Design Black Obsidian & Gold:
-- Modal em `bg-dark-900 border border-slate-800 rounded-3xl p-6 shadow-dark-card` com backdrop blur.
-- Zona de Drag and Drop com borda pontilhada dourada (`border-dashed border-gold-400/30 hover:border-gold-400`).
+### 2. Recursos & Visual:
+- **Anel de Progresso Circular SVG (Progress Ring):**
+  - Renderiza um anel circular com `strokeDasharray` e `strokeDashoffset` animado.
+  - No centro do anel, exibe a porcentagem em negrito (ex: `62%`).
+- **Botão de Aporte Rápido:**
+  - Botão "+ Aportar" com mini input para adicionar valor à meta instantaneamente.
+- **Formulário para Nova Meta:**
+  - Botão "+ Nova Meta" abrindo campos para Nome, Valor Alvo, Valor Inicial e Categoria.
+- **Suporte ao Modo Privacidade (`isPrivate`):**
+  - Ocultar valores monetários com `••••••` quando `isPrivate` for `true`.
 
 ---
 
