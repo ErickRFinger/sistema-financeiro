@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Zap, 
   PlusCircle, 
@@ -12,7 +12,9 @@ import {
   User,
   UserPlus,
   Eye,
-  EyeOff
+  EyeOff,
+  Bell,
+  Clock
 } from 'lucide-react';
 import { formatCurrency } from '../lib/formatters';
 import { FinancialAccount } from '../types/financial';
@@ -50,6 +52,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   isPrivate = false,
   onTogglePrivacy,
 }) => {
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [notificationsOpen]);
+
   const totalBalance = accounts.reduce((acc, a) => acc + (a.balance || 0), 0);
 
   return (
@@ -121,6 +142,118 @@ export const Navbar: React.FC<NavbarProps> = ({
               {isPrivate ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           )}
+
+          {/* Notifications Button & Floating Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setNotificationsOpen(prev => !prev)}
+              className={`relative p-2 rounded-xl border transition-all text-xs font-bold flex items-center justify-center active:scale-95 cursor-pointer ${
+                notificationsOpen
+                  ? 'bg-gold-400/20 border-gold-400 text-gold-400 shadow-gold-glow'
+                  : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white hover:border-dark-700'
+              }`}
+              title="Notificações e Alertas"
+              aria-label="Abrir Notificações"
+            >
+              <Bell size={16} />
+              {/* Badge Vermelho com Contador */}
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-dark-950 animate-pulse">
+                2
+              </span>
+            </button>
+
+            {/* Dropdown Flutuante Black Obsidian & Gold */}
+            {notificationsOpen && (
+              <div className="absolute right-0 top-full mt-2.5 w-72 sm:w-80 md:w-96 rounded-2xl bg-dark-900/95 backdrop-blur-xl border border-gold-400/30 shadow-dark-card z-50 p-3.5 sm:p-4 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                {/* Cabeçalho */}
+                <div className="flex items-center justify-between pb-2.5 border-b border-dark-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-gold-400/20 text-gold-400 flex items-center justify-center">
+                      <Bell size={13} />
+                    </div>
+                    <span className="text-xs sm:text-sm font-extrabold text-white">
+                      Notificações & Alertas
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    2 novos
+                  </span>
+                </div>
+
+                {/* Lista de Alertas Rápidos */}
+                <div className="space-y-2">
+                  {/* Alerta 1: Contas a Vencer */}
+                  <div 
+                    onClick={() => {
+                      setActiveTab('statement');
+                      setNotificationsOpen(false);
+                    }}
+                    className="p-3 rounded-xl bg-dark-950/80 border border-dark-800 hover:border-amber-500/40 hover:bg-dark-850/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                        <Clock size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-bold text-white group-hover:text-gold-400 transition-colors">
+                            Contas a Vencer
+                          </span>
+                          <span className="text-[9px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            Atenção
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                          Você tem contas com vencimento hoje ou nos próximos 3 dias.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alerta 2: Fatura do Sistema */}
+                  <div 
+                    onClick={() => {
+                      if (onOpenMercadoPago) onOpenMercadoPago();
+                      else setActiveTab('invoices');
+                      setNotificationsOpen(false);
+                    }}
+                    className="p-3 rounded-xl bg-dark-950/80 border border-dark-800 hover:border-gold-400/40 hover:bg-dark-850/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-gold-400/15 text-gold-400 flex items-center justify-center shrink-0 mt-0.5">
+                        <CreditCard size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-bold text-white group-hover:text-gold-400 transition-colors">
+                            Fatura do Sistema
+                          </span>
+                          <span className="text-[9px] font-semibold text-gold-400 bg-gold-400/10 px-1.5 py-0.5 rounded border border-gold-400/20">
+                            R$ 9,90/mês
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                          Mensalidade de R$ 9,90 com vencimento todo dia 10.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rodapé do Dropdown */}
+                <div className="pt-2 border-t border-dark-800 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Avisos automáticos</span>
+                  <button
+                    type="button"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="text-gold-400 hover:text-gold-300 font-bold transition-colors cursor-pointer"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           {/* CFO Button */}
           {onOpenCFO && (
             <button
