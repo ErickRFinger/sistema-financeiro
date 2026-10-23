@@ -95,7 +95,7 @@ export const INITIAL_DEFAULT_ACCOUNTS: FinancialAccount[] = [
   { id: 'acc_mp', name: 'Mercado Pago', color: '#06b6d4', balance: 1200.0 },
 ];
 
-export const DEFAULT_CATEGORIES = [
+export const DEFAULT_CATEGORIES: FinancialCategory[] = [
   { name: 'Alimentação & Refeição', icon: 'Utensils', color: '#f59e0b' },
   { name: 'Fornecedores & Peças', icon: 'Truck', color: '#eab308' },
   { name: 'Infraestrutura & Ferramentas', icon: 'Wrench', color: '#ca8a04' },
@@ -175,5 +175,11 @@ export interface SystemSubscriptionInvoice {
 export interface CategoryBudget {
   category: string;
   monthly_limit: number;
+}
+
+export interface FinancialCategory {
+  name: string;
+  icon: string;
+  color: string;
 }
 

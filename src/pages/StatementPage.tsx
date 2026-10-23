@@ -13,7 +13,8 @@ import {
   Trash2,
   ExternalLink,
   PlusCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Upload
 } from 'lucide-react';
 import { 
   FinancialTransaction, 
@@ -25,6 +26,7 @@ import {
 import { formatCurrency, formatDate } from '../lib/formatters';
 import { generateFinancialStatementPDF } from '../lib/pdfExport';
 import { exportFinancialStatementToExcel } from '../lib/excelExport';
+import { BankStatementImporterModal } from '../components/BankStatementImporterModal';
 
 interface StatementPageProps {
   transactions: FinancialTransaction[];
@@ -33,6 +35,7 @@ interface StatementPageProps {
   onOpenNewTransaction: (type?: TransactionType) => void;
   onToggleStatus: (tx: FinancialTransaction, newStatus: 'paid' | 'pending') => Promise<void>;
   onDeleteTransaction: (tx: FinancialTransaction) => Promise<void>;
+  onImportTransactions?: (imported: Omit<FinancialTransaction, 'id' | 'created_at'>[]) => Promise<void>;
 }
 
 const formatDateToISO = (date: Date): string => {
@@ -80,8 +83,10 @@ export const StatementPage: React.FC<StatementPageProps> = ({
   onOpenNewTransaction,
   onToggleStatus,
   onDeleteTransaction,
+  onImportTransactions,
 }) => {
   // Filter States
+  const [isImporterOpen, setIsImporterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState<string>(() => getPresetDates().this_month.start);
   const [endDate, setEndDate] = useState<string>(() => getPresetDates().this_month.end);
@@ -232,6 +237,15 @@ export const StatementPage: React.FC<StatementPageProps> = ({
           >
             <FileSpreadsheet size={16} className="text-emerald-400" />
             <span>Excel (.xlsx)</span>
+          </button>
+
+          <button
+            onClick={() => setIsImporterOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-dark-950 border border-dark-800 hover:border-cyan-400/50 text-slate-200 hover:text-cyan-300 font-bold text-xs sm:text-sm transition-all shadow-sm active:scale-95"
+            title="Importar Extrato Bancário (OFX ou CSV)"
+          >
+            <Upload size={16} className="text-cyan-400" />
+            <span>Importar Extrato</span>
           </button>
 
           <button
@@ -603,6 +617,18 @@ export const StatementPage: React.FC<StatementPageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal de Importação de Extrato Bancário OFX / CSV */}
+      <BankStatementImporterModal
+        isOpen={isImporterOpen}
+        onClose={() => setIsImporterOpen(false)}
+        accounts={accounts}
+        onImportComplete={async (imported) => {
+          if (onImportTransactions) {
+            await onImportTransactions(imported);
+          }
+        }}
+      />
     </div>
   );
 };

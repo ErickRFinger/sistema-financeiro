@@ -220,6 +220,12 @@ VITE_GEMINI_API_KEY=
   * **Motor Matemático de Efeito Bola de Neve:** À medida que cada dívida é liquidada, o valor de sua parcela mínima é automaticamente incorporado ao aporte extra mensal, acelerando exponencialmente a quitação das dívidas subsequentes.
   * **Painel Executivo de Indicadores de Impacto:** Exibição do prazo exato para quitação total (com contador de meses antecipados), economia monetária em juros evitados, data da liberdade financeira e lista priorizada com destaque para o alvo ativo ("🎯 Alvo Atual").
   * **Aba Dupla na Página de Investimentos (`InvestmentsPage.tsx`):** Seletor elegante em abas Black Obsidian & Gold permitindo alternar entre o "Multiplicador de Patrimônio (Juros Compostos)" e a "Quitação de Dívidas".
+* **v2.4.0 (23/10/2026):**
+  * **Importador Universal de Extratos Bancários OFX & CSV (`BankStatementImporterModal.tsx`):** Ferramenta de conciliação bancária completa que permite arrastar ou carregar extratos bancários de qualquer instituição (Nubank, Itaú, Inter, Bradesco, Santander, Caixa, Banco do Brasil).
+  * **Parser Inteligente Dual (OFX & CSV):** Extração de dados nativa sem bibliotecas pesadas, tratando blocos `<STMTTRN>` e separadores de planilhas CSV, convertendo datas e sinais de movimentação com precisão cirúrgica.
+  * **Auto-Categorização Heurística Brasileira:** Reconhecimento automático de despesas e receitas por termos populares (*Supermercado, iFood, Posto, Uber, Netflix, Aluguel, Salário*), atribuindo instantaneamente as categorias correspondentes.
+  * **Tabela de Conciliação em Lote no Extrato (`StatementPage.tsx`):** Revisão antes de importar, com seleção em massa, personalização de categoria por item, métricas consolidadas (Total de Entradas vs Saídas) e destinação para a conta bancária escolhida.
+
 
 
 

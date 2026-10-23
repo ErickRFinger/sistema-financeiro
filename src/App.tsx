@@ -1073,6 +1073,11 @@ export function App() {
               onOpenNewTransaction={handleOpenNewTransaction}
               onToggleStatus={handleToggleStatus}
               onDeleteTransaction={handleDeleteTransaction}
+              onImportTransactions={async (importedList) => {
+                for (const item of importedList) {
+                  await handleCreateTransaction(item);
+                }
+              }}
             />
           )}
 
