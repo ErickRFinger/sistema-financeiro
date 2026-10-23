@@ -202,6 +202,7 @@ VITE_GEMINI_API_KEY=
   * **Barra de Progresso Trifásica Colorida:** Visualização com preenchimento em 3 cores distintas (Azul para Necessidades, Ouro para Estilo de Vida e Esmeralda para Futuro), indicando as porcentagens reais atingidas no mês e os valores monetários calculados, com compatibilidade com o Modo Privacidade.
 * **v2.0.0 (23/10/2026):**
   * **Card "Disponível para Gastar Hoje" (*Safe to Spend* - Inspirado no Copilot Money & Nubank):** Widget de alto impacto no topo do Dashboard que calcula matematicamente o valor máximo seguro que o usuário pode desembolsar por dia até o último dia do mês corrente (`(Saldo Atual - Contas Comprometidas) / Dias Restantes`).
+  * **Tooltip Flutuante com Fórmula Matemática:** Tooltip interativo executivo em estilo Black Obsidian & Gold ao passar o mouse ou tocar na badge *Safe to Spend*, exibindo a equação exata `(Saldo Atual - Contas a Vencer) ÷ Dias Restantes` e a decomposição analítica dos valores em tempo real.
   * **Blindagem de Caixa & Modo Privacidade:** Detecção automática de dias restantes, status dinâmico (Verde se positivo, Vermelho com alerta se negativo) e suporte completo à ocultação de valores sensíveis com o olhinho (`isPrivate`).
 * **v2.1.0 (23/10/2026):**
   * **Radar de Assinaturas & Recorrências (`SubscriptionHubWidget`):** Controle visual de serviços recorrentes (Netflix, Spotify, ChatGPT, SmartFit, Internet, etc.) com cálculo dinâmico de custo mensal e impacto anual acumulado, dias restantes para o próximo débito e cadastro de novas assinaturas persistido no LocalStorage.
