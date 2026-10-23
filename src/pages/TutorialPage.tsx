@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DemoVideoPlayer } from '../components/DemoVideoPlayer';
 import { 
   PlayCircle, 
   BookOpen, 
@@ -173,59 +174,15 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
         {/* 1. VÍDEO DEMONSTRATIVO */}
         {activeCategory === 'video' && (
           <div className="space-y-6">
-            <div className="rounded-3xl bg-dark-950 border border-dark-800 overflow-hidden shadow-2xl">
-              <div className="p-4 sm:p-5 bg-dark-900 border-b border-dark-800 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 font-bold">
-                    <PlayCircle size={22} />
-                  </div>
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                      Vídeo Oficial Demonstrativo (Locução Neural em Estúdio)
-                    </h2>
-                    <p className="text-xs text-slate-400">
-                      Navegue pelos 6 capítulos ou assista à apresentação completa com áudio de estúdio de alta fidelidade
-                    </p>
-                  </div>
-                </div>
+            {/* Native Canvas & Neural Studio Voice Video Player */}
+            <DemoVideoPlayer />
 
-                <div className="flex items-center gap-2">
-                  <a
-                    href="/demo-video.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-800 border border-dark-700 hover:border-gold-400/40 text-slate-200 text-xs font-semibold transition-all"
-                  >
-                    <Maximize2 size={14} className="text-gold-400" />
-                    <span>Tela Cheia</span>
-                  </a>
-                  <a
-                    href="/demo-video.html"
-                    download="Aura_Finance_Apresentacao_Oficial.html"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gold-400/15 border border-gold-400/30 text-gold-300 hover:bg-gold-400/25 text-xs font-bold transition-all"
-                  >
-                    <Download size={14} />
-                    <span>Baixar Apresentador</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Embedded Interactive Video Player */}
-              <div className="relative w-full aspect-video sm:h-[580px] bg-black">
-                <iframe
-                  src="/demo-video.html"
-                  title="Aura Finance - Apresentação Oficial"
-                  className="w-full h-full border-0"
-                  allow="autoplay; microphone; camera; display-capture"
-                />
-              </div>
-
-              {/* Video Chapters Breakdown */}
-              <div className="p-5 sm:p-6 bg-dark-900/40 border-t border-dark-800">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                  <BookOpen size={15} className="text-gold-400" />
-                  Roteiro do Vídeo & Capítulos Abordados:
-                </h3>
+            {/* Video Chapters Breakdown */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-dark-950 border border-dark-800 shadow-xl">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                <BookOpen size={15} className="text-gold-400" />
+                Roteiro do Vídeo & Capítulos Abordados:
+              </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-gold-400/30 transition-colors">
@@ -296,7 +253,6 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab, curren
                 </div>
               </div>
             </div>
-          </div>
         )}
 
         {/* 2. ASSINATURA, 7 DIAS GRÁTIS & R$ 9,90 */}

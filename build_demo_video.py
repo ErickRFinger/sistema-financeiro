@@ -9,7 +9,7 @@ html_template = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <title>Aura Finance PRO - Vídeo Narrado com Voz Neural</title>
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes pulse-wave {
       0%, 100% { height: 6px; }
