@@ -32,7 +32,12 @@ import {
   Trash2,
   Undo2,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Eye,
+  Scale,
+  Wallet,
+  PieChart,
+  Sliders
 } from 'lucide-react';
 
 interface TutorialPageProps {
@@ -42,7 +47,7 @@ interface TutorialPageProps {
 
 export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab }) => {
   const [activeCategory, setActiveCategory] = useState<
-    'video' | 'subscription' | 'ia' | 'cards' | 'shopping' | 'scanner' | 'pwa' | 'investments' | 'cheatsheet' | 'faq'
+    'video' | 'subscription' | 'ia' | 'cards' | 'shopping' | 'scanner' | 'pwa' | 'investments' | 'cheatsheet' | 'safetospend' | 'privacy' | 'faq'
   >('video');
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
@@ -55,6 +60,8 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab }) => {
 
   const categories = [
     { id: 'video', label: 'Vídeo Demonstrativo', icon: PlayCircle, badge: 'Voz Neural' },
+    { id: 'safetospend', label: 'Safe to Spend & Regra 50/30/20', icon: Wallet, badge: 'Fintech IA' },
+    { id: 'privacy', label: 'Modo Privacidade & PIX In-App', icon: Eye, badge: 'Segurança' },
     { id: 'subscription', label: '7 Dias Grátis & R$ 9,90/mês', icon: Receipt, badge: 'Assinatura' },
     { id: 'ia', label: 'IA Completa & Prints de Bancos', icon: Sparkles, badge: 'Porquinhos' },
     { id: 'cards', label: 'Cartões & Scanner de Fatura', icon: CreditCard, badge: 'PDF / Foto' },
@@ -98,6 +105,22 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab }) => {
     {
       q: 'Como instalar o aplicativo no celular sem lojas de apps?',
       a: 'O Aura Finance é um Progressive Web App (PWA). No Android (Google Chrome), toque nos 3 pontinhos do topo e selecione "Instalar aplicativo" ou "Adicionar à tela inicial". No iPhone (Safari), toque no botão Compartilhar (quadrado com seta para cima) e selecione "Adicionar à Tela de Início". O aplicativo abre em tela cheia sem barras de navegador e não ocupa espaço na memória.'
+    },
+    {
+      q: 'O que é o recurso "Disponível para Gastar Hoje" (Safe to Spend)?',
+      a: 'Inspirado nos aplicativos mais premiados do Vale do Silício (como Copilot Money e Monarch), esse widget calcula matematicamente quanto você pode gastar hoje ou por dia até o fim do mês corrente. Ele pega o saldo real em caixa, desconta as contas já comprometidas que vão vencer e divide pelos dias restantes. Se o valor estiver verde, você está seguro; se estiver vermelho, significa que suas contas superam seu saldo atual.'
+    },
+    {
+      q: 'Como funciona o diagnóstico da "Regra 50/30/20" no Orçamento?',
+      a: 'A Regra 50/30/20 é o padrão ouro de finanças pessoais recomendado pelos maiores consultores globais. O sistema classifica automaticamente seus gastos em: 50% Necessidades (moradia, supermercado, saúde), 30% Estilo de Vida (lazer, compras, saídas) e 20% Futuro (investimentos e poupança). Uma barra trifásica colorida mostra exatamente como você distribuiu seu dinheiro no mês corrente.'
+    },
+    {
+      q: 'O que é o Modo Privacidade e como ele me protege em público?',
+      a: 'Ao tocar no ícone do olhinho na barra superior (Navbar) ou no Dashboard, todos os valores financeiros, patrimônio consolidado e extratos se transformam instantaneamente em "••••••". Isso permite que você abra o aplicativo no metrô, ônibus, restaurante ou na frente de colegas sem que ninguém veja seus saldos reais.'
+    },
+    {
+      q: 'Como funciona o pagamento via PIX Direto no aplicativo e o recibo em PDF?',
+      a: 'Quando sua fatura de R$ 9,90/mês vencer, o modal do Mercado Pago abre diretamente na sua tela com o QR Code dinâmico em Base64 e a chave Copia e Cola. Assim que você paga no seu banco, o sistema reconhece o pagamento em menos de 3 segundos, libera o acesso imediatamente e gera um recibo executivo oficial em PDF com layout Black & Gold para você baixar.'
     }
   ];
 
@@ -837,6 +860,140 @@ export const TutorialPage: React.FC<TutorialPageProps> = ({ setActiveTab }) => {
                     <li>Calcula a sua taxa de poupança mensal (quanto sobra do que você ganha);</li>
                     <li>Alerta se os gastos fixos ultrapassarem 50% da sua renda;</li>
                     <li>Sugere realocações inteligentes de saldo para render mais juros compostos.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 9. SAFE TO SPEND & REGRA 50/30/20 */}
+        {activeCategory === 'safetospend' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-3xl bg-dark-950 border border-gold-400/30 shadow-xl space-y-6">
+              <div className="border-b border-dark-850 pb-5">
+                <span className="px-3 py-1 rounded-full bg-gold-400/20 text-gold-300 text-xs font-bold uppercase">
+                  Metodologia das Melhores Fintechs
+                </span>
+                <h2 className="text-2xl font-black text-white mt-2">
+                  Disponível para Gastar Hoje & Regra 50/30/20
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Aprenda como a inteligência do Aura Finance elimina a ansiedade de final de mês e calcula seu limite diário seguro.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Safe to Spend Card */}
+                <div className="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gold-400/10 text-gold-400 flex items-center justify-center border border-gold-400/30">
+                      <Wallet size={16} />
+                    </div>
+                    <h3 className="text-base font-bold text-white">
+                      1. "Disponível para Gastar Hoje" (Safe to Spend)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Ter R$ 3.000 no banco não significa que você pode gastar R$ 3.000. O card no topo do Dashboard calcula:
+                  </p>
+                  <div className="p-3 rounded-xl bg-dark-950 border border-slate-800 font-mono text-[11px] text-gold-300">
+                    Limite Diário = (Saldo Total - Contas a Pagar até dia 31) ÷ Dias Restantes
+                  </div>
+                  <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                    <li><strong className="text-emerald-400">Verde:</strong> Você está seguro para gastar até o valor diário indicado;</li>
+                    <li><strong className="text-rose-400">Vermelho:</strong> Suas contas a pagar superam o saldo em caixa;</li>
+                    <li>Atualizado em tempo real a cada novo gasto ou entrada registrada.</li>
+                  </ul>
+                </div>
+
+                {/* 50/30/20 Card */}
+                <div className="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/30">
+                      <PieChart size={16} />
+                    </div>
+                    <h3 className="text-base font-bold text-white">
+                      2. Diagnóstico da Regra 50 / 30 / 20
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    No rodapé do teto de gastos, a barra trifásica indica se suas despesas estão equilibradas:
+                  </p>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-dark-950 border border-sky-500/20">
+                      <span className="text-sky-400 font-bold">50% Necessidades:</span>
+                      <span className="text-slate-300">Aluguel, Mercado, Saúde, Luz e Água</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-dark-950 border border-gold-400/20">
+                      <span className="text-gold-400 font-bold">30% Estilo de Vida:</span>
+                      <span className="text-slate-300">Lazer, Restaurantes, Compras e Streaming</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-dark-950 border border-emerald-500/20">
+                      <span className="text-emerald-400 font-bold">20% Futuro:</span>
+                      <span className="text-slate-300">Aportes, Poupança e Investimentos</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 10. MODO PRIVACIDADE & PIX IN-APP */}
+        {activeCategory === 'privacy' && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-3xl bg-dark-950 border border-gold-400/30 shadow-xl space-y-6">
+              <div className="border-b border-dark-850 pb-5">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase">
+                  Segurança & Conveniência
+                </span>
+                <h2 className="text-2xl font-black text-white mt-2">
+                  Modo Privacidade & Pagamento PIX com Recibo Oficial
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Conheça os recursos de proteção visual e liquidação instantânea via Mercado Pago.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Modo Privacidade */}
+                <div className="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gold-400/10 text-gold-400 flex items-center justify-center border border-gold-400/30">
+                      <Eye size={16} />
+                    </div>
+                    <h3 className="text-base font-bold text-white">
+                      1. Modo Privacidade com 1 Toque
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    No topo do aplicativo e na barra de navegação, você encontra o ícone de Olho:
+                  </p>
+                  <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                    <li>Ao clicar, todo valor em dinheiro se transforma em <span className="text-gold-300 font-mono font-bold">••••••</span>;</li>
+                    <li>Sua preferência fica salva no celular para as próximas vezes;</li>
+                    <li>Ideal para consultar gastos em público, trabalho ou transporte.</li>
+                  </ul>
+                </div>
+
+                {/* PIX Direto In-App */}
+                <div className="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                      <Receipt size={16} />
+                    </div>
+                    <h3 className="text-base font-bold text-white">
+                      2. PIX Direto In-App & Recibo em PDF
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Pagamento da mensalidade de R$ 9,90 sem sair da página:
+                  </p>
+                  <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                    <li>QR Code dinâmico do Mercado Pago gerado direto no modal;</li>
+                    <li>Detecção automática de pagamento em menos de 3 segundos;</li>
+                    <li>Botão de download para comprovante oficial de quitação em PDF Black & Gold.</li>
                   </ul>
                 </div>
               </div>
