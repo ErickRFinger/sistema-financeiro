@@ -7,13 +7,24 @@ export interface AssistantMessage {
   text: string;
   timestamp: string;
   actionTaken?: {
-    type: 'transaction_created' | 'balance_queried' | 'advice_given';
+    type: 'transaction_created' | 'transaction_deleted' | 'transaction_updated' | 'data_reset' | 'undo_executed' | 'screen_opened';
     transaction?: any;
+    previousState?: any;
   };
 }
 
 export interface AssistantActionPayload {
-  intent: 'create_transaction' | 'query_balance' | 'query_expenses' | 'cfo_advice' | 'general_chat';
+  intent: 
+    | 'create_transaction' 
+    | 'delete_transaction' 
+    | 'update_transaction' 
+    | 'reset_all_data' 
+    | 'undo_action' 
+    | 'open_screen' 
+    | 'query_balance' 
+    | 'query_expenses' 
+    | 'cfo_advice' 
+    | 'general_chat';
   transactionData?: {
     type: TransactionType;
     amount: number;
@@ -24,6 +35,14 @@ export interface AssistantActionPayload {
     date: string;
     status: 'paid' | 'pending';
   };
+  targetTransaction?: FinancialTransaction;
+  transactionUpdates?: {
+    new_amount?: number;
+    new_status?: 'paid' | 'pending';
+    new_category?: string;
+    new_account_id?: string;
+  };
+  targetScreen?: 'scanner' | 'cfo' | 'mercadopago' | 'statement' | 'accounts' | 'investments' | 'dashboard';
   replyText: string;
 }
 
@@ -48,12 +67,12 @@ export async function processUserFinancialVoiceOrText(
     }
   }
 
-  // Fallback: Local High-Precision NLP Engine (No key required!)
+  // Fallback: Local High-Precision Autonomous NLP Engine (Works instantly with ZERO API keys!)
   return processWithLocalNLP(cleanInput, accounts, transactions);
 }
 
 /**
- * Gemini 1.5 Flash Engine with Structured Intent & Financial Function Calling
+ * Gemini 1.5 Flash Engine with Autonomous Function Calling
  */
 async function processWithGeminiAPI(
   userInput: string,
@@ -62,39 +81,47 @@ async function processWithGeminiAPI(
   apiKey: string
 ): Promise<AssistantActionPayload | null> {
   const accountsContext = accounts.map(a => `ID: "${a.id}", Nome: "${a.name}", Saldo: ${a.balance}`).join(' | ');
+  const recentTxsContext = transactions.slice(0, 5).map(t => `ID: "${t.id}", Título: "${t.title}", Valor: ${t.amount}, Tipo: ${t.type}, Status: ${t.status}`).join(' | ');
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const systemPrompt = `Você é o Assistente Executivo Financeiro do sistema Aura Finance.
-O usuário vai falar ou digitar comandos como:
-- "ganhei 1800,00 coloca no caixa" -> Criar transação de RECEITA (income), valor 1800.00
-- "gastei 85 no almoço no cartão de crédito" -> Criar transação de DESPESA (expense), valor 85.00
-- "paguei a conta de luz 350 reais pelo BTG" -> Criar transação de DESPESA (expense), valor 350.00
-- "qual meu saldo?" -> Consultar saldo
+  const systemPrompt = `Você é o Copiloto Autônomo e Assistente Executivo Financeiro do sistema Aura Finance PRO.
+Você tem poder de controle TOTAL sobre o sistema. Se o usuário mandar lançar, alterar, cancelar, excluir, zerar tudo ou voltar, você executa a ação.
 
-CONTAS BANCÁRIAS REAIS EXISTENTES NO SISTEMA:
+CONTAS BANCÁRIAS DISPONÍVEIS:
 [${accountsContext}]
 
-IMPORTANTE SOBRE AS CONTAS:
-- Se o usuário disser "caixa" ou "carteira" ou não especificar, use o ID "${accounts[0]?.id || 'acc_btg'}".
-- Se falar BTG, use o ID correspondente.
-- Se falar Inter, use o ID correspondente.
-- O campo "account_id" DEVE SER O ID EXATO (ex: "${accounts[0]?.id || 'acc_btg'}").
+ÚLTIMOS LANÇAMENTOS DO USUÁRIO:
+[${recentTxsContext}]
 
 DATA DE HOJE: ${todayStr}
 
+Comandos que você deve reconhecer:
+1. CRIAR: "ganhei 1800 coloca no caixa", "gastei 85 no almoço", "comprei parafusos 120" -> intent: "create_transaction"
+2. ZERAR TUDO: "zera tudo", "zerar tudo", "limpa todos os lançamentos", "apaga tudo" -> intent: "reset_all_data"
+3. VOLTAR / DESFAZER: "volta", "desfaz", "cancela a última ação", "desfazer" -> intent: "undo_action"
+4. EXCLUIR / CANCELAR: "exclui o último lançamento", "cancela o almoço", "apaga a conta de luz" -> intent: "delete_transaction"
+5. ALTERAR: "altera o almoço para 95 reais", "muda o valor para 200", "marca como pago", "marca como pendente" -> intent: "update_transaction"
+6. ABRIR TELAS: "abre o leitor de nota fiscal", "abre o extrato", "cobrar com mercado pago", "abre o cfo" -> intent: "open_screen"
+7. SALDO: "qual meu saldo?", "quanto tenho?" -> intent: "query_balance"
+
 Responda APENAS em JSON estrito (sem markdown):
 {
-  "intent": "create_transaction",
-  "replyText": "Confirmação detalhada informando o valor e conta onde foi lançado.",
+  "intent": "create_transaction" | "delete_transaction" | "update_transaction" | "reset_all_data" | "undo_action" | "open_screen" | "query_balance" | "general_chat",
+  "replyText": "Resposta clara em português confirmando o que você executou.",
+  "targetScreen": "scanner" | "cfo" | "mercadopago" | "statement" | "accounts" | "investments" | "dashboard" (opcional),
   "transactionData": {
     "type": "income" ou "expense",
     "amount": 1800.00,
-    "title": "Descrição limpa do lançamento",
-    "category": "Vendas & Serviços Prestados" | "Alimentação & Refeição" | "Combustível & Transporte" | "Infraestrutura & Ferramentas" | "Equipamentos & Hardware" | "Aluguel & Contas Fixas" | "Outros",
+    "title": "Descrição limpa",
+    "category": "Alimentação & Refeição" | "Combustível & Transporte" | "Infraestrutura & Ferramentas" | "Equipamentos & Hardware" | "Aluguel & Contas Fixas" | "Vendas & Serviços Prestados" | "Outros",
     "account_id": "${accounts[0]?.id || 'acc_btg'}",
     "payment_method": "PIX" | "Cartão de Crédito" | "Cartão de Débito" | "Boleto" | "Dinheiro",
     "date": "${todayStr}",
-    "status": "paid"
+    "status": "paid" | "pending"
+  },
+  "transactionUpdates": {
+    "new_amount": 95.00 (opcional),
+    "new_status": "paid" ou "pending" (opcional)
   }
 }`;
 
@@ -124,55 +151,229 @@ Responda APENAS em JSON estrito (sem markdown):
 
   const parsed = JSON.parse(jsonMatch[0]);
 
-  // Sanitize transaction data if returned
-  if (parsed.transactionData && Number(parsed.transactionData.amount) > 0) {
-    const rawType = String(parsed.transactionData.type || '').toLowerCase();
-    parsed.transactionData.type = (
-      rawType.includes('receita') || 
-      rawType.includes('entrada') || 
-      rawType.includes('ganho') || 
-      rawType.includes('venda') || 
-      rawType === 'income'
-    ) ? 'income' : 'expense';
-
-    parsed.transactionData.amount = Math.abs(Number(parsed.transactionData.amount));
-
-    // Force valid account ID
-    const targetId = String(parsed.transactionData.account_id || '').toLowerCase();
-    const matchedAcc = accounts.find(a => a.id === targetId || a.name.toLowerCase().includes(targetId));
-    if (matchedAcc) {
-      parsed.transactionData.account_id = matchedAcc.id;
-    } else {
-      parsed.transactionData.account_id = accounts[0]?.id || 'acc_btg';
-    }
-
-    parsed.intent = 'create_transaction';
+  // If intent is delete or update, associate target transaction from recent list
+  if ((parsed.intent === 'delete_transaction' || parsed.intent === 'update_transaction') && transactions.length > 0) {
+    const lowerInput = userInput.toLowerCase();
+    const matched = transactions.find(t => 
+      lowerInput.includes(t.title.toLowerCase()) || 
+      lowerInput.includes(t.category.toLowerCase())
+    ) || transactions[0];
+    parsed.targetTransaction = matched;
   }
 
   return parsed;
 }
 
 /**
- * Local Rule-based NLP Engine (Works instantly with ZERO API keys)
+ * Local High-Precision Autonomous NLP Engine
+ * Executa todas as ações mesmo sem chave de API do Gemini!
  */
 function processWithLocalNLP(
   input: string,
   accounts: FinancialAccount[],
   transactions: FinancialTransaction[]
 ): AssistantActionPayload {
-  const lower = input.toLowerCase();
+  const lower = input.toLowerCase().trim();
 
-  // 1. Balance Query intent
+  // ==========================================
+  // 1. ZERAR TUDO (RESET ALL DATA)
+  // ==========================================
+  if (
+    lower.includes('zera tudo') || 
+    lower.includes('zerar tudo') || 
+    lower.includes('limpa tudo') || 
+    lower.includes('limpar tudo') || 
+    lower.includes('resetar tudo') || 
+    lower.includes('apaga tudo') ||
+    lower.includes('apagar tudo') ||
+    lower.includes('zera meus dados') ||
+    lower.includes('reiniciar dados')
+  ) {
+    return {
+      intent: 'reset_all_data',
+      replyText: '⚠️ Entendido! Zerei todos os lançamentos e reiniciei suas contas bancárias com saldo R$ 0,00.',
+    };
+  }
+
+  // ==========================================
+  // 2. VOLTAR / DESFAZER (UNDO)
+  // ==========================================
+  if (
+    lower === 'volta' || 
+    lower === 'voltar' || 
+    lower === 'desfaz' || 
+    lower === 'desfazer' || 
+    lower.includes('desfaz o que') || 
+    lower.includes('cancela a ultima') || 
+    lower.includes('desfazer a ultima') || 
+    lower.includes('recupera o que')
+  ) {
+    return {
+      intent: 'undo_action',
+      replyText: '↩️ Ação desfeita com sucesso! Restaurei o estado anterior do sistema.',
+    };
+  }
+
+  // ==========================================
+  // 3. EXCLUIR / CANCELAR LANÇAMENTO
+  // ==========================================
+  if (
+    lower.includes('exclui') || 
+    lower.includes('excluir') || 
+    lower.includes('cancela') || 
+    lower.includes('cancelar') || 
+    lower.includes('apaga o') || 
+    lower.includes('apagar o') || 
+    lower.includes('deleta') || 
+    lower.includes('deletar') || 
+    lower.includes('remove o') || 
+    lower.includes('remover o')
+  ) {
+    if (transactions.length === 0) {
+      return {
+        intent: 'general_chat',
+        replyText: 'Você ainda não possui nenhum lançamento para excluir.',
+      };
+    }
+
+    // Try finding by keyword
+    let target = transactions[0]; // default to last one
+    for (const t of transactions) {
+      const titleLower = t.title.toLowerCase();
+      if (lower.includes(titleLower) || lower.includes(t.category.toLowerCase())) {
+        target = t;
+        break;
+      }
+    }
+
+    return {
+      intent: 'delete_transaction',
+      targetTransaction: target,
+      replyText: `🗑️ Lançamento "${target.title}" no valor de ${formatCurrency(target.amount)} foi excluído e o saldo foi recalculado.`,
+    };
+  }
+
+  // ==========================================
+  // 4. ALTERAR LANÇAMENTO
+  // ==========================================
+  if (
+    lower.includes('altera') || 
+    lower.includes('alterar') || 
+    lower.includes('muda o') || 
+    lower.includes('mudar o') || 
+    lower.includes('marca como') || 
+    lower.includes('marcar como') || 
+    lower.includes('corrige') || 
+    lower.includes('corrigir')
+  ) {
+    if (transactions.length === 0) {
+      return {
+        intent: 'general_chat',
+        replyText: 'Você ainda não possui nenhum lançamento registrado para alterar.',
+      };
+    }
+
+    let target = transactions[0];
+    for (const t of transactions) {
+      if (lower.includes(t.title.toLowerCase())) {
+        target = t;
+        break;
+      }
+    }
+
+    // Check for status update
+    if (lower.includes('pago') || lower.includes('paga') || lower.includes('liquidado')) {
+      return {
+        intent: 'update_transaction',
+        targetTransaction: target,
+        transactionUpdates: { new_status: 'paid' },
+        replyText: `✅ Lançamento "${target.title}" foi marcado como PAGO.`,
+      };
+    }
+
+    if (lower.includes('pendente') || lower.includes('a pagar')) {
+      return {
+        intent: 'update_transaction',
+        targetTransaction: target,
+        transactionUpdates: { new_status: 'pending' },
+        replyText: `⏳ Lançamento "${target.title}" foi alterado para status PENDENTE.`,
+      };
+    }
+
+    // Check for new amount
+    const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
+    if (amountMatch) {
+      const rawNum = amountMatch[1].replace(/\./g, '').replace(',', '.');
+      const newAmount = parseFloat(rawNum);
+      if (newAmount > 0) {
+        return {
+          intent: 'update_transaction',
+          targetTransaction: target,
+          transactionUpdates: { new_amount: newAmount },
+          replyText: `✏️ O valor de "${target.title}" foi alterado para ${formatCurrency(newAmount)}.`,
+        };
+      }
+    }
+  }
+
+  // ==========================================
+  // 5. NAVEGAÇÃO & ABERTURA DE TELAS
+  // ==========================================
+  if (lower.includes('leitor') || lower.includes('nota fiscal') || lower.includes('escanear') || lower.includes('ler nota')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'scanner',
+      replyText: '📸 Abrindo o Leitor de Nota Fiscal com Inteligência Artificial OCR...',
+    };
+  }
+
+  if (lower.includes('cfo') || lower.includes('diagnostico') || lower.includes('saude financeira') || lower.includes('auditoria')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'cfo',
+      replyText: '📊 Abrindo o CFO Virtual com diagnóstico executivo e auditoria de preços...',
+    };
+  }
+
+  if (lower.includes('mercado pago') || lower.includes('cobrar') || lower.includes('mensalidade') || lower.includes('pix cobranca')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'mercadopago',
+      replyText: '⚡ Abrindo módulo de cobrança via Mercado Pago...',
+    };
+  }
+
+  if (lower.includes('extrato') || lower.includes('relatorio')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'statement',
+      replyText: '📑 Abrindo o Extrato Completo com filtros e exportação PDF/Excel...',
+    };
+  }
+
+  if (lower.includes('investimento') || lower.includes('acoes') || lower.includes('cdi') || lower.includes('selic')) {
+    return {
+      intent: 'open_screen',
+      targetScreen: 'investments',
+      replyText: '🪙 Abrindo a carteira de Investimentos e Cotações ao Vivo...',
+    };
+  }
+
+  // ==========================================
+  // 6. CONSULTA DE SALDO E PATRIMÔNIO
+  // ==========================================
   if (lower.includes('saldo') || lower.includes('quanto tenho') || lower.includes('patrimonio') || lower.includes('dinheiro tenho')) {
     const total = accounts.reduce((acc, a) => acc + a.balance, 0);
     const breakdown = accounts.map(a => `${a.name}: ${formatCurrency(a.balance)}`).join(', ');
     return {
       intent: 'query_balance',
-      replyText: `Seu patrimônio total hoje é de ${formatCurrency(total)}. Detalhamento: ${breakdown}.`,
+      replyText: `Seu patrimônio total é de ${formatCurrency(total)}. Detalhamento: ${breakdown}.`,
     };
   }
 
-  // 2. Extract Amount
+  // ==========================================
+  // 7. LANÇAR TRANSAÇÃO (RECEITA / DESPESA)
+  // ==========================================
   let amount = 0;
   const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
   if (amountMatch) {
@@ -180,77 +381,69 @@ function processWithLocalNLP(
     amount = parseFloat(rawNum);
   }
 
-  // 3. Determine Income vs Expense
   const isIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido|deposito/i.test(lower);
   const isExpense = /gastei|paguei|comprei|saiu|boleto|despesa|custo|debitou|debita|pagar|compra/i.test(lower);
 
-  const type: TransactionType = (isIncome && !isExpense) || lower.includes('ganhei') || lower.includes('recebi') ? 'income' : 'expense';
+  if (amount > 0 && (isIncome || isExpense || lower.includes('caixa') || lower.includes('coloca'))) {
+    const type: TransactionType = (isIncome && !isExpense) || lower.includes('ganhei') || lower.includes('recebi') ? 'income' : 'expense';
 
-  // 4. Determine Target Bank Account
-  let targetAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
-  for (const acc of accounts) {
-    const accName = acc.name.toLowerCase();
-    if (
-      lower.includes(accName) || 
-      (accName.includes('btg') && lower.includes('btg')) || 
-      (accName.includes('inter') && lower.includes('inter')) || 
-      (accName.includes('mercado') && lower.includes('mercado')) || 
-      (accName.includes('sicredi') && lower.includes('sicredi'))
-    ) {
-      targetAccount = acc;
-      break;
+    let targetAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
+    for (const acc of accounts) {
+      const accName = acc.name.toLowerCase();
+      if (
+        lower.includes(accName) || 
+        (accName.includes('btg') && lower.includes('btg')) || 
+        (accName.includes('inter') && lower.includes('inter')) || 
+        (accName.includes('mercado') && lower.includes('mercado')) || 
+        (accName.includes('sicredi') && lower.includes('sicredi'))
+      ) {
+        targetAccount = acc;
+        break;
+      }
     }
-  }
 
-  // If user says "caixa" or "carteira"
-  if (lower.includes('caixa') || lower.includes('carteira')) {
-    const found = accounts.find(a => 
-      a.id === 'acc_mp' || 
-      a.name.toLowerCase().includes('mercado') || 
-      a.name.toLowerCase().includes('caixa')
-    );
-    if (found) targetAccount = found;
-  }
+    if (lower.includes('caixa') || lower.includes('carteira')) {
+      const found = accounts.find(a => 
+        a.id.includes('mp') || 
+        a.name.toLowerCase().includes('mercado') || 
+        a.name.toLowerCase().includes('caixa')
+      );
+      if (found) targetAccount = found;
+    }
 
-  // 5. Category detection
-  let category = type === 'income' ? 'Vendas & Serviços Prestados' : 'Outros';
-  if (/almoco|almoço|jantar|lanche|comida|mercado|padaria|restaurante|cafe|café|ifood/.test(lower)) {
-    category = 'Alimentação & Refeição';
-  } else if (/gasolina|combustivel|combustível|etanol|diesel|posto|uber|estacionamento|pedagio|pedágio/.test(lower)) {
-    category = 'Combustível & Transporte';
-  } else if (/ferramenta|parafuso|bucha|material|obra|construcao|construção|cabo|fita/.test(lower)) {
-    category = 'Infraestrutura & Ferramentas';
-  } else if (/camera|câmera|dvr|switch|servidor|computador|notebook|pecas|peças|hardware/.test(lower)) {
-    category = 'Equipamentos & Hardware';
-  } else if (/luz|agua|água|aluguel|internet|vivo|energia|claro|enel/.test(lower)) {
-    category = 'Aluguel & Contas Fixas';
-  }
+    let category = type === 'income' ? 'Vendas & Serviços Prestados' : 'Outros';
+    if (/almoco|almoço|jantar|lanche|comida|mercado|padaria|restaurante|cafe|café|ifood/.test(lower)) {
+      category = 'Alimentação & Refeição';
+    } else if (/gasolina|combustivel|combustível|etanol|diesel|posto|uber|estacionamento|pedagio|pedágio/.test(lower)) {
+      category = 'Combustível & Transporte';
+    } else if (/ferramenta|parafuso|bucha|material|obra|construcao|construção|cabo|fita/.test(lower)) {
+      category = 'Infraestrutura & Ferramentas';
+    } else if (/camera|câmera|dvr|switch|servidor|computador|notebook|pecas|peças|hardware/.test(lower)) {
+      category = 'Equipamentos & Hardware';
+    } else if (/luz|agua|água|aluguel|internet|vivo|energia|claro|enel/.test(lower)) {
+      category = 'Aluguel & Contas Fixas';
+    }
 
-  // 6. Payment method
-  let payment_method: PaymentMethod = 'PIX';
-  if (/credito|crédito|cartao de credito|cartão de crédito/.test(lower)) payment_method = 'Cartão de Crédito';
-  else if (/debito|débito|cartao de debito|cartão de débito/.test(lower)) payment_method = 'Cartão de Débito';
-  else if (/boleto/.test(lower)) payment_method = 'Boleto';
-  else if (/dinheiro|especie|espécie/.test(lower)) payment_method = 'Dinheiro';
-  else if (/ted|transferencia|transferência/.test(lower)) payment_method = 'Transferência';
+    let payment_method: PaymentMethod = 'PIX';
+    if (/credito|crédito|cartao de credito|cartão de crédito/.test(lower)) payment_method = 'Cartão de Crédito';
+    else if (/debito|débito|cartao de debito|cartão de débito/.test(lower)) payment_method = 'Cartão de Débito';
+    else if (/boleto/.test(lower)) payment_method = 'Boleto';
+    else if (/dinheiro|especie|espécie/.test(lower)) payment_method = 'Dinheiro';
 
-  // 7. Status (paid vs pending)
-  const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(lower);
-  const status: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
+    const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(lower);
+    const status: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
 
-  // 8. Clean title
-  let title = type === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
-  const cleanedTitle = input
-    .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|no caixa|na conta|reais|r\$|,00|\.00/gi, '')
-    .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/g, '')
-    .replace(/[,;]/g, '')
-    .trim();
+    let title = type === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
+    const cleanedTitle = input
+      .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|no caixa|na conta|reais|r\$|,00|\.00/gi, '')
+      .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/g, '')
+      .replace(/[,;]/g, '')
+      .trim();
 
-  if (cleanedTitle.length >= 3) {
-    title = cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1);
-  }
+    if (cleanedTitle.length >= 3) {
+      title = cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1);
+    }
 
-  if (amount > 0) {
     return {
       intent: 'create_transaction',
       replyText: `✅ Lançamento registrado! ${type === 'income' ? 'Receita' : 'Despesa'} de ${formatCurrency(amount)} adicionada na conta ${targetAccount.name} (${category}).`,
@@ -267,8 +460,9 @@ function processWithLocalNLP(
     };
   }
 
+  // Default Fallback
   return {
     intent: 'general_chat',
-    replyText: 'Entendi! Para lançar um valor automaticamente, você pode dizer por exemplo: "Ganhei 1800,00 coloca no caixa" ou "Gastei 45 no almoço".',
+    replyText: 'Entendi! Posso fazer lançamentos, alterar valores, cancelar gastos, zerar tudo ou abrir relatórios. O que deseja fazer?',
   };
 }

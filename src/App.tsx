@@ -7,6 +7,7 @@ import { StatementPage } from './pages/StatementPage';
 import { AccountsPage } from './pages/AccountsPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AdminSaasPage } from './pages/AdminSaasPage';
 import { TransactionModal } from './components/TransactionModal';
 import { InvoiceScannerModal } from './components/InvoiceScannerModal';
 import { TransactionDetailsModal } from './components/TransactionDetailsModal';
@@ -538,6 +539,10 @@ export function App() {
             />
           )}
 
+          {activeTab === 'saas_admin' && (
+            <AdminSaasPage />
+          )}
+
           {activeTab === 'statement' && (
             <StatementPage
               transactions={transactions}
@@ -657,12 +662,21 @@ export function App() {
         onSignOut={handleSignOut}
       />
 
-      {/* Conversational AI Financial Assistant */}
+      {/* Conversational AI Financial Assistant (Full Control) */}
       <AIAssistantChat
         accounts={accounts}
         transactions={transactions}
         onCreateTransaction={handleCreateTransaction}
+        onDeleteTransaction={handleDeleteTransaction}
+        onUpdateTransactionStatus={handleToggleStatus}
+        onResetAllData={handleClearData}
+        onOpenScanner={() => setIsScannerModalOpen(true)}
         onOpenCFO={() => setIsCFOModalOpen(true)}
+        onOpenMercadoPago={() => {
+          setMpModalMode('subscription');
+          setIsMercadoPagoModalOpen(true);
+        }}
+        onNavigateTab={(tab) => setActiveTab(tab)}
       />
     </div>
   );

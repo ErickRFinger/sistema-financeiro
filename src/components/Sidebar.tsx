@@ -12,7 +12,8 @@ import {
   Wallet,
   Zap,
   CreditCard,
-  UserCheck
+  UserCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { FinancialAccount } from '../types/financial';
 import { formatCurrency } from '../lib/formatters';
@@ -40,8 +41,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAuth,
   currentUser,
 }) => {
+  const isAdmin = Boolean(
+    currentUser?.email === 'admin@aurafinance.com.br' || 
+    currentUser?.user_metadata?.is_admin === true
+  );
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ...(isAdmin ? [{ id: 'saas_admin', label: 'Painel SaaS (Dono)', icon: ShieldCheck, highlight: true }] : []),
     { id: 'cfo', label: 'CFO Virtual (IA)', icon: Zap, highlight: true, isAction: 'cfo' },
     { id: 'mercadopago', label: 'Cobrar Mercado Pago', icon: CreditCard, highlight: true, isAction: 'mp' },
     { id: 'statement', label: 'Extrato de Gastos', icon: Receipt, badge: 'Completo' },
