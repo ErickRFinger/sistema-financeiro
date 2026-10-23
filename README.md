@@ -230,6 +230,7 @@ VITE_GEMINI_API_KEY=
   * **Badge Visual `[P]` no Botão da Navbar:** Exibição de uma pílula sutil em estilo mono `[P]` integrada ao botão de privacidade ao lado do ícone de olho, tornando a descoberta do atalho rápida e intuitiva.
 * **v2.5.0 (23/10/2026):**
   * **Radar de Metas & Caixinhas com Anéis Circulares SVG (`FinancialGoalsWidget.tsx`):** Monitoramento visual de metas de vida (Reserva de Emergência, Viagem, Troca de Carro) posicionado no Dashboard com anéis circulares SVG animados (`ProgressRing`), porcentagem de atingimento no centro e cores dinâmicas customizáveis.
+  * **Micro-Animação de Celebração & Brilho Dourado:** Efeito de pulso luminoso dourado (`animate-pulse`), aura externa iluminada (`shadow-gold-glow`), filtro `drop-shadow` nos traços do SVG e badge de celebração especial (`🎉 Meta Atingida!`) renderizado automaticamente nos anéis circulares que alcançarem 100% ou mais da meta.
   * **Aporte Rápido de Liquidez:** Botões de incremento imediato (`+R$ 100`, `+R$ 250`, `+R$ 500` e valor livre) para alimentar as caixinhas sem fricção.
   * **Formulário de Novos Objetivos:** Cadastro completo de título, valor alvo, aporte inicial, categoria com ícones automáticos (*Escudo, Avião, Carro, Gráfico*) e color picker nativo.
   * **Modo Privacidade:** Valores monetários das metas e saldos restantes protegidos dinamicamente com `••••••` ao ativar o atalho `P` ou botão de olho.

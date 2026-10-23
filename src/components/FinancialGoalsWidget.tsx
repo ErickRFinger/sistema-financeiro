@@ -60,41 +60,65 @@ const ProgressRing: React.FC<{
   color: string;
   size?: number;
   strokeWidth?: number;
-}> = ({ percent, color, size = 64, strokeWidth = 5 }) => {
+  showBadge?: boolean;
+}> = ({ percent, color, size = 64, strokeWidth = 5, showBadge = true }) => {
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedPercent = Math.min(100, Math.max(0, percent));
   const strokeDashoffset = circumference - (clampedPercent / 100) * circumference;
+  const isGoalReached = percent >= 100;
 
   return (
-    <div className="relative inline-flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <svg className="transform -rotate-90" width={size} height={size}>
-        {/* Background Track */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#1e293b"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-        />
-        {/* Progress Arc */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          fill="transparent"
-          className="transition-all duration-700 ease-out"
-        />
-      </svg>
-      <span className="absolute text-[11px] font-black text-white font-mono tracking-tighter">
-        {clampedPercent}%
-      </span>
+    <div className="relative inline-flex flex-col items-center justify-center shrink-0">
+      <div 
+        className={`relative inline-flex items-center justify-center shrink-0 rounded-full transition-all duration-500 ${
+          isGoalReached 
+            ? 'animate-pulse shadow-gold-glow ring-2 ring-gold-400/50 bg-gold-400/10' 
+            : ''
+        }`} 
+        style={{ 
+          width: size, 
+          height: size,
+          filter: isGoalReached ? 'drop-shadow(0 0 8px rgba(250, 204, 21, 0.75))' : undefined,
+        }}
+      >
+        <svg className="transform -rotate-90" width={size} height={size}>
+          {/* Background Track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#1e293b"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+          {/* Progress Arc */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={isGoalReached ? '#FACC15' : color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="transparent"
+            className="transition-all duration-700 ease-out"
+          />
+        </svg>
+        <span className={`absolute text-[11px] font-black font-mono tracking-tighter ${
+          isGoalReached ? 'text-gold-400 font-extrabold' : 'text-white'
+        }`}>
+          {clampedPercent}%
+        </span>
+      </div>
+
+      {/* Badge de Celebração da Meta */}
+      {isGoalReached && showBadge && (
+        <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 via-gold-400/30 to-yellow-500/25 text-gold-300 border border-gold-400/50 shadow-gold-glow animate-pulse whitespace-nowrap">
+          🎉 Meta Atingida!
+        </span>
+      )}
     </div>
   );
 };
@@ -310,13 +334,21 @@ export const FinancialGoalsWidget: React.FC<FinancialGoalsWidgetProps> = ({ isPr
           return (
             <div
               key={goal.id}
-              className="p-4 rounded-2xl bg-dark-950 border border-dark-800 hover:border-slate-700 transition-all flex flex-col justify-between"
+              className={`p-4 rounded-2xl bg-dark-950 border transition-all flex flex-col justify-between ${
+                percent >= 100
+                  ? 'border-gold-400/40 shadow-[0_0_15px_rgba(250,204,21,0.08)] bg-gradient-to-b from-dark-950 to-gold-950/15'
+                  : 'border-dark-800 hover:border-slate-700'
+              }`}
             >
               <div>
                 {/* Topo do Card */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-dark-900 border border-dark-800">
+                    <div className={`p-1.5 rounded-lg border transition-colors ${
+                      percent >= 100 
+                        ? 'bg-gold-400/15 border-gold-400/40 text-gold-400' 
+                        : 'bg-dark-900 border-dark-800'
+                    }`}>
                       {getCategoryIcon(goal.category)}
                     </div>
                     <span className="text-xs font-bold text-white truncate max-w-[150px]">
@@ -391,7 +423,13 @@ export const FinancialGoalsWidget: React.FC<FinancialGoalsWidgetProps> = ({ isPr
                 ) : (
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[10px] text-slate-500">
-                      Falta: <strong className="text-slate-300">{isPrivate ? '••••••' : formatCurrency(remaining)}</strong>
+                      {percent >= 100 ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          ✨ 100% Concluído
+                        </span>
+                      ) : (
+                        <>Falta: <strong className="text-slate-300">{isPrivate ? '••••••' : formatCurrency(remaining)}</strong></>
+                      )}
                     </span>
                     <button
                       onClick={() => setActiveDepositId(goal.id)}
