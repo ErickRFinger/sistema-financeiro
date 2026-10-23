@@ -6,7 +6,13 @@ import {
   PlusCircle, 
   Coins, 
   ArrowUpRight,
-  Trash2 
+  Trash2,
+  Target,
+  Award,
+  Calendar,
+  Edit3,
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { FinancialInvestment, FinancialAccount } from '../types/financial';
 import { formatCurrency, formatDate } from '../lib/formatters';
@@ -74,10 +80,45 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, curr
     }
   };
 
+  const userKey = currentUser ? `aura_user_${currentUser.id}` : 'aura_guest';
+  const [savingsGoal, setSavingsGoal] = useState<{ title: string; targetAmount: number; targetDate: string }>(() => {
+    const saved = localStorage.getItem(`${userKey}_savings_goal`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return {
+      title: 'Reserva do Porquinho & Caixinha 100% CDI',
+      targetAmount: 50000.00,
+      targetDate: '2026-12-31'
+    };
+  });
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
+  const [goalTitleInput, setGoalTitleInput] = useState(savingsGoal.title);
+  const [goalAmountInput, setGoalAmountInput] = useState(String(savingsGoal.targetAmount));
+  const [goalDateInput, setGoalDateInput] = useState(savingsGoal.targetDate);
+
+  const handleSaveGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newGoal = {
+      title: goalTitleInput.trim() || 'Minha Meta de Poupança',
+      targetAmount: Number(goalAmountInput) > 0 ? Number(goalAmountInput) : 50000,
+      targetDate: goalDateInput || '2026-12-31',
+    };
+    setSavingsGoal(newGoal);
+    localStorage.setItem(`${userKey}_savings_goal`, JSON.stringify(newGoal));
+    setIsEditingGoal(false);
+  };
+
   const totalInvested = investments.reduce((acc, i) => acc + (i.current_amount || 0), 0);
   const totalInitial = investments.reduce((acc, i) => acc + (i.initial_amount || 0), 0);
   const totalGain = totalInvested - totalInitial;
   const yieldPercent = totalInitial > 0 ? ((totalGain / totalInitial) * 100).toFixed(2) : '0';
+
+  const progressPercent = savingsGoal.targetAmount > 0 
+    ? Math.min(100, Math.max(0, (totalInvested / savingsGoal.targetAmount) * 100)) 
+    : 0;
+  const remainingAmount = Math.max(0, savingsGoal.targetAmount - totalInvested);
+  const monthlyYieldSelic = totalInvested * 0.0108; // ~1,08% ao mês líquido com Selic a 13,75% a.a.
 
   return (
     <div className="space-y-6 pb-24 md:pb-12">
@@ -121,6 +162,144 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, curr
 
       {/* Real-time Market Quotes Widget */}
       <CurrencyQuotesWidget />
+
+      {/* Savings Goal Card (Meta do Porquinho & Caixinhas) */}
+      <div className="rounded-3xl bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 border border-gold-400/30 p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-gold-400/10 blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0">
+              <Target size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-white">{savingsGoal.title}</h3>
+                {progressPercent >= 100 ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase flex items-center gap-1 shadow-sm">
+                    <Sparkles size={11} />
+                    Meta Atingida!
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-gold-400/15 text-gold-300 border border-gold-400/30 text-[10px] font-bold">
+                    Selic 13,75% a.a.
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Alvo: <span className="text-white font-bold">{formatCurrency(savingsGoal.targetAmount)}</span> até {savingsGoal.targetDate}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsEditingGoal(!isEditingGoal)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-750 text-slate-300 hover:text-white text-xs font-semibold transition-all self-start sm:self-auto shrink-0"
+          >
+            <Edit3 size={13} className="text-gold-400" />
+            <span>{isEditingGoal ? 'Cancelar Edição' : 'Ajustar Meta'}</span>
+          </button>
+        </div>
+
+        {/* Edit Goal Inline Form */}
+        {isEditingGoal && (
+          <form onSubmit={handleSaveGoal} className="mb-5 p-4 rounded-2xl bg-dark-950 border border-dark-800 space-y-3">
+            <p className="text-xs font-bold text-gold-400 uppercase tracking-wider">Configurar Nova Meta:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Título da Meta</label>
+                <input
+                  type="text"
+                  value={goalTitleInput}
+                  onChange={(e) => setGoalTitleInput(e.target.value)}
+                  placeholder="Ex: Porquinho Reserva de Emergência"
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs text-white focus:outline-none focus:border-gold-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Valor Alvo (R$)</label>
+                <input
+                  type="number"
+                  value={goalAmountInput}
+                  onChange={(e) => setGoalAmountInput(e.target.value)}
+                  placeholder="50000"
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs text-white focus:outline-none focus:border-gold-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Data Limite</label>
+                <input
+                  type="date"
+                  value={goalDateInput}
+                  onChange={(e) => setGoalDateInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs text-white focus:outline-none focus:border-gold-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingGoal(false)}
+                className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 rounded-xl bg-gold-400 text-dark-950 font-bold text-xs hover:brightness-110 shadow-sm"
+              >
+                Salvar Meta
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Progress Bar Container */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-300">
+              Progresso Acumulado: <strong className="text-gold-400">{formatCurrency(totalInvested)}</strong>
+            </span>
+            <span className="font-extrabold text-white text-sm">
+              {progressPercent.toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="h-4 rounded-full bg-dark-950 border border-dark-800 overflow-hidden relative p-0.5">
+            <div 
+              className="h-full rounded-full bg-gradient-to-r from-amber-500 via-gold-400 to-yellow-300 transition-all duration-700 shadow-gold-glow"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Metric Insights Sub-grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-dark-800">
+          <div className="p-3 rounded-xl bg-dark-950/60 border border-dark-850">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Falta para a Meta</span>
+            <span className="text-sm sm:text-base font-extrabold text-white">
+              {remainingAmount <= 0 ? '✓ Alvo Concluído!' : formatCurrency(remainingAmount)}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-dark-950/60 border border-dark-850">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Rendimento Estimado (Selic 13,75%)</span>
+            <span className="text-sm sm:text-base font-extrabold text-emerald-400">
+              +{formatCurrency(monthlyYieldSelic)} <span className="text-[11px] text-slate-400 font-normal">/ mês</span>
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-dark-950/60 border border-dark-850">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Rendimento Anual Projetado</span>
+            <span className="text-sm sm:text-base font-extrabold text-gold-400">
+              +{formatCurrency(totalInvested * 0.1375)} <span className="text-[11px] text-slate-400 font-normal">/ ano</span>
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Investments List */}
       <div className="rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card p-5 sm:p-6">

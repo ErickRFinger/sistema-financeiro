@@ -14,7 +14,10 @@ import {
   Zap,
   CreditCard,
   PlayCircle,
-  BookOpen
+  BookOpen,
+  Receipt,
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -45,6 +48,9 @@ interface DashboardPageProps {
   onNavigateToCards?: () => void;
   onNavigateToShopping?: () => void;
   onNavigateToTutorial?: () => void;
+  onNavigateToSubscription?: () => void;
+  isPaidSubscription?: boolean;
+  trialDaysRemaining?: number;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -57,6 +63,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onSelectTransaction,
   onNavigateToStatement,
   onNavigateToTutorial,
+  onNavigateToSubscription,
+  isPaidSubscription = false,
+  trialDaysRemaining = 7,
 }) => {
   // Current month bounds
   const now = new Date();
@@ -237,6 +246,102 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <ChevronRight size={16} />
           </div>
         </div>
+      )}
+
+      {/* System Subscription Invoice Alert / Trial Reminder Banner */}
+      {onNavigateToSubscription && (
+        <>
+          {!isPaidSubscription && trialDaysRemaining <= 0 ? (
+            <div 
+              onClick={onNavigateToSubscription}
+              className="cursor-pointer rounded-2xl bg-gradient-to-r from-rose-950/70 via-dark-900 to-amber-950/60 border border-rose-500/40 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg hover:border-rose-400 transition-all group"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0 animate-pulse">
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-black text-rose-200">
+                      Mensalidade Pendente • R$ 9,90/mês
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                      Venceu dia 10
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                    Seu período de testes encerrou. Quite sua fatura via PIX com liberação imediata para evitar bloqueios no sistema.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-gold-400 to-amber-500 text-dark-950 font-black text-xs shadow-gold-glow group-hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5">
+                  <Receipt size={14} />
+                  <span>Pagar R$ 9,90 (PIX)</span>
+                </button>
+              </div>
+            </div>
+          ) : !isPaidSubscription && trialDaysRemaining > 0 ? (
+            <div 
+              onClick={onNavigateToSubscription}
+              className="cursor-pointer rounded-2xl bg-gradient-to-r from-dark-900 via-dark-950 to-dark-900 border border-emerald-500/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md hover:border-emerald-500/60 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-white">
+                      Degustação VIP Ativa: {trialDaysRemaining} {trialDaysRemaining === 1 ? 'dia restante' : 'dias restantes'}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                      7 Dias Grátis
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Aproveite acesso ilimitado. Sua primeira fatura de apenas R$ 9,90/mês vencerá no dia 10.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition-transform shrink-0 self-end sm:self-auto">
+                <span>Ver Faturas</span>
+                <ChevronRight size={15} />
+              </div>
+            </div>
+          ) : now.getDate() >= 7 && now.getDate() <= 10 ? (
+            <div 
+              onClick={onNavigateToSubscription}
+              className="cursor-pointer rounded-2xl bg-gradient-to-r from-dark-900 via-dark-950 to-gold-950/20 border border-gold-400/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md hover:border-gold-400 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0">
+                  <Receipt size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-white">
+                      Lembrete: Mensalidade de R$ 9,90 vence dia 10
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold-400/20 text-gold-300 border border-gold-400/30 font-bold">
+                      PIX Instantâneo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Mantenha sua conta em dia com compensação automática em menos de 10 segundos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-bold text-gold-400 group-hover:translate-x-1 transition-transform shrink-0 self-end sm:self-auto">
+                <span>Pagar Fatura</span>
+                <ChevronRight size={15} />
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       {/* KPI Cards Row */}

@@ -993,6 +993,9 @@ export function App() {
               onNavigateToCards={() => setActiveTab('cards')}
               onNavigateToShopping={() => setActiveTab('shopping_lists')}
               onNavigateToTutorial={() => setActiveTab('tutorial')}
+              onNavigateToSubscription={() => setActiveTab('subscription_invoices')}
+              isPaidSubscription={isPaidSubscription}
+              trialDaysRemaining={trialDaysRemaining}
             />
           )}
 
