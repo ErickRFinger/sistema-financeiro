@@ -20,6 +20,8 @@ import { getInvestments, deleteInvestment } from '../lib/supabase';
 import { InvestmentModal } from '../components/InvestmentModal';
 import { CurrencyQuotesWidget } from '../components/CurrencyQuotesWidget';
 import { CompoundInterestSimulator } from '../components/CompoundInterestSimulator';
+import { DebtSnowballSimulator } from '../components/DebtSnowballSimulator';
+import { Zap } from 'lucide-react';
 
 interface InvestmentsPageProps {
   accounts: FinancialAccount[];
@@ -31,6 +33,7 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, curr
   const [investments, setInvestments] = useState<FinancialInvestment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeSimulatorTab, setActiveSimulatorTab] = useState<'compound' | 'debt'>('compound');
 
   const loadData = async () => {
     setLoading(true);
@@ -303,8 +306,40 @@ export const InvestmentsPage: React.FC<InvestmentsPageProps> = ({ accounts, curr
         </div>
       </div>
 
-      {/* Compound Interest & Financial Independence Simulator */}
-      <CompoundInterestSimulator isPrivate={isPrivate} />
+      {/* Simuladores Estratégicos: Juros Compostos vs Quitação de Dívidas */}
+      <div className="flex items-center gap-2 mb-4 bg-dark-900/90 p-1.5 rounded-2xl border border-dark-800 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveSimulatorTab('compound')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeSimulatorTab === 'compound'
+              ? 'bg-gold-400 text-dark-950 shadow-gold-glow'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <TrendingUp size={15} />
+          <span>Multiplicador de Patrimônio (Juros Compostos)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSimulatorTab('debt')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeSimulatorTab === 'debt'
+              ? 'bg-gold-400 text-dark-950 shadow-gold-glow'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Zap size={15} />
+          <span>Quitação de Dívidas (Bola de Neve vs Avalanche)</span>
+        </button>
+      </div>
+
+      {activeSimulatorTab === 'compound' ? (
+        <CompoundInterestSimulator isPrivate={isPrivate} />
+      ) : (
+        <DebtSnowballSimulator isPrivate={isPrivate} />
+      )}
 
       {/* Investments List */}
       <div className="rounded-3xl bg-dark-900 border border-dark-800 shadow-dark-card p-5 sm:p-6">

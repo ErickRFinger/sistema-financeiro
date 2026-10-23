@@ -212,6 +212,14 @@ VITE_GEMINI_API_KEY=
     * *Alerta de Contas a Vencer:* Detecção de contas com vencimento hoje ou nos próximos 3 dias, com clique direto para visualização filtrada no Extrato.
     * *Alerta de Fatura do Sistema:* Lembrete da mensalidade de R$ 9,90 com vencimento no dia 10, com acesso direto ao checkout PIX do Mercado Pago.
   * **Comportamento Click-Outside & Auto-Dismiss:** Listener inteligente via `useRef` para fechar o dropdown ao clicar fora ou no botão novamente sem vazamento de memória.
+* **v2.3.0 (23/10/2026):**
+  * **Simulador de Quitação Acelerada de Dívidas (`DebtSnowballSimulator.tsx`):** Calculadora matemática avançada inspirada nos melhores apps de finanças internacionais para eliminar dívidas com base em duas consagradas estratégias:
+    * ⚡ **Método Avalanche (Maior Juro Primeiro):** Amortiza agressivamente as dívidas mais caras (cartão rotativo, cheque especial), minimizando os juros totais pagos ao banco.
+    * ⛄ **Método Bola de Neve (Menor Saldo Primeiro):** Foca nas dívidas de menor saldo para quitá-las rapidamente, liberando fluxo de caixa e gerando vitórias emocionais imediatas.
+  * **Motor Matemático de Efeito Bola de Neve:** À medida que cada dívida é liquidada, o valor de sua parcela mínima é automaticamente incorporado ao aporte extra mensal, acelerando exponencialmente a quitação das dívidas subsequentes.
+  * **Painel Executivo de Indicadores de Impacto:** Exibição do prazo exato para quitação total (com contador de meses antecipados), economia monetária em juros evitados, data da liberdade financeira e lista priorizada com destaque para o alvo ativo ("🎯 Alvo Atual").
+  * **Aba Dupla na Página de Investimentos (`InvestmentsPage.tsx`):** Seletor elegante em abas Black Obsidian & Gold permitindo alternar entre o "Multiplicador de Patrimônio (Juros Compostos)" e a "Quitação de Dívidas".
+
 
 
 
