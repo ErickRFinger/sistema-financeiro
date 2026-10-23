@@ -1,104 +1,170 @@
-# ⚡ Aura Finance | Sistema de Gestão Financeira Black & Gold (SaaS)
+# ⚡ Aura Finance PRO | Sistema de Gestão Financeira Black & Gold (SaaS)
 
 Um sistema financeiro profissional, moderno e completo, desenvolvido sob medida para **comercialização e revenda (White-Label)**. O sistema possui identidade visual de alto padrão em **Preto e Dourado/Amarelo (#0D1017 & #FACC15)** e é **100% responsivo** em todos os tipos de dispositivos: smartphones, tablets, notebooks e computadores desktop.
 
 ---
 
-## 🌟 Principais Recursos
+## 1. 🌟 Visão Geral e Objetivo
 
-### 1. 🤖 Leitor Inteligente de Nota Fiscal com IA (OCR & Visão Computacional)
-- **Upload e Câmera Instantânea**: No celular ou tablet, tire fotos diretamente com a câmera (`capture="environment"`). No computador, arraste PDFs ou fotos de comprovantes.
-- **Efeito Visual Laser Scanner**: Animação em tempo real com barra de progresso durante a leitura dos dados.
-- **Extração Fisiológica de Documentos Brasileiros**:
-  - Reconhecimento de Razão Social / Nome Fantasia do Fornecedor
-  - CNPJ do Emissor (formatado automaticamente)
-  - Data de Emissão da Nota
-  - Chave de Acesso da NF-e (44 dígitos)
-  - Valor Total Líquido (R$)
-  - Itens detectados e descrição
-  - Sugestão inteligente de categoria e forma de pagamento
-- **Modo Híbrido**:
-  - **Modo Gratuito Integrado**: Tesseract.js com dicionário em português + heurísticas de NF-e / NFC-e / DANFE (sem custos adicionais de API).
-  - **Modo Turbo Vision (Google Gemini)**: Ativado opcionalmente ao inserir a API key nas Configurações.
-- **Armazenamento no Supabase**: As notas e comprovantes são salvos automaticamente no bucket `notas_fiscais` com link público associado ao lançamento.
+O **Aura Finance PRO** soluciona o controle financeiro de ponta a ponta para profissionais liberais, autônomos, pequenas e médias empresas, além de controle financeiro pessoal avançado.
 
----
-
-### 2. 📊 Extrato de Gastos e Movimentações
-- **Filtros Rápidos e Dinâmicos**: Hoje, Últimos 7 Dias, Este Mês, Mês Passado, Este Ano, Todos ou Personalizado com calendário.
-- **Filtros Multidimensionais**: Tipo (Receitas/Despesas), Situação (Pago/Pendente), Categoria e Conta Bancária.
-- **Barra de Resumo Dinâmico**: Total de despesas filtradas, receitas e saldo líquido calculados em tempo real.
-- **Exportação Profissional**:
-  - **PDF Executivo**: Relatório pronto para impressão ou envio por WhatsApp/E-mail com design Black & Gold.
-  - **Planilha Excel (.xlsx / .csv)**: Tabela completa para contabilidade ou conferência.
-- **Ações Rápidas**: Alternância de status com 1 clique (Pago ⟷ Pendente), visualização de comprovante e exclusão com recálculo automático de saldo.
+### Principais Capacidades:
+- **Leitor Inteligente de Cupons e Notas Fiscais (NFC-e / DANFE):**
+  - Câmera instantânea no celular (`capture="environment"`) e drag-and-drop no computador.
+  - Efeito laser scanner animado em tempo real com OCR local (Tesseract.js) e Gemini Vision opcional.
+  - Reconhecimento automático de Razão Social, CNPJ, Data de Emissão, Chave de Acesso (44 dígitos), Valor Total e Itens.
+  - Upload automático de comprovantes no Supabase Storage (bucket `notas_fiscais`).
+- **Leitor de Faturas de Cartão em PDF / Foto:**
+  - Extração inteligente de transações, datas e parcelamentos com importação em 1 clique.
+- **Investimentos & Caixinhas Digitais:**
+  - Leitura de prints de telas de bancos digitais (NuBank Caixinhas/Porquinho, PicPay Cofrinho, Inter Poupança).
+  - Projeção e simulador de metas de rentabilidade com base na Taxa Selic a 13,75% a.a.
+- **Central Oficial de Tutoriais & Vídeo com Voz Neural:**
+  - 10 módulos de tutoriais detalhados, FAQ, comandos prontos para a IA e guia de instalação PWA.
+  - Player em Canvas com locução de voz neural de estúdio e versão HTML standalone (`public/demo-video.html`).
+- **Modelo SaaS & Régua de Cobrança:**
+  - 7 dias de degustação gratuita sem exigência de cartão de crédito.
+  - Mensalidade de R$ 9,90 com vencimento no dia 10.
+  - Régua de alertas no Dashboard, status "Em Atraso" e bloqueio aos 30 dias de inadimplência.
+  - Painel administrativo multi-tenant com gestão de planos e isolamento total por usuário.
 
 ---
 
-### 3. 🏦 Painel e Gestão de Contas Bancárias
-- **Sincronização com Supabase**: Conectado diretamente à tabela `financial_accounts` (ex: BTG Pactual, Banco Inter, Sicredi, Mercado Pago).
-- **Transferência entre Contas**: Movimentação interna com atualização automática de saldos.
-- **Investimentos & Reservas**: Integração com a tabela `financial_investments` para acompanhamento de patrimônio.
+## 2. 🛠️ Stack Tecnológica & Pré-requisitos
+
+### Tecnologias:
+- **Linguagem & Runtime:** TypeScript / Node.js (v18+)
+- **Frontend Framework:** React 19 + Vite 8
+- **Estilização:** Tailwind CSS v3 (paleta Black Obsidian `#0D1017` & Gold Glow `#FACC15`)
+- **Banco de Dados & Storage:** Supabase (PostgreSQL + Supabase Storage)
+- **API & Serverless:** Vercel Serverless Functions (`/api/financial.js`, `/api/create-preference.js`)
+- **Inteligência Artificial & OCR:** Tesseract.js (motor local) + Google Gemini Vision (1.5 / 2.0 Flash)
+- **Relatórios & Gráficos:** jsPDF, jsPDF-AutoTable, XLSX, Recharts, Lucide React
+- **Áudio & Vídeo:** Python script (`build_demo_video.py`) + Canvas 2D + MP3 de voz neural
+
+### Pré-requisitos:
+- Node.js 18+ instalado
+- Gerenciador de pacotes npm, pnpm ou yarn
+- Conta no Supabase e credenciais de acesso
 
 ---
 
-### 4. 📱 Experiência Multi-Dispositivo (Mobile First & Desktop)
-- **Smartphones**: Barra de navegação inferior estilo aplicativo nativo (iOS / Android), botão central flutuante para ler NF, cards de leitura rápida.
-- **Tablets e Laptops**: Layout híbrido em colunas e gráficos interativos de fluxo de caixa (Recharts).
-- **Desktop**: Sidebar recolhível, tabelas analíticas com atalhos de teclado e visualização de comprovantes em alta resolução.
+## 3. 🗺️ Mapa da Arquitetura & Estrutura de Arquivos
+
+```
+SISTEMA FINANCEIRO/
+├── .clineignore              # Arquivos ignorados pelo assistente Cline
+├── .clinerules               # Diretrizes estritas de desenvolvimento
+├── .env.example              # Exemplo de variáveis de ambiente
+├── .env                      # Variáveis de ambiente locais (não versionadas)
+├── api/                      # Serverless Functions (Vercel)
+│   ├── financial.js          # API REST com Supabase Service Role (evita bloqueios RLS)
+│   └── create-preference.js  # Gerador de preferências de pagamento Mercado Pago
+├── public/                   # Arquivos públicos e estáticos
+│   ├── audio/                # Áudios narrados com voz neural de estúdio (cenas 1 a 6)
+│   ├── demo-video.html       # Player estático independente em HTML5 + Canvas
+│   ├── manifest.json         # Manifesto PWA para instalação no celular
+│   └── sw.js                 # Service Worker para cache e uso offline
+├── src/                      # Código-fonte principal React
+│   ├── assets/               # Imagens e logotipos estáticos
+│   ├── components/           # Componentes modulares reutilizáveis
+│   │   ├── AIChatDrawer.tsx  # Assistente virtual com controle operacional do sistema
+│   │   ├── CardInvoiceScannerModal.tsx # Scanner de faturas de cartão
+│   │   ├── DemoVideoPlayer.tsx # Player interativo em Canvas com narração neural
+│   │   ├── FinancialGoalTracker.tsx # Rastreador de metas com taxa Selic
+│   │   ├── InvoiceModal.tsx  # Modal de scanner de cupom e nota fiscal
+│   │   └── SubscriptionNoticeBanner.tsx # Banner de cobrança no dia 10
+│   ├── lib/                  # Utilitários, conexões e motores de IA
+│   │   ├── aiScanner.ts      # Motor OCR para notas fiscais
+│   │   ├── bankPrintScanner.ts # Motor OCR para prints de caixinhas/bancos
+│   │   └── supabase.ts       # Cliente Supabase com fallback de resiliência
+│   ├── pages/                # Telas completas da aplicação
+│   │   ├── AccountsPage.tsx  # Gestão de contas bancárias e carteiras
+│   │   ├── AdminSaasPage.tsx # Painel de controle de usuários e planos SaaS
+│   │   ├── CardsPage.tsx     # Cartões de crédito e faturas
+│   │   ├── DashboardPage.tsx # Visão geral de saldo, receitas e despesas
+│   │   ├── InvestmentsPage.tsx # Patrimônio e investimentos
+│   │   ├── SettingsPage.tsx  # Configurações gerais e chave Gemini
+│   │   ├── ShoppingListsPage.tsx # Listas de compras e suprimentos
+│   │   ├── StatementPage.tsx # Extrato completo com filtros e exportação
+│   │   ├── SubscriptionInvoicesPage.tsx # Faturas da mensalidade R$ 9,90
+│   │   └── TutorialPage.tsx  # Central de tutoriais, vídeo e FAQ
+│   ├── types/                # Definições TypeScript
+│   ├── App.tsx               # Orquestrador de rotas e navegação
+│   └── main.tsx              # Ponto de entrada da aplicação
+├── build_demo_video.py       # Script Python gerador do vídeo em HTML
+├── package.json              # Dependências e scripts npm
+├── tailwind.config.js        # Configuração das cores temáticas Black & Gold
+├── vercel.json               # Regras de roteamento e Serverless na Vercel
+└── vite.config.ts            # Configuração do empacotador Vite
+```
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 4. 🚀 Como Rodar & Como Publicar (Comandos Práticos)
 
-- **Frontend**: React 19 + TypeScript + Vite
-- **Estilização**: Tailwind CSS v3 (paleta customizada Black Obsidian & Gold Glow)
-- **Banco de Dados & Storage**: Supabase (`https://hnfhrjgzeivzrcpumkyk.supabase.co`)
-- **Tabelas do Supabase**:
-  - `financial_transactions` (Lançamentos de caixa)
-  - `financial_accounts` (Contas bancárias)
-  - `financial_investments` (Investimentos)
-  - `compras` (Integração de compras)
-  - Bucket `notas_fiscais` (Armazenamento de comprovantes e arquivos de NF)
-- **Inteligência Artificial & OCR**: Tesseract.js (motor local) + Gemini 1.5/2.0 Flash Vision (opcional)
-- **Relatórios**: jsPDF + jsPDF-AutoTable + XLSX
-- **Ícones & Gráficos**: Lucide React + Recharts + Canvas Confetti
-
----
-
-## 🚀 Como Executar Localmente
-
-1. Abra o terminal na pasta do projeto:
+### Execução Local:
+1. **Entrar na pasta:**
    ```bash
-   cd "C:\Users\Erick Finger\Desktop\SISTEMA FINANCEIRO"
+   cd "SISTEMA FINANCEIRO"
    ```
-
-2. Instale as dependências (já instaladas):
+2. **Instalar as dependências:**
    ```bash
    npm install
    ```
-
-3. Inicie o servidor de desenvolvimento:
+3. **Iniciar o servidor de desenvolvimento:**
    ```bash
    npm run dev
    ```
+   * Acesso no computador: `http://localhost:5173`
+   * Acesso no celular/tablet (mesma rede): `http://[SEU-IP-LOCAL]:5173`
 
-4. Acesse pelo navegador:
-   - No computador: `http://localhost:5173`
-   - No celular ou tablet (mesma rede Wi-Fi): `http://192.168.0.131:5173` ou pelo Tailscale / Radmin VPN.
+4. **Validar integridade de build:**
+   ```bash
+   npm run build
+   ```
+
+### Deploy e Publicação:
+- **Deploy via Vercel CLI:**
+  ```bash
+  vercel --prod
+  ```
+- **Deploy contínuo via GitHub:**
+  Basta fazer o push para a branch `main`. A Vercel compila e publica automaticamente em menos de 1 minuto.
 
 ---
 
-## ☁️ Deploy na Vercel e GitHub
+## 5. ⚙️ Configurações & Variáveis de Ambiente
 
-1. **Commit inicial no Git**:
-   ```bash
-   git add .
-   git commit -m "feat: Sistema Financeiro Black and Gold com Leitor de NF por IA e Supabase"
-   ```
+Crie ou edite o arquivo `.env` na raiz do projeto com as chaves correspondentes:
 
-2. **Deploy na Vercel com 1 comando**:
-   ```bash
-   vercel
-   ```
-   Ou vincule o repositório GitHub diretamente na dashboard da [Vercel](https://vercel.com).
+```env
+# Conexão com o Supabase
+VITE_SUPABASE_URL=https://hnfhrjgzeivzrcpumkyk.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI...
+
+# Nome do Sistema (White-Label)
+VITE_SYSTEM_NAME=Aura Finance
+
+# Integração de Pagamento Mercado Pago
+MERCADO_PAGO_ACCESS_TOKEN=APP_USR-...
+
+# Opcional: Chave da Google Gemini API para IA Turbo OCR
+VITE_GEMINI_API_KEY=
+```
+
+---
+
+## 6. 📜 Histórico de Evolução & Decisões Técnicas
+
+* **v1.0.0 (22/10/2026):**
+  * Lançamento do ecossistema Black & Gold com Dashboard, Extrato analítico e Contas.
+  * Integração com Supabase (tabelas `financial_accounts`, `financial_transactions`, `financial_investments`).
+  * Scanner de cupom fiscal com Tesseract.js e efeito visual laser.
+* **v1.1.0 (23/10/2026):**
+  * Implementação da leitura de faturas em PDF e integração de prints de bancos para Caixinhas/Porquinhos NuBank.
+  * Lançamento do rastreador de metas de economia com projeção de rendimento Selic a 13,75% a.a.
+  * Criação da régua de cobrança SaaS: 7 dias grátis, R$ 9,90/mês, vencimento dia 10 e bloqueio em 30 dias de atraso.
+  * Central oficial de tutoriais com 10 tópicos e player com locução de voz neural de estúdio.
+  * Configuração de resiliência em três camadas (Serverless API -> Supabase Client -> LocalStorage cache).

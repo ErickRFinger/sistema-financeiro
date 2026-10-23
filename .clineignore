@@ -1,0 +1,16 @@
+# ========================================================
+# .clineignore - SISTEMA FINANCEIRO (Aura Finance PRO)
+# ========================================================
+node_modules/
+dist/
+.vercel/
+.git/
+.DS_Store
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.mp3
+*.pdf
+*.zip
+public/audio/audio_data.json

@@ -1,0 +1,24 @@
+# Diretrizes Obrigatórias de Desenvolvimento (Padrão Erick Ruan Finger)
+
+Você está trabalhando no projeto **SISTEMA FINANCEIRO (Aura Finance PRO)**. Siga estas regras rigorosamente em toda e qualquer tarefa:
+
+## 1. Stack & Validação de Build
+- O projeto utiliza **React 19 + TypeScript + Vite + Tailwind CSS**.
+- Antes de declarar qualquer tarefa concluída, valide o build de produção sem erros de tipos:
+  ```bash
+  npm run build
+  ```
+
+## 2. Identidade Visual & Design System
+- Respeite a paleta oficial **Black Obsidian & Gold Glow**:
+  - Fundo principal: `#0D1017` e classes `bg-dark-*` / `bg-slate-950`
+  - Destaques dourados: `#FACC15` e classes `text-gold-*` / `border-gold-*` / `bg-amber-*`
+- Mantenha total responsividade (mobile first para smartphones, tablets e desktop).
+
+## 3. Arquitetura de Dados & Supabase
+- Multi-tenant seguro: cada usuário opera isolado por `user_id` / auth session.
+- Toda chamada ao banco deve priorizar a API serverless `/api/financial` com fallback resiliente para o client direto Supabase e cache offline no `localStorage`.
+- Nunca exponha chaves secretas ou Service Role em arquivos do frontend público.
+
+## 4. Documentação Contínua
+- Mantenha o `README.md` estruturado e rigorosamente atualizado com as 6 seções obrigatórias padrão Erick Ruan Finger.
