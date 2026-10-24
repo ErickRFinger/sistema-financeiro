@@ -41,6 +41,7 @@ import {
   getTransactions, 
   createTransaction, 
   updateTransactionStatus, 
+  updateTransaction,
   deleteTransaction,
   createInvestment,
   updateInvestment,
@@ -512,6 +513,22 @@ export function App() {
         localStorage.setItem(`${userKey}_accounts`, JSON.stringify(updatedAccs));
       }
       setSelectedTransaction(null);
+    }
+  };
+
+  // Handle generic transaction update (amount, category, account_id, title, etc.)
+  const handleUpdateTransaction = async (tx: FinancialTransaction, updates: Partial<FinancialTransaction>) => {
+    try {
+      const updated = await updateTransaction(tx, updates);
+      const finalTx = updated || { ...tx, ...updates };
+      setTransactions((prev) => prev.map((t) => (t.id === tx.id ? finalTx : t)));
+      if (selectedTransaction?.id === tx.id) {
+        setSelectedTransaction(finalTx);
+      }
+      return finalTx;
+    } catch (err) {
+      console.error('Erro ao atualizar transação:', err);
+      return null;
     }
   };
 
@@ -1168,6 +1185,7 @@ export function App() {
               isPrivate={isPrivate}
               onCreateTransaction={handleCreateTransaction}
               onDeleteTransaction={handleDeleteTransaction}
+              onUpdateTransaction={handleUpdateTransaction}
               onUpdateTransactionStatus={handleToggleStatus}
               onResetBankBalances={handleResetBankBalances}
               onUpdateAccountBalance={handleUpdateAccountBalance}
@@ -1372,6 +1390,7 @@ export function App() {
           transactions={transactions}
           onCreateTransaction={handleCreateTransaction}
           onDeleteTransaction={handleDeleteTransaction}
+          onUpdateTransaction={handleUpdateTransaction}
           onUpdateTransactionStatus={handleToggleStatus}
           onResetBankBalances={handleResetBankBalances}
           onUpdateAccountBalance={handleUpdateAccountBalance}

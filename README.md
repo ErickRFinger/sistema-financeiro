@@ -327,6 +327,21 @@ VITE_GEMINI_API_KEY=
     * Filtra de forma atômica o dia atual, listando transações realizadas, despesas do dia e receitas geradas em tempo real.
   * **Paridade Total no Widget Flutuante (`AIAssistantChat.tsx`):**
     * O assistente flutuante presente em todas as telas agora conta com botões interativos de Action Chips, leitor de voz neural Web Speech (TTS) e cartões visuais para transferências bancárias, compras parceladas e baixas em lote.
+* **v3.3.0 (24/10/2026) — Engine de Lançamentos de Próxima Geração & Auto-Correção Conversacional:**
+  * **Compreensão de Datas Relativas & Calendário Natural:**
+    * Comandos como *"lança 150 pra gabi ontem"*, *"gastei 80 de almoço anteontem"*, *"boleto de 350 vence amanhã"*, *"conta vence dia 28"* ou *"vence na próxima sexta"* calculam a data real exata no calendário e definem o status (`paid` para passadas e `pending` para futuras).
+  * **Auto-Correção e Edição Conversacional Contínua:**
+    * O usuário pode corrigir ou refinar lançamentos recentes falando naturalmente:
+      * *"Não era 150, era 180"* ou *"muda pra 180"* ➔ ajusta o valor do último lançamento e recalcula o saldo bancário.
+      * *"Troca a conta pro Inter"* ou *"muda pro BTG"* ➔ transfere o lançamento de conta, estorna da antiga e debita da nova.
+      * *"Muda a categoria pra Alimentação"* ➔ reclassifica a categoria instantaneamente.
+      * *"Marca como pago"* ➔ dá baixa imediata.
+  * **Reconhecimento de Fornecedores, Estabelecimentos e Clientes:**
+    * Suporte avançado a frases como *"na Leroy 450 de ferramentas"*, *"no Posto Ipiranga 150 de gasolina"* ou *"cliente Carlos 1200 serviço prestado"*.
+  * **Card Executivo de Lançamento no Chat (`TransactionPreviewCard`):**
+    * Renderização de cards ricos Black & Gold no chat com metadados detalhados (Conta, Data, Categoria, Forma de Pagamento, Status) e botões de ação rápida inline (`[📑 Ver no Extrato]`, `[✏️ Editar]`, `[↩️ Desfazer]`).
+  * **Função Atômica `updateTransaction` (`supabase.ts` & `App.tsx`):**
+    * Atualização universal de transações com recálculo automático de saldos bancários e sincronização com Supabase/Local Storage.
 
 
 

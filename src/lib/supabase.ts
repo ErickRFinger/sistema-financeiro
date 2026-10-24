@@ -513,6 +513,68 @@ export async function updateTransactionStatus(tx: FinancialTransaction, newStatu
 }
 
 /**
+ * Update transaction fields (amount, title, category, account_id, payment_method, date, status)
+ */
+export async function updateTransaction(
+  tx: FinancialTransaction,
+  updates: Partial<FinancialTransaction>
+): Promise<FinancialTransaction | null> {
+  try {
+    const updatedTx: FinancialTransaction = {
+      ...tx,
+      ...updates,
+    };
+
+    const { error } = await supabase
+      .from('financial_transactions')
+      .update(updates)
+      .eq('id', tx.id);
+
+    if (error) {
+      console.warn('Supabase update transaction, fallback to balance adjustment:', error.message);
+    }
+
+    // Adjust balance if amount, account_id, or status changed
+    const accounts = await getAccounts();
+    const oldAccountId = tx.account_id;
+    const newAccountId = updatedTx.account_id;
+    const oldAmount = tx.amount;
+    const newAmount = updatedTx.amount;
+    const oldStatus = tx.status;
+    const newStatus = updatedTx.status;
+    const txType = updatedTx.type;
+
+    if (oldAccountId === newAccountId) {
+      const acc = accounts.find(a => a.id === oldAccountId);
+      if (acc) {
+        const oldEffective = oldStatus === 'paid' ? (txType === 'income' ? oldAmount : -oldAmount) : 0;
+        const newEffective = newStatus === 'paid' ? (txType === 'income' ? newAmount : -newAmount) : 0;
+        const diff = newEffective - oldEffective;
+        if (diff !== 0) {
+          await updateAccountBalance(oldAccountId, acc.balance + diff);
+        }
+      }
+    } else {
+      const oldAcc = accounts.find(a => a.id === oldAccountId);
+      const newAcc = accounts.find(a => a.id === newAccountId);
+      if (oldAcc && oldStatus === 'paid') {
+        const revertDelta = txType === 'income' ? -oldAmount : oldAmount;
+        await updateAccountBalance(oldAccountId, oldAcc.balance + revertDelta);
+      }
+      if (newAcc && newStatus === 'paid') {
+        const applyDelta = txType === 'income' ? newAmount : -newAmount;
+        await updateAccountBalance(newAccountId, newAcc.balance + applyDelta);
+      }
+    }
+
+    return updatedTx;
+  } catch (err) {
+    console.error('Erro ao atualizar transação:', err);
+    return null;
+  }
+}
+
+/**
  * Upload receipt / invoice to Supabase Storage Bucket 'notas_fiscais'
  */
 export async function uploadReceiptFile(file: File): Promise<string | null> {

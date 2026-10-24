@@ -579,63 +579,103 @@ function processWithLocalNLP(
   }
 
   // ==========================================
-  // 5. ALTERAR LANÇAMENTO (STATUS OU VALOR)
+  // 5. AUTO-CORREÇÃO & ALTERAÇÃO INTELIGENTE DE LANÇAMENTOS
+  // Ex: "não era 150, era 180", "muda pra 180", "ops, era 80", "troca a conta pro Inter", "muda a categoria pra Alimentação"
   // ==========================================
-  if (
-    lower.includes('altera') || 
-    lower.includes('alterar') || 
-    lower.includes('muda o') || 
-    lower.includes('mudar o') || 
-    lower.includes('marca como') || 
-    lower.includes('marcar como') || 
-    lower.includes('corrige') || 
-    lower.includes('corrigir')
-  ) {
+  const isCorrection = 
+    /n[aã]o\s+era\b|ops\b|na\s+verdade|muda\s+(pra|pro|para|o|a)?|troca\s+(pra|pro|para|o|a)?|altera|alterar|corrige|corrigir|marca\s+como|marcar\s+como/i.test(lower);
+
+  if (isCorrection) {
     if (transactions.length === 0) {
       return {
         intent: 'general_chat',
-        replyText: 'Você ainda não possui nenhum lançamento registrado para alterar.',
+        replyText: 'Você ainda não possui nenhum lançamento registrado no extrato para alterar.',
       };
     }
 
-    let target = transactions[0];
+    // 1. Identificar o alvo (Target)
+    let target = transactions[0]; // Padrão: transação mais recente
     for (const t of transactions) {
-      if (lower.includes(t.title.toLowerCase())) {
+      if (t.title && lower.includes(t.title.toLowerCase())) {
+        target = t;
+        break;
+      }
+      if (t.category && lower.includes(t.category.toLowerCase())) {
         target = t;
         break;
       }
     }
 
-    // Check for status update
-    if (lower.includes('pago') || lower.includes('paga') || lower.includes('liquidado')) {
+    // 2. Troca de Conta Bancária: "troca pro inter", "muda a conta pro btg", "coloca no inter"
+    if (/conta\s+(pro|pra|para|no|na)|(pro|pra|no|na)\s+(banco\s+)?(inter|btg|mercado|sicredi|caixa)/i.test(lower)) {
+      for (const acc of accounts) {
+        const accLower = acc.name.toLowerCase();
+        const simple = accLower.replace(/^banco\s+/i, '');
+        if (lower.includes(simple) || lower.includes(accLower)) {
+          return {
+            intent: 'update_transaction',
+            targetTransaction: target,
+            transactionUpdates: { new_account_id: acc.id },
+            replyText: `🏦 **Conta Alterada!** O lançamento "${target.title}" (${formatCurrency(target.amount)}) foi transferido para a conta **${acc.name}** com saldo recalculado.`,
+            suggestedChips: ['📑 Ver no Extrato', '📊 Saúde do Caixa', '➕ Novo Lançamento'],
+          };
+        }
+      }
+    }
+
+    // 3. Troca de Categoria: "muda a categoria pra Alimentação", "categoria combustível"
+    if (/categoria|pra\s+(alimenta[cç][aã]o|combust[ií]vel|infraestrutura|equipamentos|aluguel|vendas)/i.test(lower)) {
+      let newCat = 'Outros';
+      if (/alimenta/i.test(lower)) newCat = 'Alimentação & Refeição';
+      else if (/combust[ií]vel|gasolina|transporte/i.test(lower)) newCat = 'Combustível & Transporte';
+      else if (/ferramenta|material|infra/i.test(lower)) newCat = 'Infraestrutura & Ferramentas';
+      else if (/equipamento|hardware|pe[cç]a/i.test(lower)) newCat = 'Equipamentos & Hardware';
+      else if (/aluguel|fixa|luz|água/i.test(lower)) newCat = 'Aluguel & Contas Fixas';
+      else if (/venda|servi[cç]o/i.test(lower)) newCat = 'Vendas & Serviços Prestados';
+
+      return {
+        intent: 'update_transaction',
+        targetTransaction: target,
+        transactionUpdates: { new_category: newCat },
+        replyText: `🏷️ **Categoria Atualizada!** Lançamento "${target.title}" agora está categorizado em **"${newCat}"**.`,
+        suggestedChips: ['📑 Ver no Extrato', '📊 CFO Virtual', '➕ Novo Lançamento'],
+      };
+    }
+
+    // 4. Marcar como Pago / Pendente
+    if (/pago|paga|liquidado|baixar/i.test(lower)) {
       return {
         intent: 'update_transaction',
         targetTransaction: target,
         transactionUpdates: { new_status: 'paid' },
-        replyText: `✅ Lançamento "${target.title}" foi marcado como PAGO.`,
+        replyText: `✅ **Baixa Confirmada!** Lançamento "${target.title}" de ${formatCurrency(target.amount)} foi marcado como **PAGO**.`,
+        suggestedChips: ['📑 Ver no Extrato', '📊 Saúde do Caixa', '➕ Novo Lançamento'],
       };
     }
 
-    if (lower.includes('pendente') || lower.includes('a pagar')) {
+    if (/pendente|a\s+pagar|a\s+vencer/i.test(lower)) {
       return {
         intent: 'update_transaction',
         targetTransaction: target,
         transactionUpdates: { new_status: 'pending' },
-        replyText: `⏳ Lançamento "${target.title}" foi alterado para status PENDENTE.`,
+        replyText: `⏳ **Status Atualizado!** Lançamento "${target.title}" foi alterado para status **PENDENTE**.`,
+        suggestedChips: ['📑 Ver no Extrato', '📊 Saúde do Caixa', '➕ Novo Lançamento'],
       };
     }
 
-    // Check for new amount
-    const amountMatch = input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
-    if (amountMatch) {
-      const rawNum = amountMatch[1].replace(/\./g, '').replace(',', '.');
+    // 5. Correção de Valor: "não era 150, era 180", "muda pra 180", "ops, era 80"
+    const correctionMatch = input.match(/(?:n[aã]o\s+era\s+\d+.*?)?(?:era|foi|pra|para|pro|valor)\s*(?:r\$\s*)?(\d+(?:[,\.]\d{2})?|\d+)/i) ||
+                           input.match(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?)/);
+    if (correctionMatch) {
+      const rawNum = correctionMatch[1].replace(/\./g, '').replace(',', '.');
       const newAmount = parseFloat(rawNum);
-      if (newAmount > 0) {
+      if (newAmount > 0 && Math.abs(newAmount - target.amount) > 0.001) {
         return {
           intent: 'update_transaction',
           targetTransaction: target,
           transactionUpdates: { new_amount: newAmount },
-          replyText: `✏️ O valor de "${target.title}" foi alterado para ${formatCurrency(newAmount)}.`,
+          replyText: `✏️ **Valor Corrigido com Sucesso!**\n\n• **Lançamento:** "${target.title}"\n• **De:** ${formatCurrency(target.amount)} ➔ **Para:** **${formatCurrency(newAmount)}**\n• Saldo bancário e relatórios reajustados instantaneamente!`,
+          suggestedChips: ['📑 Ver no Extrato', '↩️ Desfazer', '📊 Como tá meu caixa?'],
         };
       }
     }
@@ -1171,6 +1211,45 @@ function processWithLocalNLP(
     const segIsIncome = /ganhei|recebi|entrou|faturei|vendi|lucro|salario|pagaram|recebimento|pix recebido|deposito/i.test(segLower);
     const segType: TransactionType = segIsIncome ? 'income' : 'expense';
 
+    // 1. Identificar Data Inteligente (Ontem, Anteontem, Amanhã, Vence dia X, etc.)
+    const now = new Date();
+    const txDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (/\bontem\b/i.test(segLower)) {
+      txDate.setDate(txDate.getDate() - 1);
+    } else if (/\banteontem\b|\bantes\s+de\s+ontem\b/i.test(segLower)) {
+      txDate.setDate(txDate.getDate() - 2);
+    } else if (/\bamanh[aã]\b/i.test(segLower)) {
+      txDate.setDate(txDate.getDate() + 1);
+    } else if (/\bdepois\s+de\s+amanh[aã]\b/i.test(segLower)) {
+      txDate.setDate(txDate.getDate() + 2);
+    } else if (/\bm[eê]s\s+passado\b/i.test(segLower)) {
+      txDate.setMonth(txDate.getMonth() - 1);
+    } else {
+      const dayMatch = segLower.match(/(?:dia|vence\s+dia|vencimento\s+dia)\s+(\d{1,2})/i);
+      if (dayMatch) {
+        const dayNum = parseInt(dayMatch[1]);
+        if (dayNum >= 1 && dayNum <= 31) {
+          txDate.setDate(dayNum);
+        }
+      } else {
+        const weekdayMap: Record<string, number> = {
+          domingo: 0, segunda: 1, terca: 2, terça: 2, quarta: 3, quinta: 4, sexta: 5, sabado: 6, sábado: 6
+        };
+        const weekMatch = segLower.match(/(?:pr[oó]xim[ao]\s+)?(domingo|segunda|ter[cç]a|quarta|quinta|sexta|s[aá]bado)/i);
+        if (weekMatch) {
+          const targetDay = weekdayMap[weekMatch[1].toLowerCase()];
+          if (targetDay !== undefined) {
+            const currentDay = txDate.getDay();
+            let diff = targetDay - currentDay;
+            if (diff <= 0) diff += 7;
+            txDate.setDate(txDate.getDate() + diff);
+          }
+        }
+      }
+    }
+    const finalDateStr = txDate.toISOString().split('T')[0];
+
     // Identificar Conta
     let segAccount = accounts[0] || { id: 'acc_btg', name: 'Conta Principal' };
     for (const acc of accounts) {
@@ -1217,20 +1296,36 @@ function processWithLocalNLP(
     else if (/boleto/.test(segLower)) segPaymentMethod = 'Boleto';
     else if (/dinheiro|especie|espécie/.test(segLower)) segPaymentMethod = 'Dinheiro';
 
-    const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente/.test(segLower);
+    const isPending = /a pagar|a vencer|vence|vencimento|agendado|pendente|amanh[aã]|depois de amanh[aã]/i.test(segLower) || (txDate > now);
     const segStatus: 'paid' | 'pending' = isPending ? 'pending' : 'paid';
 
-    // Título inteligente
+    // Título inteligente com Fornecedores, Clientes e Pessoas
     let segTitle = segType === 'income' ? 'Entrada no Caixa' : 'Despesa Lançada';
 
-    // Captura se foi "pra [pessoa]" (ex: "pra gabi", "para o joao", "pro carlos")
-    const personMatch = segment.match(/(?:pra|para|pro)\s+([a-zA-ZÀ-ÿ]+)/i);
+    const personMatch = segment.match(/(?:pra|para|pro|com)\s+([a-zA-ZÀ-ÿ]+)/i);
+    const storeMatch = segment.match(/(?:no|na|loja|supermercado|posto|farm[aá]cia|padaria)\s+([a-zA-ZÀ-ÿ0-9\s]+?)(?=\s+(?:de|valor|\d|ontem|amanh[aã]|hoje|$))/i);
+    const clientMatch = segment.match(/(?:cliente|servi[cç]o\s+(?:do|da|de))\s+([a-zA-ZÀ-ÿ]+)/i);
+
     if (personMatch) {
       const personName = personMatch[1].charAt(0).toUpperCase() + personMatch[1].slice(1).toLowerCase();
-      segTitle = `${personName}`;
+      const extraWord = segment.replace(new RegExp(`.*?(?:pra|para|pro|com)\\s+${personName}\\s*`, 'i'), '').trim();
+      const cleanExtra = extraWord.replace(/(?:de|no|na|ontem|amanhã|hoje|\d+|r\$|reais).*$/i, '').trim();
+      if (cleanExtra.length >= 3 && !/^(pago|pix|débito|debito|crédito|credito)$/i.test(cleanExtra)) {
+        segTitle = `${personName} - ${cleanExtra.charAt(0).toUpperCase() + cleanExtra.slice(1)}`;
+      } else {
+        segTitle = personName;
+      }
+    } else if (clientMatch) {
+      const clientName = clientMatch[1].charAt(0).toUpperCase() + clientMatch[1].slice(1).toLowerCase();
+      segTitle = `Cliente ${clientName}`;
+    } else if (storeMatch) {
+      const storeName = storeMatch[1].trim();
+      if (storeName.length >= 3) {
+        segTitle = storeName.charAt(0).toUpperCase() + storeName.slice(1);
+      }
     } else {
       const cleaned = segment
-        .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|lança(r)?|lançamento|anota(r)?|registra(r)?|cadastra(r)?|no caixa|na conta|reais|r\$|,00|\.00|de /gi, '')
+        .replace(/ganhei|recebi|gastei|paguei|coloquei|coloca|lança(r)?|lançamento|anota(r)?|registra(r)?|cadastra(r)?|no caixa|na conta|reais|r\$|,00|\.00|de |ontem|amanh[aã]|hoje|anteontem/gi, '')
         .replace(/(\d+(?:\.\d{3})*(?:,\d{2})?|\d+(?:\.\d{2})?|\d+)/g, '')
         .replace(/[,;]/g, '')
         .trim();
@@ -1246,7 +1341,7 @@ function processWithLocalNLP(
       category: segCategory,
       account_id: segAccount.id,
       payment_method: segPaymentMethod,
-      date: new Date().toISOString().split('T')[0],
+      date: finalDateStr,
       status: segStatus,
     };
   };
@@ -1258,11 +1353,12 @@ function processWithLocalNLP(
     const multiTxs = rawSegments.map(s => parseSegmentToTx(s)).filter((t): t is NonNullable<typeof t> => t !== null);
     if (multiTxs.length >= 2) {
       const totalMulti = multiTxs.reduce((sum, t) => sum + t.amount, 0);
-      const summaryList = multiTxs.map(t => `• ${t.title}: ${formatCurrency(t.amount)} (${t.category})`).join('\n');
+      const summaryList = multiTxs.map(t => `• **${t.title}**: ${formatCurrency(t.amount)} (${t.category} - ${t.date})`).join('\n');
       return {
         intent: 'create_multiple_transactions',
         multipleTransactions: multiTxs,
-        replyText: `🚀 Perfeito! Registrei ${multiTxs.length} lançamentos de uma só vez (Total: ${formatCurrency(totalMulti)}):\n\n${summaryList}`,
+        replyText: `🚀 **Múltiplos Lançamentos Registrados (${multiTxs.length})!**\n\n${summaryList}\n\n• **Total Consolidado:** **${formatCurrency(totalMulti)}**`,
+        suggestedChips: ['📑 Ver no Extrato', '↩️ Desfazer', '📊 Saúde do Caixa'],
       };
     }
   }
@@ -1272,10 +1368,15 @@ function processWithLocalNLP(
     const singleTx = parseSegmentToTx(input);
     if (singleTx) {
       const targetAcc = accounts.find(a => a.id === singleTx.account_id) || accounts[0] || { name: 'Conta Principal' };
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isToday = singleTx.date === todayStr;
+      const dateDisplay = isToday ? 'Hoje' : singleTx.date;
+
       return {
         intent: 'create_transaction',
-        replyText: `✅ Lançamento registrado! ${singleTx.type === 'income' ? 'Receita' : 'Despesa'} "${singleTx.title}" de ${formatCurrency(singleTx.amount)} lançada na conta ${targetAcc.name} (${singleTx.category}).`,
+        replyText: `✅ **Lançamento Registrado com Sucesso!**\n\n• **Item:** ${singleTx.title}\n• **Valor:** **${formatCurrency(singleTx.amount)}** (${singleTx.type === 'income' ? 'Receita 🟢' : 'Despesa 🔴'})\n• **Conta:** ${targetAcc.name} | **Forma:** ${singleTx.payment_method}\n• **Data:** ${dateDisplay} | **Status:** ${singleTx.status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}\n• **Categoria:** ${singleTx.category}`,
         transactionData: singleTx,
+        suggestedChips: [`✏️ Mudar Valor`, '📑 Ver no Extrato', '↩️ Desfazer', '📊 Como tá meu caixa?'],
       };
     }
   }

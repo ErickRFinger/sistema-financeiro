@@ -37,6 +37,7 @@ interface AIChatPageProps {
   isPrivate?: boolean;
   onCreateTransaction: (data: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
   onDeleteTransaction?: (tx: FinancialTransaction) => Promise<void>;
+  onUpdateTransaction?: (tx: FinancialTransaction, updates: Partial<FinancialTransaction>) => Promise<any>;
   onUpdateTransactionStatus?: (tx: FinancialTransaction, newStatus: 'paid' | 'pending') => Promise<void>;
   onResetBankBalances?: () => Promise<void>;
   onUpdateAccountBalance?: (accountId: string, newBalance: number) => Promise<void>;
@@ -77,6 +78,7 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
   isPrivate = false,
   onCreateTransaction,
   onDeleteTransaction,
+  onUpdateTransaction,
   onUpdateTransactionStatus,
   onResetBankBalances,
   onUpdateAccountBalance,
@@ -428,11 +430,25 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
         actionTaken = { type: 'transaction_deleted', transaction: result.targetTransaction };
       }
 
-      // 10. ALTERAR LANÇAMENTO
+      // 10. ALTERAR LANÇAMENTO (VALOR, CONTA, CATEGORIA OU STATUS)
       else if (result.intent === 'update_transaction' && result.targetTransaction) {
         const targetTx = result.targetTransaction;
 
-        if (result.transactionUpdates?.new_status && onUpdateTransactionStatus) {
+        if (result.transactionUpdates && onUpdateTransaction) {
+          const updates: Partial<FinancialTransaction> = {};
+          if (result.transactionUpdates.new_status) updates.status = result.transactionUpdates.new_status;
+          if (result.transactionUpdates.new_amount !== undefined) updates.amount = result.transactionUpdates.new_amount;
+          if (result.transactionUpdates.new_category) updates.category = result.transactionUpdates.new_category;
+          if (result.transactionUpdates.new_account_id) updates.account_id = result.transactionUpdates.new_account_id;
+
+          setUndoStack((prev) => [
+            { type: 'transaction_edited', prevTx: targetTx },
+            ...prev
+          ]);
+          const updated = await onUpdateTransaction(targetTx, updates);
+          actionTaken = { type: 'transaction_updated', transaction: updated || { ...targetTx, ...updates } };
+          confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+        } else if (result.transactionUpdates?.new_status && onUpdateTransactionStatus) {
           setUndoStack((prev) => [
             { type: 'status_updated', tx: targetTx, prevStatus: targetTx.status },
             ...prev
@@ -696,20 +712,73 @@ export const AIChatPage: React.FC<AIChatPageProps> = ({
                       </div>
                     )}
 
-                    {/* Transaction Created */}
-                    {msg.actionTaken.type === 'transaction_created' && msg.actionTaken.transaction && (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300 font-bold">
-                        <div className="flex items-center gap-2">
-                          {msg.actionTaken.transaction.type === 'income' ? (
-                            <TrendingUp size={16} className="text-emerald-400" />
-                          ) : (
-                            <TrendingDown size={16} className="text-rose-400" />
-                          )}
-                          <span>{msg.actionTaken.transaction.title}: {formatCurrency(msg.actionTaken.transaction.amount)}</span>
+                    {/* Transaction Created or Updated - Rich Executive Card */}
+                    {(msg.actionTaken.type === 'transaction_created' || msg.actionTaken.type === 'transaction_updated') && msg.actionTaken.transaction && (
+                      <div className="p-3.5 rounded-2xl bg-dark-900 border border-gold-400/40 text-slate-200 space-y-2.5 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                              msg.actionTaken.transaction.type === 'income' 
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            }`}>
+                              {msg.actionTaken.transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                            </span>
+                            <span className="font-bold text-xs text-white truncate max-w-[160px] sm:max-w-[220px]">
+                              {msg.actionTaken.transaction.title}
+                            </span>
+                          </div>
+                          <span className={`font-black text-sm font-mono ${
+                            msg.actionTaken.transaction.type === 'income' ? 'text-emerald-400' : 'text-gold-400'
+                          }`}>
+                            {msg.actionTaken.transaction.type === 'income' ? '+' : '-'} {formatCurrency(msg.actionTaken.transaction.amount)}
+                          </span>
                         </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                          {msg.actionTaken.transaction.type === 'income' ? 'Receita' : 'Despesa'}
-                        </span>
+
+                        <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-400 pt-1 border-t border-dark-800">
+                          <div>
+                            <span className="text-slate-500">Conta:</span>{' '}
+                            <span className="text-slate-200 font-medium">
+                              {accounts.find(a => a.id === msg.actionTaken?.transaction?.account_id)?.name || 'Conta Principal'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Data:</span>{' '}
+                            <span className="text-slate-200 font-medium">
+                              {msg.actionTaken.transaction.transaction_date || 'Hoje'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Categoria:</span>{' '}
+                            <span className="text-slate-200 font-medium truncate block">
+                              {msg.actionTaken.transaction.category || 'Geral'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Status:</span>{' '}
+                            <span className={`font-semibold ${msg.actionTaken.transaction.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {msg.actionTaken.transaction.status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-dark-800/80">
+                          <button
+                            type="button"
+                            onClick={() => onNavigateTab('statement')}
+                            className="flex-1 py-1 px-2 rounded-lg bg-gold-400/10 hover:bg-gold-400/20 text-gold-400 border border-gold-400/30 text-[10px] font-bold transition-all text-center"
+                          >
+                            📑 Ver no Extrato
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSendMessage(`muda o valor de ${msg.actionTaken?.transaction?.title} para `)}
+                            className="py-1 px-2.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-slate-300 text-[10px] font-bold transition-all"
+                            title="Editar este lançamento"
+                          >
+                            ✏️ Editar
+                          </button>
+                        </div>
                       </div>
                     )}
 

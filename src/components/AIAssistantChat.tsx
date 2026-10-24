@@ -39,6 +39,7 @@ interface AIAssistantChatProps {
   transactions: FinancialTransaction[];
   onCreateTransaction: (data: Omit<FinancialTransaction, 'id' | 'created_at'>) => Promise<void>;
   onDeleteTransaction?: (tx: FinancialTransaction) => Promise<void>;
+  onUpdateTransaction?: (tx: FinancialTransaction, updates: Partial<FinancialTransaction>) => Promise<any>;
   onUpdateTransactionStatus?: (tx: FinancialTransaction, newStatus: 'paid' | 'pending') => Promise<void>;
   onResetBankBalances?: () => Promise<void>;
   onUpdateAccountBalance?: (accountId: string, newBalance: number) => Promise<void>;
@@ -57,6 +58,7 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
   transactions,
   onCreateTransaction,
   onDeleteTransaction,
+  onUpdateTransaction,
   onUpdateTransactionStatus,
   onResetBankBalances,
   onUpdateAccountBalance,
@@ -343,11 +345,26 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
       }
 
       // ==========================================
-      // 5. ALTERAR LANÇAMENTO
+      // 5. ALTERAR LANÇAMENTO (VALOR, CONTA, CATEGORIA OU STATUS)
       // ==========================================
       else if (result.intent === 'update_transaction' && result.targetTransaction) {
         const targetTx = result.targetTransaction;
-        if (result.transactionUpdates?.new_status && onUpdateTransactionStatus) {
+
+        if (result.transactionUpdates && onUpdateTransaction) {
+          const updates: Partial<FinancialTransaction> = {};
+          if (result.transactionUpdates.new_status) updates.status = result.transactionUpdates.new_status;
+          if (result.transactionUpdates.new_amount !== undefined) updates.amount = result.transactionUpdates.new_amount;
+          if (result.transactionUpdates.new_category) updates.category = result.transactionUpdates.new_category;
+          if (result.transactionUpdates.new_account_id) updates.account_id = result.transactionUpdates.new_account_id;
+
+          setUndoStack((prev) => [
+            { type: 'transaction_edited', prevTx: targetTx },
+            ...prev
+          ]);
+          const updated = await onUpdateTransaction(targetTx, updates);
+          actionTaken = { type: 'transaction_updated', transaction: updated || { ...targetTx, ...updates } };
+          confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+        } else if (result.transactionUpdates?.new_status && onUpdateTransactionStatus) {
           setUndoStack((prev) => [
             { type: 'status_updated', tx: targetTx, prevStatus: targetTx.status },
             ...prev
@@ -792,11 +809,32 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
                       </div>
                     )}
 
-                    {/* Action pill: Transaction Created */}
-                    {msg.actionTaken && msg.actionTaken.type === 'transaction_created' && (
-                      <div className="mt-2 pt-2 border-t border-dark-800/60 flex items-center gap-2 text-[11px] text-emerald-400 font-bold">
-                        <CheckCircle2 size={13} />
-                        <span>Transação lançada no fluxo de caixa!</span>
+                    {/* Action pill: Transaction Created or Updated */}
+                    {msg.actionTaken && (msg.actionTaken.type === 'transaction_created' || msg.actionTaken.type === 'transaction_updated') && msg.actionTaken.transaction && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-dark-900 border border-gold-400/40 text-slate-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              msg.actionTaken.transaction.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                            }`}>
+                              {msg.actionTaken.transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                            </span>
+                            <span className="font-bold text-xs text-white truncate max-w-[140px]">
+                              {msg.actionTaken.transaction.title}
+                            </span>
+                          </div>
+                          <span className={`font-black text-xs font-mono ${
+                            msg.actionTaken.transaction.type === 'income' ? 'text-emerald-400' : 'text-gold-400'
+                          }`}>
+                            {msg.actionTaken.transaction.type === 'income' ? '+' : '-'} {formatCurrency(msg.actionTaken.transaction.amount)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-dark-800">
+                          <span>{accounts.find(a => a.id === msg.actionTaken?.transaction?.account_id)?.name || 'Conta Principal'}</span>
+                          <span className={msg.actionTaken.transaction.status === 'paid' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                            {msg.actionTaken.transaction.status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}
+                          </span>
+                        </div>
                       </div>
                     )}
 
