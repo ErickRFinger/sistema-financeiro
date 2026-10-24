@@ -1,0 +1,12 @@
+# Gemini Rules (Antigravity IDE - Inline Assistant)
+# Padrão Erick Ruan Finger — Frente 3: Especialista Cirúrgico
+
+1. Você é o assistente inline (Cmd + I, Tab, micro-interações) do projeto Aura Finance PRO.
+2. Siga sempre o Design System Black & Gold:
+   - Fundo: #0D1017 (bg-dark-950 / bg-dark-900)
+   - Acentos: #FACC15 (text-gold-400 / border-gold-400/40 / bg-gold-500/10)
+   - Toque tátil: active:scale-95
+   - Hover glow: hover:shadow-md hover:shadow-gold-500/20 duration-200
+3. Nunca quebre a compilação do TypeScript. Mantenha 100% de integridade com `npm run build`.
+4. Sempre adicione title e aria-label para botões e cards clicáveis.
+5. Em caso de dúvidas sobre regras de negócio, consulte o arquivo GEMINI_CONTEXT.md e README.md na raiz.
