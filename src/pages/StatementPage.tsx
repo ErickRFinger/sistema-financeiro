@@ -599,7 +599,9 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                               e.stopPropagation();
                               onToggleStatus(tx, tx.status === 'paid' ? 'pending' : 'paid');
                             }}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border transition-all ${
+                            title={`Alternar status para ${tx.status === 'paid' ? 'Pendente' : 'Pago'}`}
+                            aria-label={`Status da transação: ${tx.status === 'paid' ? 'Pago' : 'Pendente'}. Clique para alterar.`}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border active:scale-95 transition-all duration-200 hover:shadow-md hover:shadow-gold-500/20 cursor-pointer ${
                               tx.status === 'paid'
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                                 : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
@@ -625,8 +627,9 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="p-1 rounded-lg bg-gold-400/10 text-gold-400 hover:bg-gold-400/20 inline-flex items-center"
+                              className="p-1.5 rounded-lg bg-gold-400/10 text-gold-400 hover:bg-gold-400/20 active:scale-95 inline-flex items-center transition-all duration-200 hover:shadow-md hover:shadow-gold-500/20 cursor-pointer"
                               title="Ver Comprovante Anexo"
+                              aria-label="Ver comprovante anexo da transação em nova aba"
                             >
                               <ExternalLink size={14} />
                             </a>
@@ -700,7 +703,9 @@ export const StatementPage: React.FC<StatementPageProps> = ({
                             e.stopPropagation();
                             onToggleStatus(tx, tx.status === 'paid' ? 'pending' : 'paid');
                           }}
-                          className={`mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          title={`Alternar status para ${tx.status === 'paid' ? 'Pendente' : 'Pago'}`}
+                          aria-label={`Status da transação: ${tx.status === 'paid' ? 'Pago' : 'Pendente'}. Clique para alterar.`}
+                          className={`mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold active:scale-95 transition-all duration-200 hover:shadow-md hover:shadow-gold-500/20 cursor-pointer ${
                             tx.status === 'paid'
                               ? 'bg-emerald-500/10 text-emerald-400'
                               : 'bg-amber-500/10 text-amber-400'

@@ -342,6 +342,14 @@ VITE_GEMINI_API_KEY=
     * Renderização de cards ricos Black & Gold no chat com metadados detalhados (Conta, Data, Categoria, Forma de Pagamento, Status) e botões de ação rápida inline (`[📑 Ver no Extrato]`, `[✏️ Editar]`, `[↩️ Desfazer]`).
   * **Função Atômica `updateTransaction` (`supabase.ts` & `App.tsx`):**
     * Atualização universal de transações com recálculo automático de saldos bancários e sincronização com Supabase/Local Storage.
+* **v3.3.1 (24/10/2026) — Micro-Interações Táteis & Brilho Dourado Inline:**
+  * **Brilho Dourado Suave no Hover (`hover:shadow-md hover:shadow-gold-500/20 duration-200`):**
+    * Aplicado em todos os botões de ação inline dos cards e notificações:
+      * Notificações globais Toast (`Toast.tsx`): botões de ação customizados (`ToastAction`) e botão de fechar notificação com feedback `active:scale-95`.
+      * Cards de lançamento da IA (`AIChatPage.tsx` e `AIAssistantChat.tsx`): botões rápidos `[📑 Ver no Extrato]`, `[✏️ Editar]`, `[↩️ Desfazer]` e action chips inteligentes.
+      * Extrato financeiro (`StatementPage.tsx`): botões inline de status `✓ Pago` / `⏳ Pendente` e link de comprovante anexo.
+  * **Acessibilidade Universal & Tooltips Executivas:**
+    * Atributos descritivos `title` e `aria-label` adicionados a todos os botões de ação inline garantindo acessibilidade para leitores de tela e experiência tátil ao passar o mouse.
 
 
 

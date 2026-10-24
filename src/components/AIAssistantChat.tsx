@@ -16,6 +16,8 @@ import {
   ScanLine,
   CreditCard,
   AlertTriangle,
+  Calendar,
+  Tag,
   Image as ImageIcon,
   Coins,
   Loader2,
@@ -811,29 +813,73 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 
                     {/* Action pill: Transaction Created or Updated */}
                     {msg.actionTaken && (msg.actionTaken.type === 'transaction_created' || msg.actionTaken.type === 'transaction_updated') && msg.actionTaken.transaction && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-dark-900 border border-gold-400/40 text-slate-200 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                              msg.actionTaken.transaction.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                      <div className="mt-2.5 max-w-[280px]">
+                        <div className="p-3 rounded-xl bg-dark-900/90 border border-gold-400/40 text-slate-200 space-y-2 shadow-xl shadow-gold-500/5 transition-all hover:border-gold-400/70">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                msg.actionTaken.transaction.type === 'income' 
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                  : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {msg.actionTaken.transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                              </span>
+                              <span className="font-bold text-xs text-white truncate max-w-[140px]">
+                                {msg.actionTaken.transaction.title}
+                              </span>
+                            </div>
+                            <span className={`font-black text-xs sm:text-sm font-mono ${
+                              msg.actionTaken.transaction.type === 'income' ? 'text-emerald-400' : 'text-gold-400'
                             }`}>
-                              {msg.actionTaken.transaction.type === 'income' ? 'Receita' : 'Despesa'}
-                            </span>
-                            <span className="font-bold text-xs text-white truncate max-w-[140px]">
-                              {msg.actionTaken.transaction.title}
+                              {msg.actionTaken.transaction.type === 'income' ? '+' : '-'} {formatCurrency(msg.actionTaken.transaction.amount)}
                             </span>
                           </div>
-                          <span className={`font-black text-xs font-mono ${
-                            msg.actionTaken.transaction.type === 'income' ? 'text-emerald-400' : 'text-gold-400'
-                          }`}>
-                            {msg.actionTaken.transaction.type === 'income' ? '+' : '-'} {formatCurrency(msg.actionTaken.transaction.amount)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-dark-800">
-                          <span>{accounts.find(a => a.id === msg.actionTaken?.transaction?.account_id)?.name || 'Conta Principal'}</span>
-                          <span className={msg.actionTaken.transaction.status === 'paid' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
-                            {msg.actionTaken.transaction.status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}
-                          </span>
+
+                          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <Wallet size={11} className="text-slate-500" />
+                              <span className="text-slate-200 font-medium truncate">
+                                {accounts.find(a => a.id === msg.actionTaken?.transaction?.account_id)?.name || 'Conta Principal'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <Calendar size={11} className="text-slate-500" />
+                              <span className="text-slate-200 font-medium truncate">
+                                {msg.actionTaken.transaction.transaction_date || 'Hoje'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <Tag size={11} className="text-slate-500" />
+                              <span className="text-slate-200 font-medium truncate">
+                                {msg.actionTaken.transaction.category || 'Geral'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CreditCard size={11} className="text-slate-500" />
+                              <span className={`font-semibold ${msg.actionTaken.transaction.status === 'paid' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {msg.actionTaken.transaction.status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 pt-1.5 border-t border-dark-800/80">
+                            <button
+                              type="button"
+                              onClick={() => onNavigateTab?.('statement')}
+                              className="flex-1 py-1.5 px-2 rounded-xl bg-gold-400/10 hover:bg-gold-400/20 text-gold-400 border border-gold-400/30 text-[10px] font-bold transition-all active:scale-95 cursor-pointer text-center"
+                              title="Ver lançamento no extrato"
+                            >
+                              📑 Ver no Extrato
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSendMessage(`muda o valor de ${msg.actionTaken?.transaction?.title} para `)}
+                              className="py-1.5 px-2 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer"
+                              title="Editar este lançamento"
+                            >
+                              ✏️ Editar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -929,7 +975,9 @@ export const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
                             key={idx}
                             type="button"
                             onClick={() => handleSendMessage(chip)}
-                            className="px-2 py-1 rounded-lg bg-gold-400/10 hover:bg-gold-400/20 border border-gold-400/30 text-[11px] font-bold text-gold-400 transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow-xs"
+                            title={`Enviar comando rápido: "${chip}"`}
+                            aria-label={`Comando rápido: ${chip}`}
+                            className="px-2 py-1 rounded-lg bg-gold-400/10 hover:bg-gold-400/20 border border-gold-400/30 text-[11px] font-bold text-gold-400 transition-all duration-200 hover:shadow-md hover:shadow-gold-500/20 active:scale-95 cursor-pointer flex items-center gap-1 shadow-xs"
                           >
                             <Sparkles size={10} className="text-gold-400" />
                             <span>{chip}</span>

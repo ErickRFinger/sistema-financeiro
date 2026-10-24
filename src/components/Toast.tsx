@@ -11,25 +11,38 @@ import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-interface ToastItem {
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+  title?: string;
+  'aria-label'?: string;
+}
+
+export interface ToastItem {
   id: string;
   message: string;
   type: ToastType;
   duration?: number;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
   toasts: ToastItem[];
   addToast: (item: Omit<ToastItem, 'id'>) => void;
   removeToast: (id: string) => void;
-  showToast: (message: string, type: ToastType, duration?: number) => void;
+  showToast: (message: string, type?: ToastType, duration?: number, action?: ToastAction) => void;
 }
 
 // Standalone event emitter for showToast() callable from anywhere
 const listeners = new Set<(toast: Omit<ToastItem, 'id'>) => void>();
 
-export const showToast = (message: string, type: ToastType = 'success', duration = 3000) => {
-  listeners.forEach((fn) => fn({ message, type, duration }));
+export const showToast = (
+  message: string,
+  type: ToastType = 'success',
+  duration = 3000,
+  action?: ToastAction
+) => {
+  listeners.forEach((fn) => fn({ message, type, duration, action }));
 };
 
 export const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -158,12 +171,28 @@ const ToastItemView: React.FC<{ toast: ToastItem; onRemove: (id: string) => void
         <p className={`text-sm font-medium ${config.text}`}>{toast.message}</p>
       </div>
       <div className="flex-shrink-0 flex items-center gap-2">
+        {toast.action && (
+          <button
+            type="button"
+            onClick={() => {
+              toast.action?.onClick();
+              onRemove(toast.id);
+            }}
+            title={toast.action.title || toast.action.label}
+            aria-label={toast.action['aria-label'] || toast.action.title || toast.action.label}
+            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-gold-400 text-dark-950 hover:bg-gold-300 active:scale-95 transition-all hover:shadow-md hover:shadow-gold-500/20 duration-200 cursor-pointer"
+          >
+            {toast.action.label}
+          </button>
+        )}
         <button
+          type="button"
           onClick={() => onRemove(toast.id)}
-          className="p-1 rounded hover:bg-slate-800/50 transition-colors"
+          title="Fechar notificação"
           aria-label="Fechar notificação"
+          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 active:scale-95 transition-all duration-200 hover:shadow-md hover:shadow-gold-500/20 cursor-pointer"
         >
-          <X className="w-4 h-4 text-slate-500 hover:text-white" />
+          <X className="w-4 h-4" />
         </button>
       </div>
       <div className="absolute bottom-0 left-0 h-1 overflow-hidden rounded-full bg-slate-800/50 w-full">

@@ -33,7 +33,8 @@
 
 ---
 
-## 🎯 TAREFA 3 (Para Gemini no Editor via `Cmd + I`):
-- No arquivo `src/pages/AIChatPage.tsx`, selecionar os botões de ação dos cards e aplicar:
-  - Shimmer dourado suave no hover: `hover:shadow-md hover:shadow-gold-500/20 transition-all duration-200`.
-  - Tooltips com acessibilidade `aria-label` e `title`.
+## 🎯 TAREFA 3 (Concluída ✅):
+- No arquivo `src/pages/AIChatPage.tsx`, `src/components/AIAssistantChat.tsx`, `src/components/Toast.tsx` e `src/pages/StatementPage.tsx`:
+  - ✅ Shimmer dourado suave no hover: `hover:shadow-md hover:shadow-gold-500/20 transition-all duration-200`.
+  - ✅ Feedback tátil físico: `active:scale-95`.
+  - ✅ Tooltips com acessibilidade `aria-label` e `title` em todos os botões inline.
